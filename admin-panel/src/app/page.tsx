@@ -1,36 +1,176 @@
 "use client";
 
 import React, { useState } from "react";
-
-interface Game {
-  id: string;
-  name: string;
-  type: string;
-  icon: string;
-  status: "Active" | "Inactive";
-  scans: number;
-  winRate: string;
-  shadowColor: string;
-}
+import RoleHeader from "../components/RoleHeader";
+import CustomDropdown from "../components/CustomDropdown";
+import SuperAdminDashboard from "../components/SuperAdminDashboard";
+import GlobalAnalyticsTab from "../components/tabs/super-admin/GlobalAnalyticsTab";
+import BillingPayoutsTab from "../components/tabs/super-admin/BillingPayoutsTab";
+import GlobalTemplatesTab from "../components/tabs/super-admin/GlobalTemplatesTab";
+import AnalyticsTab from "../components/tabs/AnalyticsTab";
+import BrandingTab from "../components/tabs/BrandingTab";
+import WalletTab from "../components/tabs/WalletTab";
+import SubscriptionTab from "../components/tabs/SubscriptionTab";
+import AuditLogsTab from "../components/tabs/AuditLogsTab";
+import QRStudio from "../components/QRStudio";
+import CreateStoreModal from "../components/CreateStoreModal";
+import { logAction } from "../lib/auditLogger";
+import { UserRole, TierLevel, Game, MiniGameConfig } from "../types";
+import GameManagerTab from "../components/tabs/GameManagerTab";
+import { MerchantAccount } from "../components/SuperAdminDashboard";
 
 const initialGames: Game[] = [
-  { id: "1", name: "Spin the Wheel", type: "Wheel", icon: "🎡", status: "Active", scans: 1420, winRate: "15%", shadowColor: "shadow-flat-purple" },
-  { id: "2", name: "Instant Lottery", type: "Scratch", icon: "🎟️", status: "Active", scans: 950, winRate: "8%", shadowColor: "shadow-flat-orange" },
-  { id: "3", name: "Slot Machine", type: "Slots", icon: "🎰", status: "Active", scans: 2100, winRate: "12%", shadowColor: "shadow-flat-pink" },
-  { id: "4", name: "Catch & Win", type: "Catch", icon: "🧺", status: "Inactive", scans: 430, winRate: "20%", shadowColor: "shadow-flat-green" },
-  { id: "5", name: "Snakes & Ladders", type: "Board", icon: "🐍", status: "Active", scans: 880, winRate: "10%", shadowColor: "shadow-flat-black" },
+  { id: "1", name: "Spin to Win", type: "Wheel", icon: "🎡", status: "Active", scans: 1240, winRate: 15, reward: "Free Coffee", shadowColor: "shadow-flat-blue" },
+  { id: "2", name: "Instant Lottery", type: "Scratch", icon: "🎟️", status: "Active", scans: 950, winRate: 8, reward: "10% Off Pastry", shadowColor: "shadow-flat-orange" },
+  { id: "3", name: "Slot Machine", type: "Slots", icon: "🎰", status: "Active", scans: 2100, winRate: 12, reward: "Free Size Upgrade", shadowColor: "shadow-flat-pink" },
+  { id: "4", name: "Catch & Win", type: "Catch", icon: "🧺", status: "Inactive", scans: 430, winRate: 20, reward: "Buy 1 Get 1 Free", shadowColor: "shadow-flat-green" },
+  { id: "5", name: "Snakes & Ladders", type: "Board", icon: "🐍", status: "Active", scans: 880, winRate: 10, reward: "Secret Item", shadowColor: "shadow-flat-black" },
 ];
 
-export default function AdminDashboard() {
+export default function AdminPortal() {
+  const [role, setRole] = useState<UserRole>("store_admin");
+  const [tier, setTier] = useState<TierLevel>("Pro Store");
+  const [impersonatedStore, setImpersonatedStore] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "analytics" | "branding" | "wallet" | "subscription" | "qr-studio" | "audit-logs" | "game-manager"
+  >("overview");
+
+  const [superAdminTab, setSuperAdminTab] = useState<
+    "merchants" | "global-analytics" | "billing" | "global-templates" | "audit-logs"
+  >("merchants");
+
+  const updateUrl = (newRole: UserRole, newTab: string) => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams();
+      params.set("role", newRole);
+      params.set("tab", newTab);
+      window.history.pushState({ role: newRole, tab: newTab }, "", `?${params.toString()}`);
+    }
+  };
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlRole = params.get("role") as UserRole;
+      const urlTab = params.get("tab");
+
+      if (urlRole === "super_admin" || urlRole === "store_admin") {
+        setRole(urlRole);
+      }
+      if (urlTab) {
+        if (urlRole === "super_admin") {
+          setSuperAdminTab(urlTab as any);
+        } else {
+          setActiveTab(urlTab as any);
+        }
+      }
+
+      const handlePopState = () => {
+        const p = new URLSearchParams(window.location.search);
+        const r = p.get("role") as UserRole;
+        const t = p.get("tab");
+        if (r) setRole(r);
+        if (t) {
+          if (r === "super_admin") setSuperAdminTab(t as any);
+          else setActiveTab(t as any);
+        }
+      };
+
+      window.addEventListener("popstate", handlePopState);
+      return () => window.removeEventListener("popstate", handlePopState);
+    }
+  }, []);
+
   const [games, setGames] = useState<Game[]>(initialGames);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
+  const [settingsGameId, setSettingsGameId] = useState<string | null>(null);
   const [newGameName, setNewGameName] = useState("");
   const [newGameIcon, setNewGameIcon] = useState("🎡");
 
+  const [miniGameConfigs, setMiniGameConfigs] = useState<MiniGameConfig[]>([
+    {
+      id: "mg-1", slug: "coffee-tower", name: "Coffee Stack Tower", icon: "☕",
+      enabled: true, difficulty: "medium", maxDailyPlays: 0,
+      rewardTiers: [
+        { id: "t1", pointThreshold: 5, rewardName: "Free Cookie", rewardDescription: "Any cookie from the display" },
+        { id: "t2", pointThreshold: 15, rewardName: "Free Coffee", rewardDescription: "Any regular size coffee" },
+        { id: "t3", pointThreshold: 30, rewardName: "20% Off Order", rewardDescription: "20% discount on total bill" },
+      ],
+      stats: { totalPlaysToday: 342, avgScore: 8, rewardsClaimed: 47 },
+    },
+    {
+      id: "mg-2", slug: "flappy-barista", name: "Flappy Barista", icon: "🐦",
+      enabled: true, difficulty: "medium", maxDailyPlays: 5,
+      rewardTiers: [
+        { id: "t4", pointThreshold: 10, rewardName: "Free Pastry", rewardDescription: "Any pastry item" },
+        { id: "t5", pointThreshold: 25, rewardName: "Buy 1 Get 1 Free", rewardDescription: "On any drink" },
+      ],
+      stats: { totalPlaysToday: 218, avgScore: 6, rewardsClaimed: 31 },
+    },
+    {
+      id: "mg-3", slug: "barista-catch", name: "Barista Catch", icon: "🍽️",
+      enabled: true, difficulty: "easy", maxDailyPlays: 0,
+      rewardTiers: [
+        { id: "t6", pointThreshold: 100, rewardName: "10% Off", rewardDescription: "10% off next order" },
+        { id: "t7", pointThreshold: 300, rewardName: "Free Combo Meal", rewardDescription: "Any combo from the lunch menu" },
+        { id: "t8", pointThreshold: 500, rewardName: "VIP Gold Card", rewardDescription: "Month-long 15% discount card" },
+      ],
+      stats: { totalPlaysToday: 156, avgScore: 185, rewardsClaimed: 22 },
+    },
+  ]);
+
+  const handleUpdateMiniGameConfig = (updated: MiniGameConfig) => {
+    setMiniGameConfigs((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  };
+
+  const [storesList, setStoresList] = useState<string[]>([
+    "Brew & Bites Cafe (Main Branch)",
+    "Downtown Tacos & Tequila",
+    "Pixel Arcade Cafe",
+  ]);
+  const [currentStore, setCurrentStore] = useState(storesList[0]);
+
+  const handleStoreCreated = (newStore: MerchantAccount) => {
+    setStoresList([newStore.storeName, ...storesList]);
+    setCurrentStore(newStore.storeName);
+  };
+
+  const handleImpersonateStore = (storeName: string, storeTier: TierLevel) => {
+    setImpersonatedStore(storeName);
+    setCurrentStore(storeName);
+    setTier(storeTier);
+    setRole("store_admin");
+    setActiveTab("overview");
+  };
+
+  const handleExitImpersonation = () => {
+    setImpersonatedStore(null);
+    setRole("super_admin");
+  };
+
   const toggleStatus = (id: string) => {
+    const game = games.find(g => g.id === id);
+    const newStatus = game?.status === "Active" ? "Inactive" : "Active";
+
     setGames(prev =>
-      prev.map(g => (g.id === id ? { ...g, status: g.status === "Active" ? "Inactive" : "Active" } : g))
+      prev.map(g => (g.id === id ? { ...g, status: newStatus } : g))
     );
+
+    if (game) {
+      logAction({
+        actorName: role === "super_admin" ? "Koushik (Super Admin)" : "Store Manager",
+        actorEmail: role === "super_admin" ? "koushik@forstore.app" : "manager@brewbites.com",
+        actorRole: role === "super_admin" ? "Super Admin" : "Store Admin",
+        ipAddress: "192.168.1.104",
+        action: "STORE_GAME_TOGGLE",
+        actionCategory: "CAMPAIGN",
+        targetType: "Game Campaign",
+        targetName: game.name,
+        details: `Toggled ${game.name} status to ${newStatus} for store ${currentStore}.`,
+      });
+    }
   };
 
   const addGame = (e: React.FormEvent) => {
@@ -38,212 +178,303 @@ export default function AdminDashboard() {
     if (!newGameName.trim()) return;
 
     const newGame: Game = {
-      id: String(games.length + 1),
+      id: Date.now().toString(),
       name: newGameName,
       type: "Custom",
       icon: newGameIcon,
-      status: "Active",
+      status: "Inactive",
       scans: 0,
-      winRate: "10%",
-      shadowColor: "shadow-flat-yellow",
+      winRate: 10,
+      reward: "TBD",
+      shadowColor: "shadow-flat-blue",
     };
 
     setGames([...games, newGame]);
+
+    logAction({
+      actorName: role === "super_admin" ? "Koushik (Super Admin)" : "Store Manager",
+      actorEmail: role === "super_admin" ? "koushik@forstore.app" : "manager@brewbites.com",
+      actorRole: role === "super_admin" ? "Super Admin" : "Store Admin",
+      ipAddress: "192.168.1.104",
+      action: "STORE_GAME_CREATE",
+      actionCategory: "CAMPAIGN",
+      targetType: "Game Campaign",
+      targetName: newGameName,
+      details: `Created new game campaign "${newGameName}" for store ${currentStore}.`,
+    });
+
     setNewGameName("");
     setShowAddModal(false);
   };
 
+  const updateGameSettings = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (settingsGameId) {
+      setSettingsGameId(null);
+    }
+  };
+
+  const storeAdminTabs = [
+    { id: "overview", label: "Overview", icon: "📊" },
+    { id: "analytics", label: "Analytics", icon: "📈" },
+    { id: "branding", label: "Branding", icon: "🎨" },
+    { id: "wallet", label: "Wallet", icon: "💳" },
+    { id: "subscription", label: "Subscription", icon: "⭐" },
+    { id: "qr-studio", label: "QR Studio", icon: "📱", badge: "New" },
+    { id: "game-manager", label: "Game Manager", icon: "🎮", badge: "New" },
+    { id: "audit-logs", label: "Audit Logs", icon: "📜" },
+  ];
+
+  const superAdminTabs = [
+    { id: "merchants", label: "Merchants", icon: "👑" },
+    { id: "global-analytics", label: "Global Analytics", icon: "📈" },
+    { id: "billing", label: "Billing & Payouts", icon: "💳" },
+    { id: "global-templates", label: "Global Templates", icon: "🎮", badge: "New" },
+    { id: "audit-logs", label: "System Audit Logs", icon: "📜" },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen bg-[#F6F3EB]">
-      {/* Navigation Header */}
-      <header className="flex items-center justify-between px-8 py-5 border-b-2 border-black bg-white max-w-7xl mx-auto w-full mt-4 rounded-2xl">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            <span className="text-lg">⚙️</span>
-          </div>
-          <span className="font-serif font-black text-2xl tracking-tight">ForStore Admin</span>
-        </div>
+      {/* Top Global Role Switcher Bar */}
+      <RoleHeader
+        currentRole={role}
+        currentTier={tier}
+        onRoleChange={(newRole) => {
+          setRole(newRole);
+          const defaultTab = newRole === "super_admin" ? superAdminTab : activeTab;
+          updateUrl(newRole, defaultTab);
+        }}
+        onTierChange={setTier}
+        impersonatedStore={impersonatedStore}
+        onExitImpersonation={handleExitImpersonation}
+      />
 
-        <nav className="flex items-center gap-6 font-semibold">
-          <span className="bg-orange-50 border border-orange-200 text-[#FF4C29] px-3 py-1 rounded-full text-xs font-bold">
-            Live Dashboard
-          </span>
-          <a href="/" className="hover:text-black/70 transition-colors text-sm">
-            View Live Site ↗
-          </a>
-        </nav>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-8 py-10 flex flex-col gap-10">
-        {/* Page Title Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-4xl font-bold text-black">Loyalty Game Management</h1>
-            <p className="text-[#4A4A4A] mt-1">Design, monitor, and configure QR code loyalty games for your stores.</p>
-          </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-[#111111] text-white py-3.5 px-6 rounded-xl font-bold border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all text-sm flex items-center gap-2 self-start sm:self-auto"
-          >
-            + Create New Game
-          </button>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-2xl p-6 border-2 border-black shadow-[4px_4px_0px_0px_#8B5CF6]">
-            <p className="text-xs font-bold text-black/50 tracking-wider">TOTAL SCANS</p>
-            <h3 className="font-serif text-3xl font-black mt-2 text-black">5,780</h3>
-            <span className="text-emerald-700 text-xs font-bold block mt-2">↑ 14% vs last week</span>
+      {/* Main Header Bar */}
+      <header className={`border-b-2 border-black sticky top-0 z-40 ${role === "super_admin" ? "bg-[#111111] text-white" : "bg-white text-black"}`}>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#FF4C29] rounded-xl border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000]">
+              <span className="text-white font-black text-xl">F</span>
+            </div>
+            <div>
+              <h1 className="font-serif font-black text-2xl tracking-tight">
+                {role === "super_admin" ? "ForStore HQ" : "ForStore"}
+              </h1>
+              <p className={`text-[10px] font-bold tracking-widest uppercase -mt-1 ${role === "super_admin" ? "text-[#FF4C29]" : "text-black/40"}`}>
+                {role === "super_admin" ? "Super Admin Panel" : "Store Admin Panel"}
+              </p>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29]">
-            <p className="text-xs font-bold text-black/50 tracking-wider">ACTIVE GAMES</p>
-            <h3 className="font-serif text-3xl font-black mt-2 text-black">
-              {games.filter(g => g.status === "Active").length} / {games.length}
-            </h3>
-            <span className="text-black/60 text-xs font-bold block mt-2">Running across 3 locations</span>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 border-2 border-black shadow-[4px_4px_0px_0px_#10B981]">
-            <p className="text-xs font-bold text-black/50 tracking-wider">TOTAL REWARDS CLAIMED</p>
-            <h3 className="font-serif text-3xl font-black mt-2 text-black">812</h3>
-            <span className="text-emerald-700 text-xs font-bold block mt-2">Win Rate Average: ~12%</span>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 border-2 border-black shadow-[4px_4px_0px_0px_#F59E0B]">
-            <p className="text-xs font-bold text-black/50 tracking-wider">NEW LOYALTY USERS</p>
-            <h3 className="font-serif text-3xl font-black mt-2 text-black">1,245</h3>
-            <span className="text-emerald-700 text-xs font-bold block mt-2">↑ 22% monthly growth</span>
-          </div>
-        </div>
-
-        {/* Table & Management Container */}
-        <div className="bg-white border-2 border-black rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#000000]">
-          <div className="bg-black/5 p-5 border-b-2 border-black flex items-center justify-between">
-            <h2 className="font-serif text-xl font-bold text-black">Configure Store Games</h2>
-            <span className="text-xs font-semibold text-black/60">Updated just now</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b-2 border-black bg-[#FBF9F4] text-xs font-bold uppercase tracking-wider text-black">
-                  <th className="p-4 pl-6">Game Info</th>
-                  <th className="p-4">Type</th>
-                  <th className="p-4">Total Scans</th>
-                  <th className="p-4">Win Probability</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 pr-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/10">
-                {games.map(game => (
-                  <tr key={game.id} className="hover:bg-black/[0.02] transition-colors text-sm text-black">
-                    <td className="p-4 pl-6 font-semibold flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-lg border border-black/20 flex items-center justify-center text-lg bg-white ${game.shadowColor.replace("shadow-flat-", "bg-")}-50`}>
-                        {game.icon}
-                      </div>
-                      {game.name}
-                    </td>
-                    <td className="p-4 font-medium text-black/70">{game.type}</td>
-                    <td className="p-4 font-bold">{game.scans}</td>
-                    <td className="p-4 font-semibold">{game.winRate}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
-                        game.status === "Active"
-                          ? "bg-emerald-50 border-emerald-300 text-emerald-800"
-                          : "bg-red-50 border-red-300 text-red-800"
-                      }`}>
-                        {game.status}
-                      </span>
-                    </td>
-                    <td className="p-4 pr-6 text-right">
-                      <div className="inline-flex gap-2">
-                        <button
-                          onClick={() => toggleStatus(game.id)}
-                          className="bg-transparent border border-black hover:bg-black/5 font-semibold text-xs py-1.5 px-3 rounded-lg transition-colors"
-                        >
-                          {game.status === "Active" ? "Deactivate" : "Activate"}
-                        </button>
-                        <button className="bg-[#111111] text-white hover:bg-black/85 font-semibold text-xs py-1.5 px-3 rounded-lg transition-colors">
-                          Config
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </main>
-
-      {/* Create New Game Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#F6F3EB] rounded-2xl border-2 border-black shadow-[6px_6px_0px_0px_#000000] p-6 max-w-md w-full relative">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-4 right-4 font-bold text-lg hover:text-black/70"
-            >
-              ✕
-            </button>
-            <h3 className="font-serif text-2xl font-bold text-black mb-4">Create New Loyalty Game</h3>
-            <form onSubmit={addGame} className="flex flex-col gap-4">
-              <div>
-                <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1.5">
-                  Game Name
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Memory Matching"
-                  value={newGameName}
-                  onChange={e => setNewGameName(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-black bg-white focus:outline-none focus:ring-1 focus:ring-[#FF4C29]"
+          <div className="flex items-center gap-4">
+            {role === "store_admin" && (
+              <div className="w-64">
+                <CustomDropdown
+                  options={storesList}
+                  value={currentStore}
+                  onChange={setCurrentStore}
                 />
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-bold text-black/70 uppercase tracking-wider mb-1.5">
-                  Select Game Icon
-                </label>
-                <div className="grid grid-cols-5 gap-2 text-2xl">
-                  {["🎡", "🎟️", "🎰", "🧺", "🐍", "👆", "🎲", "🧩", "🃏", "🎳"].map(ico => (
-                    <button
-                      key={ico}
-                      type="button"
-                      onClick={() => setNewGameIcon(ico)}
-                      className={`p-2 rounded-lg border-2 transition-all ${
-                        newGameIcon === ico ? "border-[#FF4C29] bg-white scale-110" : "border-transparent hover:bg-black/5"
-                      }`}
-                    >
-                      {ico}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <button className={`p-2 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] hover:shadow-none transition-all relative ${role === "super_admin" ? "bg-[#222222]" : "bg-[#FBF9F4]"}`}>
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#FF4C29] rounded-full border-2 border-black animate-pulse"></span>
+              🔔
+            </button>
 
-              <div className="flex gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-sm bg-white hover:bg-black/5 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-[#111111] text-white rounded-xl font-bold text-sm border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all"
-                >
-                  Create Game
-                </button>
+            <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border-2 border-black ${role === "super_admin" ? "bg-white text-black" : "bg-black text-white"}`}>
+              <div className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs">
+                {role === "super_admin" ? "👑" : "🧑‍💼"}
               </div>
-            </form>
+              <span className="font-bold text-sm">
+                {role === "super_admin" ? "Super Admin" : "Store Manager"}
+              </span>
+            </div>
           </div>
         </div>
-      )}
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 flex flex-col md:flex-row gap-8">
+        {/* Sidebar Navigation */}
+        <aside className="w-full md:w-64 flex-shrink-0">
+          <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto pb-4 md:pb-0 sticky top-24">
+            {role === "super_admin" ? (
+              superAdminTabs.map((tab) => {
+                const isActive = superAdminTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setSuperAdminTab(tab.id as any);
+                      updateUrl("super_admin", tab.id);
+                    }}
+                    className={`
+                      flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all border-2 text-left
+                      ${isActive 
+                        ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_#FF4C29] translate-y-[-2px]' 
+                        : 'bg-white text-black/60 border-transparent hover:border-black/10 hover:bg-black/5'
+                      }
+                    `}
+                  >
+                    <span className={isActive ? "opacity-100" : "opacity-50"}>{tab.icon}</span>
+                    {tab.label}
+                    {tab.badge && (
+                      <span className={`ml-auto text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${isActive ? 'bg-[#FF4C29] border-black text-white' : 'bg-black/5 border-black/10 text-black/40'}`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              storeAdminTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id as any);
+                      updateUrl("store_admin", tab.id);
+                    }}
+                    className={`
+                      flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all border-2 text-left
+                      ${isActive 
+                        ? 'bg-black text-[#ffffff] border-black shadow-[4px_4px_0px_0px_#FF4C29] translate-y-[-2px]' 
+                        : 'bg-white text-black/60 border-transparent hover:border-black/10 hover:bg-black/5'
+                      }
+                    `}
+                  >
+                    <span className={isActive ? "opacity-100" : "opacity-50"}>{tab.icon}</span>
+                    {tab.label}
+                    {tab.badge && (
+                      <span className={`ml-auto text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${isActive ? 'bg-[#FF4C29] border-black text-white' : 'bg-black/5 border-black/10 text-black/40'}`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </nav>
+        </aside>
+
+        {/* Content Area */}
+        <section className="flex-1 min-w-0">
+          {role === "super_admin" ? (
+            <>
+              {superAdminTab === "merchants" && (
+                <SuperAdminDashboard
+                  onImpersonateStore={handleImpersonateStore}
+                  onCreateStore={() => setShowCreateStoreModal(true)}
+                />
+              )}
+              {superAdminTab === "global-analytics" && <GlobalAnalyticsTab />}
+              {superAdminTab === "billing" && <BillingPayoutsTab />}
+              {superAdminTab === "global-templates" && <GlobalTemplatesTab />}
+              {superAdminTab === "audit-logs" && <AuditLogsTab />}
+            </>
+          ) : (
+            <>
+              {activeTab === "overview" && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-2xl p-5 border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29]">
+                      <p className="text-sm font-bold text-black/50">Active Campaigns</p>
+                      <h3 className="font-serif text-3xl font-black mt-1">
+                        {games.filter(g => g.status === "Active").length}
+                      </h3>
+                    </div>
+                    <div className="bg-white rounded-2xl p-5 border-2 border-black shadow-[4px_4px_0px_0px_#332FD0]">
+                      <p className="text-sm font-bold text-black/50">Total Scans (30d)</p>
+                      <h3 className="font-serif text-3xl font-black mt-1">4,280</h3>
+                    </div>
+                    <div className="bg-white rounded-2xl p-5 border-2 border-black shadow-[4px_4px_0px_0px_#10B981]">
+                      <p className="text-sm font-bold text-black/50">Rewards Claimed</p>
+                      <h3 className="font-serif text-3xl font-black mt-1">612</h3>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border-2 border-black rounded-3xl overflow-hidden shadow-[6px_6px_0px_0px_#000000]">
+                    <div className="p-6 border-b-2 border-black bg-[#FBF9F4] flex justify-between items-center">
+                      <h3 className="font-serif text-xl font-bold text-black">Campaign Performance</h3>
+                      <span className="bg-black text-white px-3 py-1 rounded-full text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29]">
+                        {tier}
+                      </span>
+                    </div>
+                    <div className="p-6 flex flex-col gap-4">
+                      {games.map(game => (
+                        <div key={game.id} className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl border-2 border-black bg-white hover:bg-black/[0.02] transition-colors gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl border-2 border-black ${game.shadowColor} bg-white`}>
+                              {game.icon}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-black">{game.name}</h4>
+                              <p className="text-xs font-semibold text-black/50">{game.type} • {game.reward}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-6">
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-black/50">Scans</p>
+                              <p className="font-black text-black">{game.scans}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs font-bold text-black/50">Win Rate</p>
+                              <p className="font-black text-[#10B981]">{game.winRate}%</p>
+                            </div>
+                            <button 
+                              onClick={() => toggleStatus(game.id)}
+                              className={`px-4 py-2 rounded-lg font-bold text-xs border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] hover:shadow-none transition-all w-24 ${
+                                game.status === 'Active' ? 'bg-[#FF4C29] text-white' : 'bg-white text-black'
+                              }`}
+                            >
+                              {game.status}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {activeTab === "analytics" && <AnalyticsTab />}
+              {activeTab === "branding" && <BrandingTab />}
+              {activeTab === "wallet" && <WalletTab />}
+              {activeTab === "subscription" && <SubscriptionTab currentTier={tier} onTierChange={setTier} />}
+              {activeTab === "qr-studio" && (
+                <QRStudio
+                  games={games}
+                  showAddModal={showAddModal}
+                  setShowAddModal={setShowAddModal}
+                  newGameName={newGameName}
+                  setNewGameName={setNewGameName}
+                  newGameIcon={newGameIcon}
+                  setNewGameIcon={setNewGameIcon}
+                  handleCreateGame={addGame}
+                  settingsGameId={settingsGameId}
+                  setSettingsGameId={setSettingsGameId}
+                  updateGameSettings={updateGameSettings}
+                />
+              )}
+              {activeTab === "game-manager" && (
+                <GameManagerTab
+                  configs={miniGameConfigs}
+                  onUpdateConfig={handleUpdateMiniGameConfig}
+                />
+              )}
+              {activeTab === "audit-logs" && <AuditLogsTab />}
+            </>
+          )}
+        </section>
+      </main>
+
+      <CreateStoreModal
+        isOpen={showCreateStoreModal}
+        onClose={() => setShowCreateStoreModal(false)}
+        onStoreCreated={handleStoreCreated}
+      />
     </div>
   );
 }

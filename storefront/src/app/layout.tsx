@@ -1,22 +1,30 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "ForStore - Gamified Loyalty for Local Stores",
-  description: "Turn every visit into a game. Set up a QR-based game in minutes.",
+  title: "ForStore | White-Label Gamified Loyalty Platform & QR Engine for Local Stores",
+  description:
+    "Turn every customer visit into a game. White-label gamified QR loyalty platform for cafes, restaurants, and retail stores with subscription plans and pay-as-you-go wallet credits.",
+  keywords: [
+    "QR loyalty system",
+    "white label gamification",
+    "cafe loyalty rewards",
+    "restaurant QR games",
+    "spin the wheel customer loyalty",
+    "pay as you go QR marketing",
+  ],
+  openGraph: {
+    title: "ForStore | Gamified Loyalty & White-Label QR Engine",
+    description: "Engage cafe customers with instant QR mini-games under your own brand.",
+    url: "https://forstore.app",
+    siteName: "ForStore SaaS",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ForStore | White-Label QR Loyalty SaaS",
+    description: "Custom branded QR minigames & pay-as-you-go customer loyalty for local stores.",
+  },
 };
 
 export default function RootLayout({
@@ -25,11 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${fraunces.variable} ${plusJakartaSans.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col font-sans bg-[#F6F3EB] text-[#1A1A1A]">
+    <html lang="en">
+      <body className="antialiased bg-[#F6F3EB] text-[#1A1A1A] font-sans">
         {children}
       </body>
     </html>
