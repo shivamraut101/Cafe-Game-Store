@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
+import { submitGameSessionAction } from "../../actions/gameActions";
 
 // ─── Tuned Constants ─────────────────────────────────────
 const W = 340;
@@ -42,6 +43,7 @@ export default function FlappyBaristaGame() {
   const waitRef = useRef(0);
   const [, forceRender] = React.useState(0);
   const rerender = useCallback(() => forceRender((n) => n + 1), []);
+  const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
 
   const birdRef = useRef({ y: H / 2 - 40, vy: 0, rot: 0, tRot: 0, flapFrame: 0 });
   const pipesRef = useRef<Pipe[]>([]);
@@ -539,9 +541,20 @@ export default function FlappyBaristaGame() {
           burst(BIRD_X, bird.y, "#FF4C29", 18);
           burst(BIRD_X, bird.y, "#FFF", 10);
           if (window.navigator?.vibrate) window.navigator.vibrate([120, 60, 180]);
-          if (scoreRef.current > bestRef.current) bestRef.current = scoreRef.current;
-          ptsRef.current += scoreRef.current * 15;
+          const fs = scoreRef.current;
+          if (fs > bestRef.current) bestRef.current = fs;
+          ptsRef.current += fs * 15;
           rerender();
+
+          // Submit session & check for reward vouchers via Server Action
+          submitGameSessionAction({ gameSlug: "flappy-barista", score: fs }).then((res) => {
+            if (res.success && res.rewardEarned && res.claimCode) {
+              setEarnedReward({
+                rewardName: res.rewardEarned.rewardName,
+                claimCode: res.claimCode,
+              });
+            }
+          });
         }
       }
 
@@ -699,6 +712,23 @@ export default function FlappyBaristaGame() {
                 <span className="text-black/35">Best: {bestRef.current}</span>
               </div>
             </div>
+
+            {/* Earned Reward Voucher Banner */}
+            {earnedReward && (
+              <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-black w-full p-4 rounded-2xl border-2 border-black mb-4 shadow-[4px_4px_0px_0px_#000] text-center animate-bounce">
+                <span className="text-[10px] font-black uppercase tracking-wider block text-black/60">🎉 YOU WON A REWARD!</span>
+                <h4 className="font-serif text-lg font-black my-0.5">{earnedReward.rewardName}</h4>
+                <p className="font-mono font-black text-xs bg-black text-white px-3 py-1 rounded-lg inline-block my-1">
+                  Code: {earnedReward.claimCode}
+                </p>
+                <a
+                  href={`/claim/${earnedReward.claimCode}`}
+                  className="block mt-2 text-[11px] font-black text-black underline hover:opacity-80"
+                >
+                  SHOW TO STAFF AT COUNTER 📱
+                </a>
+              </div>
+            )}
 
             <div className="w-full py-3.5 bg-emerald-400 text-black rounded-2xl font-black text-sm border-2 border-black shadow-[3px_3px_0px_0px_#000] text-center">
               TAP TO PLAY AGAIN 🔄

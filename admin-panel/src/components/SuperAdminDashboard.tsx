@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TierLevel } from "./SubscriptionPlanCard";
 import { logAction } from "../lib/auditLogger";
 import CreateStoreModal from "./CreateStoreModal";
 import CustomDropdown from "./CustomDropdown";
+import { getSuperAdminMerchantsAction } from "../app/actions/adminActions";
 
 export interface MerchantAccount {
   id: string;
@@ -21,79 +22,6 @@ export interface MerchantAccount {
   aiCreditsUsed: number;
 }
 
-const mockMerchants: MerchantAccount[] = [
-  {
-    id: "M-101",
-    storeName: "Brew & Bites Cafe (Main)",
-    ownerEmail: "owner@brewbites.com",
-    plan: "Pro Store",
-    status: "Active",
-    walletBalance: 1455,
-    totalScans: 12400,
-    joinedDate: "2026-03-12",
-    whiteLabelOverride: true,
-    watermarkRemoved: false,
-    churnRisk: "Low",
-    aiCreditsUsed: 4250,
-  },
-  {
-    id: "M-102",
-    storeName: "Downtown Tacos & Tequila",
-    ownerEmail: "manager@downtowntacos.com",
-    plan: "Enterprise",
-    status: "Active",
-    walletBalance: 8200,
-    totalScans: 45100,
-    joinedDate: "2026-01-20",
-    whiteLabelOverride: true,
-    watermarkRemoved: true,
-    churnRisk: "Low",
-    aiCreditsUsed: 12500,
-  },
-  {
-    id: "M-103",
-    storeName: "Corner Bakery & Espresso",
-    ownerEmail: "hello@cornerbakery.com",
-    plan: "Starter",
-    status: "Trialing",
-    walletBalance: 200,
-    totalScans: 180,
-    joinedDate: "2026-07-28",
-    whiteLabelOverride: false,
-    watermarkRemoved: false,
-    churnRisk: "Medium",
-    aiCreditsUsed: 50,
-  },
-  {
-    id: "M-104",
-    storeName: "Pixel Arcade Cafe",
-    ownerEmail: "contact@pixelarcade.io",
-    plan: "Pro Store",
-    status: "Active",
-    walletBalance: 520,
-    totalScans: 9800,
-    joinedDate: "2026-05-14",
-    whiteLabelOverride: true,
-    watermarkRemoved: false,
-    churnRisk: "High",
-    aiCreditsUsed: 200,
-  },
-  {
-    id: "M-105",
-    storeName: "The Vintage Tea Room",
-    ownerEmail: "info@vintagetea.co",
-    plan: "Starter",
-    status: "Suspended",
-    walletBalance: 0,
-    totalScans: 40,
-    joinedDate: "2026-06-01",
-    whiteLabelOverride: false,
-    watermarkRemoved: false,
-    churnRisk: "High",
-    aiCreditsUsed: 0,
-  },
-];
-
 interface SuperAdminDashboardProps {
   onImpersonateStore?: (storeName: string, tier: TierLevel) => void;
   onCreateStore?: () => void;
@@ -103,11 +31,30 @@ export default function SuperAdminDashboard({
   onImpersonateStore,
   onCreateStore,
 }: SuperAdminDashboardProps) {
-  const [merchants, setMerchants] = useState<MerchantAccount[]>(mockMerchants);
+  const [merchants, setMerchants] = useState<MerchantAccount[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMerchantForCredits, setSelectedMerchantForCredits] = useState<MerchantAccount | null>(null);
   const [creditAddAmount, setCreditAddAmount] = useState(500);
   const [isCreateStoreOpen, setIsCreateStoreOpen] = useState(false);
+
+  useEffect(() => {
+    fetchMerchants();
+  }, []);
+
+  const fetchMerchants = async () => {
+    try {
+      setLoading(true);
+      const res = await getSuperAdminMerchantsAction();
+      if (res.success && res.merchants) {
+        setMerchants(res.merchants as any);
+      }
+    } catch (e) {
+      console.error("Failed to load merchants from DB", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredMerchants = merchants.filter(
     m =>

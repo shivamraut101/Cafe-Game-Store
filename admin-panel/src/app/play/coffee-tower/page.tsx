@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Matter from "matter-js";
+import { submitGameSessionAction } from "../../actions/gameActions";
 
 const ITEMS = [
   { name: "Coffee ☕", color: "#FF4C29" },
@@ -27,6 +28,7 @@ export default function CoffeeTowerGame() {
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [waitTime, setWaitTime] = useState(0);
   const [showPerfect, setShowPerfect] = useState(false);
+  const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
@@ -261,6 +263,16 @@ export default function CoffeeTowerGame() {
       if (fs > highScore) setHighScore(fs);
       setEarnedPoints((p) => p + fs * 10);
       setGameState("gameover");
+
+      // Submit session & check for reward vouchers via Server Action
+      submitGameSessionAction({ gameSlug: "coffee-tower", score: fs }).then((res) => {
+        if (res.success && res.rewardEarned && res.claimCode) {
+          setEarnedReward({
+            rewardName: res.rewardEarned.rewardName,
+            claimCode: res.claimCode,
+          });
+        }
+      });
       return;
     }
 
@@ -412,6 +424,23 @@ export default function CoffeeTowerGame() {
               <h3 className="font-serif text-3xl font-black text-[#FF4C29]">{score} CUPS</h3>
               <p className="text-[11px] font-bold text-emerald-700 mt-1">+{score * 10} Cafe Points earned</p>
             </div>
+
+            {/* Earned Reward Voucher Banner */}
+            {earnedReward && (
+              <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-black w-full p-4 rounded-2xl border-2 border-black mb-4 shadow-[4px_4px_0px_0px_#000] text-center animate-bounce">
+                <span className="text-[10px] font-black uppercase tracking-wider block text-black/60">🎉 YOU WON A REWARD!</span>
+                <h4 className="font-serif text-lg font-black my-0.5">{earnedReward.rewardName}</h4>
+                <p className="font-mono font-black text-xs bg-black text-white px-3 py-1 rounded-lg inline-block my-1">
+                  Code: {earnedReward.claimCode}
+                </p>
+                <a
+                  href={`/claim/${earnedReward.claimCode}`}
+                  className="block mt-2 text-[11px] font-black text-black underline hover:opacity-80"
+                >
+                  SHOW TO STAFF AT COUNTER 📱
+                </a>
+              </div>
+            )}
 
             <div className="w-full py-4 bg-emerald-400 text-black rounded-2xl font-black text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] text-center cursor-pointer">
               TAP TO PLAY AGAIN 🔄

@@ -111,8 +111,16 @@ export default function QRStudio({
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrCodeInstance, setQrCodeInstance] = useState<any>(null);
 
-  // Permanent Digital Hub URL
-  const targetUrl = `https://forstore.app/play/${storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  // QR Code Destination URL (Defaults to the /arcade website hub where games are listed)
+  const defaultUrl = typeof window !== "undefined" ? `${window.location.origin}/arcade` : "http://localhost:3001/arcade";
+  const [targetUrl, setTargetUrl] = useState(defaultUrl);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !targetUrl.includes("localhost") && !targetUrl.includes(window.location.origin)) {
+      setTargetUrl(`${window.location.origin}/arcade`);
+    }
+  }, []);
 
   const handleSelectPreset = (preset: ThemePreset) => {
     setActiveTheme(preset);
@@ -327,9 +335,39 @@ export default function QRStudio({
 
           {!isAiMode && (
             <div className="border-t-2 border-black/10 pt-4">
-              <div className="bg-amber-50 rounded-xl p-3 border-2 border-amber-300 flex flex-col gap-1 text-xs">
-                <span className="font-bold text-amber-900">🔗 Permanent Arcade URL (Embedded in QR):</span>
-                <span className="font-mono text-black/70 truncate">{targetUrl}</span>
+              <div className="bg-amber-50 rounded-2xl p-3.5 border-2 border-amber-300 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-amber-900 flex items-center gap-1.5">
+                    <span>🔗</span> QR Redirect Destination (Website Arcade Hub)
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(targetUrl);
+                      setCopiedUrl(true);
+                      setTimeout(() => setCopiedUrl(false), 2000);
+                    }}
+                    className="text-[10px] font-black uppercase px-2.5 py-1 bg-black text-white rounded-lg border border-black shadow-[1px_1px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all"
+                  >
+                    {copiedUrl ? "COPIED! ✅" : "COPY URL 📋"}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={targetUrl}
+                  onChange={(e) => setTargetUrl(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border-2 border-black font-mono text-xs font-bold bg-white focus:outline-none focus:border-[#FF4C29]"
+                />
+                <div className="flex justify-between items-center text-[10px] font-bold text-amber-800">
+                  <span>When scanned, users land on this site to pick a game</span>
+                  <a
+                    href={targetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-black font-black"
+                  >
+                    TEST REDIRECT 🚀
+                  </a>
+                </div>
               </div>
             </div>
           )}

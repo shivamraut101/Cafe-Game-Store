@@ -4,15 +4,17 @@ dotenv.config({ path: ".env.local" });
 
 import mongoose from "mongoose";
 import * as Models from "../src/lib/models";
-
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/cafe-game-store";
+import { getResolvedMongoURI } from "../src/lib/db";
 
 async function seed() {
-  console.log("🌱 Connecting to MongoDB Atlas...");
-  console.log(`URI: ${MONGODB_URI.substring(0, 30)}...`);
+  const envMode = (process.env.MONGODB_ENV || "demo").toUpperCase();
+  const mongoUri = getResolvedMongoURI();
 
-  await mongoose.connect(MONGODB_URI);
-  console.log("✅ Connected to MongoDB Atlas!\n");
+  console.log(`🌱 Connecting to MongoDB Atlas [${envMode} DATABASE]...`);
+  console.log(`URI: ${mongoUri.substring(0, 45)}...`);
+
+  await mongoose.connect(mongoUri);
+  console.log(`✅ Connected to ${envMode} Database on MongoDB Atlas!\n`);
 
   const {
     Store,
@@ -26,7 +28,7 @@ async function seed() {
   } = Models;
 
   // Clear existing data
-  console.log("🗑️  Clearing existing data...");
+  console.log(`🗑️  Clearing existing data from [${envMode} DB]...`);
   await Promise.all([
     Store.deleteMany({}),
     User.deleteMany({}),
@@ -299,7 +301,7 @@ async function seed() {
   console.log(`   ✅ ${auditLogs.length} audit logs created`);
 
   // ─── Summary ────────────────────────────────────────────
-  console.log("\n🎉 Seed complete! Database summary:");
+  console.log(`\n🎉 Seed complete! [${envMode} DATABASE] summary:`);
   console.log(`   Stores:           ${await Store.countDocuments()}`);
   console.log(`   Users:            ${await User.countDocuments()}`);
   console.log(`   MiniGameConfigs:  ${await MiniGameConfig.countDocuments()}`);

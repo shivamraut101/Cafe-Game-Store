@@ -1,18 +1,72 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getStoreBrandingAction, updateStoreBrandingAction } from "../../app/actions/adminActions";
 
 export default function BrandingTab() {
   const [storeName, setStoreName] = useState("Brew & Bites Cafe");
   const [tagline, setTagline] = useState("Your daily dose of caffeine and fun.");
   const [primaryColor, setPrimaryColor] = useState("#FF4C29");
-  
+  const [secondaryColor, setSecondaryColor] = useState("#332FD0");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchBranding();
+  }, []);
+
+  const fetchBranding = async () => {
+    try {
+      setLoading(true);
+      const res = await getStoreBrandingAction();
+      if (res.success && res.branding) {
+        setStoreName(res.branding.storeName || "Brew & Bites Cafe");
+        setTagline(res.branding.tagline || "");
+        setPrimaryColor(res.branding.primaryColor || "#FF4C29");
+        setSecondaryColor(res.branding.secondaryColor || "#332FD0");
+      }
+    } catch (e) {
+      console.error("Failed to load branding from DB", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setMsg(null);
+      const res = await updateStoreBrandingAction({
+        storeName,
+        primaryColor,
+        secondaryColor,
+      });
+
+      if (res.success) {
+        setMsg("✅ Branding saved to MongoDB Atlas successfully!");
+      } else {
+        setMsg("❌ Failed to save branding to DB.");
+      }
+    } catch (e: any) {
+      setMsg("❌ Error saving to database.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-8 pb-12">
+    <div className="flex flex-col gap-8 pb-12 select-none">
       <div>
-        <h2 className="font-serif text-3xl font-bold text-black mb-2">Branding & Theme</h2>
-        <p className="text-sm font-semibold text-black/60">Customize how your Arcade Hub looks to your customers.</p>
+        <h2 className="font-serif text-3xl font-bold text-black mb-1">Branding & Theme (Live DB)</h2>
+        <p className="text-sm font-semibold text-black/60">Customize how your Arcade Hub looks and save to MongoDB Atlas.</p>
       </div>
+
+      {msg && (
+        <div className="p-3 bg-black text-white rounded-xl text-xs font-bold border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29]">
+          {msg}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Col: Controls */}
@@ -41,104 +95,76 @@ export default function BrandingTab() {
                   className="w-full p-3 rounded-xl border-2 border-black bg-[#FBF9F4] font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4C29] transition-all"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Theme Colors */}
+          <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_#000000]">
+            <h3 className="font-serif text-xl font-bold text-black mb-4">Theme Accent Colors</h3>
+            
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">Primary Color</label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="color" 
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-12 h-12 rounded-xl border-2 border-black cursor-pointer bg-transparent"
+                  />
+                  <input 
+                    type="text" 
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-32 p-3 rounded-xl border-2 border-black bg-[#FBF9F4] font-mono text-sm font-bold focus:outline-none uppercase"
+                  />
+                </div>
+              </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">Arcade Logo</label>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-xl border-2 border-black bg-[#FBF9F4] flex items-center justify-center overflow-hidden">
-                    <span className="text-3xl">☕</span>
-                  </div>
-                  <button className="bg-black text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black/80 transition-colors">
-                    Upload PNG
-                  </button>
-                  <button className="text-black/50 hover:text-red-500 text-xs font-bold transition-colors">
-                    Remove
-                  </button>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">Secondary Accent</label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="color" 
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="w-12 h-12 rounded-xl border-2 border-black cursor-pointer bg-transparent"
+                  />
+                  <input 
+                    type="text" 
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="w-32 p-3 rounded-xl border-2 border-black bg-[#FBF9F4] font-mono text-sm font-bold focus:outline-none uppercase"
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Color Theme */}
-          <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_#000000]">
-            <h3 className="font-serif text-xl font-bold text-black mb-4">Arcade Color Theme</h3>
-            
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-3">Primary Brand Color</label>
-              <div className="flex items-center gap-3 mb-4">
-                <input 
-                  type="color" 
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-12 h-12 rounded-lg cursor-pointer border-2 border-black p-0 overflow-hidden"
-                />
-                <input 
-                  type="text" 
-                  value={primaryColor.toUpperCase()}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  className="w-28 p-2 rounded-lg border-2 border-black font-mono text-sm uppercase text-center"
-                />
-              </div>
-
-              <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">Quick Presets</label>
-              <div className="flex gap-2">
-                {["#FF4C29", "#332FD0", "#00A86B", "#FF007F", "#FCA311"].map(color => (
-                  <button 
-                    key={color}
-                    onClick={() => setPrimaryColor(color)}
-                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${primaryColor === color ? 'border-black scale-110 shadow-sm' : 'border-transparent'}`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <button className="w-full py-4 bg-[#111111] text-white rounded-xl font-bold text-lg border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all">
-            Save Brand Settings
+          {/* Save Button */}
+          <button
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="w-full py-4 bg-black text-white border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50"
+          >
+            {saving ? "SAVING TO MONGO DB..." : "SAVE BRANDING TO DB 💾"}
           </button>
         </div>
 
         {/* Right Col: Live Preview */}
-        <div className="sticky top-24 h-[600px] flex items-center justify-center bg-black/5 rounded-3xl border-2 border-black/10 overflow-hidden">
-          {/* Phone Mockup */}
-          <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 shadow-2xl relative">
-            {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl z-20"></div>
-            
-            {/* Screen */}
-            <div className="w-full h-full bg-[#F6F3EB] rounded-[30px] overflow-hidden relative border-2 border-black">
-              
-              {/* Header */}
-              <div className="p-6 pb-4 pt-10" style={{ backgroundColor: primaryColor }}>
-                <div className="w-12 h-12 bg-white rounded-xl border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_#000] mb-3">
-                  ☕
-                </div>
-                <h3 className="font-serif font-black text-xl text-white tracking-tight">{storeName}</h3>
-                <p className="text-white/80 text-xs font-medium mt-1">{tagline}</p>
-              </div>
+        <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_#000000] flex flex-col gap-4">
+          <h3 className="font-serif text-xl font-bold text-black border-b-2 border-black pb-3">Live Mobile Hub Preview</h3>
+          
+          <div className="w-full max-w-sm mx-auto bg-[#F6F3EB] border-4 border-black rounded-3xl p-5 shadow-[6px_6px_0px_0px_#000000] flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="font-serif text-lg font-black text-black">{storeName}</span>
+              <span className="w-3 h-3 rounded-full border border-black" style={{ backgroundColor: primaryColor }} />
+            </div>
 
-              {/* Body */}
-              <div className="p-4 flex flex-col gap-3 h-full overflow-y-auto pb-20">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-black/40 mb-1">Active Games</div>
-                
-                {[
-                  { icon: "🎡", name: "Spin the Wheel" },
-                  { icon: "🎟️", name: "Scratch Card" },
-                  { icon: "🎰", name: "Slot Machine" }
-                ].map(g => (
-                  <div key={g.name} className="bg-white p-3 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-3 group cursor-pointer">
-                    <div className="w-10 h-10 rounded-lg bg-black/5 flex items-center justify-center text-xl">{g.icon}</div>
-                    <div className="flex-1 font-bold text-sm">{g.name}</div>
-                    <div className="w-6 h-6 rounded-full border-2 border-black flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Overlay Gradient for scrolling effect */}
-              <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-[#F6F3EB] to-transparent pointer-events-none"></div>
+            <div className="p-4 rounded-2xl border-3 border-black text-white font-bold" style={{ backgroundColor: primaryColor }}>
+              <p className="text-xs uppercase tracking-wider opacity-80">Active Campaign</p>
+              <h4 className="font-serif text-lg font-black">Coffee Stack Challenge</h4>
+              <p className="text-xs mt-1 opacity-90">Play now to win 20% Off!</p>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import RoleHeader from "../components/RoleHeader";
 import CustomDropdown from "../components/CustomDropdown";
 import SuperAdminDashboard from "../components/SuperAdminDashboard";
@@ -18,14 +18,13 @@ import { logAction } from "../lib/auditLogger";
 import { UserRole, TierLevel, Game, MiniGameConfig } from "../types";
 import GameManagerTab from "../components/tabs/GameManagerTab";
 import { MerchantAccount } from "../components/SuperAdminDashboard";
-
-const initialGames: Game[] = [
-  { id: "1", name: "Spin to Win", type: "Wheel", icon: "🎡", status: "Active", scans: 1240, winRate: 15, reward: "Free Coffee", shadowColor: "shadow-flat-blue" },
-  { id: "2", name: "Instant Lottery", type: "Scratch", icon: "🎟️", status: "Active", scans: 950, winRate: 8, reward: "10% Off Pastry", shadowColor: "shadow-flat-orange" },
-  { id: "3", name: "Slot Machine", type: "Slots", icon: "🎰", status: "Active", scans: 2100, winRate: 12, reward: "Free Size Upgrade", shadowColor: "shadow-flat-pink" },
-  { id: "4", name: "Catch & Win", type: "Catch", icon: "🧺", status: "Inactive", scans: 430, winRate: 20, reward: "Buy 1 Get 1 Free", shadowColor: "shadow-flat-green" },
-  { id: "5", name: "Snakes & Ladders", type: "Board", icon: "🐍", status: "Active", scans: 880, winRate: 10, reward: "Secret Item", shadowColor: "shadow-flat-black" },
-];
+import {
+  getCampaignsAction,
+  getMiniGameConfigsAction,
+  getSuperAdminMerchantsAction,
+  toggleCampaignStatusAction,
+  updateMiniGameConfigAction,
+} from "./actions/adminActions";
 
 export default function AdminPortal() {
   const [role, setRole] = useState<UserRole>("store_admin");
@@ -39,6 +38,50 @@ export default function AdminPortal() {
   const [superAdminTab, setSuperAdminTab] = useState<
     "merchants" | "global-analytics" | "billing" | "global-templates" | "audit-logs"
   >("merchants");
+
+  const [games, setGames] = useState<Game[]>([]);
+  const [miniGameConfigs, setMiniGameConfigs] = useState<MiniGameConfig[]>([]);
+  const [storesList, setStoresList] = useState<string[]>([]);
+  const [currentStore, setCurrentStore] = useState<string>("");
+  const [loadingDb, setLoadingDb] = useState(true);
+
+  // Fetch live DB data on mount
+  useEffect(() => {
+    async function loadDataFromDb() {
+      try {
+        setLoadingDb(true);
+        // Load Campaigns
+        const campaignsRes = await getCampaignsAction();
+        if (campaignsRes.success && campaignsRes.campaigns) {
+          setGames(campaignsRes.campaigns as any);
+        }
+
+        // Load MiniGameConfigs
+        const configsRes = await getMiniGameConfigsAction();
+        if (configsRes.success && configsRes.configs) {
+          setMiniGameConfigs(configsRes.configs as any);
+        }
+
+        // Load Merchants/Stores List
+        const merchantsRes = await getSuperAdminMerchantsAction();
+        if (merchantsRes.success && merchantsRes.merchants) {
+          const names = merchantsRes.merchants.map((m) => m.storeName);
+          setStoresList(names);
+          if (names.length > 0) setCurrentStore(names[0]);
+        }
+      } catch (e) {
+        console.error("Failed to load dashboard data from DB", e);
+      } finally {
+        setLoadingDb(false);
+      }
+    }
+    loadDataFromDb();
+  }, []);
+
+  const handleUpdateMiniGameConfig = async (updated: MiniGameConfig) => {
+    setMiniGameConfigs((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    await updateMiniGameConfigAction(updated);
+  };
 
   const updateUrl = (newRole: UserRole, newTab: string) => {
     if (typeof window !== "undefined") {
@@ -82,122 +125,11 @@ export default function AdminPortal() {
     }
   }, []);
 
-  const [games, setGames] = useState<Game[]>(initialGames);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
   const [settingsGameId, setSettingsGameId] = useState<string | null>(null);
   const [newGameName, setNewGameName] = useState("");
   const [newGameIcon, setNewGameIcon] = useState("🎡");
-
-  const [miniGameConfigs, setMiniGameConfigs] = useState<MiniGameConfig[]>([
-    {
-      id: "mg-1", slug: "coffee-tower", name: "Coffee Stack Tower", icon: "☕",
-      enabled: true, difficulty: "medium", maxDailyPlays: 0,
-      rewardTiers: [
-        { id: "t1", pointThreshold: 5, rewardName: "Free Cookie", rewardDescription: "Any cookie from the display" },
-        { id: "t2", pointThreshold: 15, rewardName: "Free Coffee", rewardDescription: "Any regular size coffee" },
-        { id: "t3", pointThreshold: 30, rewardName: "20% Off Order", rewardDescription: "20% discount on total bill" },
-      ],
-      stats: { totalPlaysToday: 342, avgScore: 8, rewardsClaimed: 47 },
-    },
-    {
-      id: "mg-2", slug: "flappy-barista", name: "Flappy Barista", icon: "🐦",
-      enabled: true, difficulty: "medium", maxDailyPlays: 5,
-      rewardTiers: [
-        { id: "t4", pointThreshold: 10, rewardName: "Free Pastry", rewardDescription: "Any pastry item" },
-        { id: "t5", pointThreshold: 25, rewardName: "Buy 1 Get 1 Free", rewardDescription: "On any drink" },
-      ],
-      stats: { totalPlaysToday: 218, avgScore: 6, rewardsClaimed: 31 },
-    },
-    {
-      id: "mg-3", slug: "barista-catch", name: "Barista Catch", icon: "🍽️",
-      enabled: true, difficulty: "easy", maxDailyPlays: 0,
-      rewardTiers: [
-        { id: "t6", pointThreshold: 100, rewardName: "10% Off", rewardDescription: "10% off next order" },
-        { id: "t7", pointThreshold: 300, rewardName: "Free Combo Meal", rewardDescription: "Any combo from the lunch menu" },
-        { id: "t8", pointThreshold: 500, rewardName: "VIP Gold Card", rewardDescription: "Month-long 15% discount card" },
-      ],
-      stats: { totalPlaysToday: 156, avgScore: 185, rewardsClaimed: 22 },
-    },
-    {
-      id: "mg-4", slug: "spin-wheel", name: "Spin to Win Wheel", icon: "🎡",
-      enabled: true, difficulty: "medium", maxDailyPlays: 3,
-      rewardTiers: [
-        { id: "t9", pointThreshold: 1, rewardName: "Free Specialty Boba", rewardDescription: "Any specialty flavor" },
-      ],
-      stats: { totalPlaysToday: 512, avgScore: 1, rewardsClaimed: 84 },
-    },
-    {
-      id: "mg-5", slug: "scratchcard", name: "Scratch to Win Card", icon: "🎟️",
-      enabled: true, difficulty: "easy", maxDailyPlays: 3,
-      rewardTiers: [
-        { id: "t10", pointThreshold: 1, rewardName: "Free Fresh Pastry", rewardDescription: "Any pastry item" },
-      ],
-      stats: { totalPlaysToday: 423, avgScore: 1, rewardsClaimed: 62 },
-    },
-    {
-      id: "mg-6", slug: "neon-slots", name: "Lucky Slot Machine", icon: "🎰",
-      enabled: true, difficulty: "hard", maxDailyPlays: 2,
-      rewardTiers: [
-        { id: "t11", pointThreshold: 1, rewardName: "Jackpot: 50% Off Order", rewardDescription: "50% off entire checkout" },
-      ],
-      stats: { totalPlaysToday: 681, avgScore: 1, rewardsClaimed: 19 },
-    },
-    {
-      id: "mg-7", slug: "plinko", name: "Plinko Peg Drop", icon: "⚪",
-      enabled: true, difficulty: "medium", maxDailyPlays: 0,
-      rewardTiers: [
-        { id: "t12", pointThreshold: 1, rewardName: "Buy 1 Get 1 Free Latte", rewardDescription: "Order any latte" },
-      ],
-      stats: { totalPlaysToday: 294, avgScore: 1, rewardsClaimed: 45 },
-    },
-    {
-      id: "mg-8", slug: "mystery-boba", name: "Mystery Boba Cup", icon: "🧋",
-      enabled: true, difficulty: "easy", maxDailyPlays: 5,
-      rewardTiers: [
-        { id: "t13", pointThreshold: 1, rewardName: "20% Off Your Total Bill", rewardDescription: "20% discount coupon" },
-      ],
-      stats: { totalPlaysToday: 387, avgScore: 1, rewardsClaimed: 76 },
-    },
-    {
-      id: "mg-9", slug: "precision-tap", name: "Precision Tap Meter", icon: "🎯",
-      enabled: true, difficulty: "hard", maxDailyPlays: 3,
-      rewardTiers: [
-        { id: "t14", pointThreshold: 1, rewardName: "Bullseye! 30% Off Any Meal", rewardDescription: "30% discount coupon" },
-        { id: "t15", pointThreshold: 2, rewardName: "15% Off Your Next Visit", rewardDescription: "15% discount coupon" },
-      ],
-      stats: { totalPlaysToday: 245, avgScore: 1, rewardsClaimed: 33 },
-    },
-    {
-      id: "mg-10", slug: "lucky-dice", name: "Lucky Dice Roll", icon: "🎲",
-      enabled: true, difficulty: "medium", maxDailyPlays: 0,
-      rewardTiers: [
-        { id: "t16", pointThreshold: 1, rewardName: "Double! Free Premium Shake", rewardDescription: "Roll double numbers" },
-        { id: "t17", pointThreshold: 2, rewardName: "25% Off Your Bill", rewardDescription: "Roll sum total >= 8" },
-      ],
-      stats: { totalPlaysToday: 182, avgScore: 7, rewardsClaimed: 29 },
-    },
-    {
-      id: "mg-11", slug: "rock-paper-scissors", name: "Rock Paper Scissors", icon: "✊",
-      enabled: true, difficulty: "easy", maxDailyPlays: 5,
-      rewardTiers: [
-        { id: "t18", pointThreshold: 1, rewardName: "Free Large Drink Upgrade", rewardDescription: "Win the RPS match" },
-        { id: "t19", pointThreshold: 2, rewardName: "Free Cookie Bites", rewardDescription: "Draw the RPS match" },
-      ],
-      stats: { totalPlaysToday: 310, avgScore: 1, rewardsClaimed: 58 },
-    },
-  ]);
-
-  const handleUpdateMiniGameConfig = (updated: MiniGameConfig) => {
-    setMiniGameConfigs((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-  };
-
-  const [storesList, setStoresList] = useState<string[]>([
-    "Brew & Bites Cafe (Main Branch)",
-    "Downtown Tacos & Tequila",
-    "Pixel Arcade Cafe",
-  ]);
-  const [currentStore, setCurrentStore] = useState(storesList[0]);
 
   const handleStoreCreated = (newStore: MerchantAccount) => {
     setStoresList([newStore.storeName, ...storesList]);
@@ -445,6 +377,34 @@ export default function AdminPortal() {
             <>
               {activeTab === "overview" && (
                 <div className="space-y-6">
+                  {/* 3-Step Quick Launcher Banner */}
+                  <div className="bg-gradient-to-r from-[#1A1A1A] to-[#2D2D2D] text-white rounded-3xl p-6 border-3 border-black shadow-[6px_6px_0px_0px_#FF4C29] flex flex-col lg:flex-row items-center justify-between gap-6">
+                    <div>
+                      <span className="bg-[#FF4C29] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-black shadow-[1px_1px_0px_0px_#000]">
+                        ⚡ 3-STEP QUICK LAUNCHER
+                      </span>
+                      <h2 className="font-serif text-2xl font-black text-white mt-2">Launch Your Cafe Arcade in 60 Seconds</h2>
+                      <p className="text-xs text-white/70 mt-1 max-w-lg">
+                        Super simple setup: Enable games, set reward vouchers (e.g. Free Coffee at 15 pts), and print your table QR standees!
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => setActiveTab("game-manager")}
+                        className="py-3 px-4 bg-emerald-400 text-black rounded-2xl font-black text-xs border-2 border-black shadow-[3px_3px_0px_0px_#000] hover:translate-y-[1px] transition-all"
+                      >
+                        1. CONFIGURE REWARDS 🎮
+                      </button>
+                      <button
+                        onClick={() => setActiveTab("qr-studio")}
+                        className="py-3 px-4 bg-[#FF4C29] text-white rounded-2xl font-black text-xs border-2 border-black shadow-[3px_3px_0px_0px_#000] hover:translate-y-[1px] transition-all"
+                      >
+                        2. PRINT QR STANDS 📱
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white rounded-2xl p-5 border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29]">
                       <p className="text-sm font-bold text-black/50">Active Campaigns</p>

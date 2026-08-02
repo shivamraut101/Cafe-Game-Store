@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "npx tsx scripts/seed.ts",
+    "seed:demo": "npx tsx scripts/seed.ts",
+    "seed:dev": "set MONGODB_ENV=dev && npx tsx scripts/seed.ts",
+    "seed:prod": "set MONGODB_ENV=prod && npx tsx scripts/seed.ts"
   },
   "dependencies": {
     "@types/matter-js": "^0.20.2",
