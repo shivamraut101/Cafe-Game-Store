@@ -119,6 +119,73 @@ export default function AdminPortal() {
       ],
       stats: { totalPlaysToday: 156, avgScore: 185, rewardsClaimed: 22 },
     },
+    {
+      id: "mg-4", slug: "spin-wheel", name: "Spin to Win Wheel", icon: "🎡",
+      enabled: true, difficulty: "medium", maxDailyPlays: 3,
+      rewardTiers: [
+        { id: "t9", pointThreshold: 1, rewardName: "Free Specialty Boba", rewardDescription: "Any specialty flavor" },
+      ],
+      stats: { totalPlaysToday: 512, avgScore: 1, rewardsClaimed: 84 },
+    },
+    {
+      id: "mg-5", slug: "scratchcard", name: "Scratch to Win Card", icon: "🎟️",
+      enabled: true, difficulty: "easy", maxDailyPlays: 3,
+      rewardTiers: [
+        { id: "t10", pointThreshold: 1, rewardName: "Free Fresh Pastry", rewardDescription: "Any pastry item" },
+      ],
+      stats: { totalPlaysToday: 423, avgScore: 1, rewardsClaimed: 62 },
+    },
+    {
+      id: "mg-6", slug: "neon-slots", name: "Lucky Slot Machine", icon: "🎰",
+      enabled: true, difficulty: "hard", maxDailyPlays: 2,
+      rewardTiers: [
+        { id: "t11", pointThreshold: 1, rewardName: "Jackpot: 50% Off Order", rewardDescription: "50% off entire checkout" },
+      ],
+      stats: { totalPlaysToday: 681, avgScore: 1, rewardsClaimed: 19 },
+    },
+    {
+      id: "mg-7", slug: "plinko", name: "Plinko Peg Drop", icon: "⚪",
+      enabled: true, difficulty: "medium", maxDailyPlays: 0,
+      rewardTiers: [
+        { id: "t12", pointThreshold: 1, rewardName: "Buy 1 Get 1 Free Latte", rewardDescription: "Order any latte" },
+      ],
+      stats: { totalPlaysToday: 294, avgScore: 1, rewardsClaimed: 45 },
+    },
+    {
+      id: "mg-8", slug: "mystery-boba", name: "Mystery Boba Cup", icon: "🧋",
+      enabled: true, difficulty: "easy", maxDailyPlays: 5,
+      rewardTiers: [
+        { id: "t13", pointThreshold: 1, rewardName: "20% Off Your Total Bill", rewardDescription: "20% discount coupon" },
+      ],
+      stats: { totalPlaysToday: 387, avgScore: 1, rewardsClaimed: 76 },
+    },
+    {
+      id: "mg-9", slug: "precision-tap", name: "Precision Tap Meter", icon: "🎯",
+      enabled: true, difficulty: "hard", maxDailyPlays: 3,
+      rewardTiers: [
+        { id: "t14", pointThreshold: 1, rewardName: "Bullseye! 30% Off Any Meal", rewardDescription: "30% discount coupon" },
+        { id: "t15", pointThreshold: 2, rewardName: "15% Off Your Next Visit", rewardDescription: "15% discount coupon" },
+      ],
+      stats: { totalPlaysToday: 245, avgScore: 1, rewardsClaimed: 33 },
+    },
+    {
+      id: "mg-10", slug: "lucky-dice", name: "Lucky Dice Roll", icon: "🎲",
+      enabled: true, difficulty: "medium", maxDailyPlays: 0,
+      rewardTiers: [
+        { id: "t16", pointThreshold: 1, rewardName: "Double! Free Premium Shake", rewardDescription: "Roll double numbers" },
+        { id: "t17", pointThreshold: 2, rewardName: "25% Off Your Bill", rewardDescription: "Roll sum total >= 8" },
+      ],
+      stats: { totalPlaysToday: 182, avgScore: 7, rewardsClaimed: 29 },
+    },
+    {
+      id: "mg-11", slug: "rock-paper-scissors", name: "Rock Paper Scissors", icon: "✊",
+      enabled: true, difficulty: "easy", maxDailyPlays: 5,
+      rewardTiers: [
+        { id: "t18", pointThreshold: 1, rewardName: "Free Large Drink Upgrade", rewardDescription: "Win the RPS match" },
+        { id: "t19", pointThreshold: 2, rewardName: "Free Cookie Bites", rewardDescription: "Draw the RPS match" },
+      ],
+      stats: { totalPlaysToday: 310, avgScore: 1, rewardsClaimed: 58 },
+    },
   ]);
 
   const handleUpdateMiniGameConfig = (updated: MiniGameConfig) => {

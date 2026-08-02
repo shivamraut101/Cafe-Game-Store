@@ -37,6 +37,14 @@ export default function CustomerGamePlayer() {
   // Plinko Ball Position State
   const [plinkoBallPos, setPlinkoBallPos] = useState<{ x: number; y: number } | null>(null);
 
+  // Lucky Dice State
+  const [diceValues, setDiceValues] = useState<number[]>([1, 1]);
+  const [isRolling, setIsRolling] = useState<boolean>(false);
+
+  // Rock Paper Scissors State
+  const [userChoice, setUserChoice] = useState<string | null>(null);
+  const [opponentChoice, setOpponentChoice] = useState<string | null>(null);
+
   // Countdown timer for claimed voucher
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -228,6 +236,75 @@ export default function CustomerGamePlayer() {
     } else {
       triggerWin("15% OFF YOUR NEXT VISIT 🎟️");
     }
+  };
+
+  // Game 7: Lucky Dice Handler
+  const handleRollDice = () => {
+    if (gameState === "playing" || isRolling) return;
+    setIsRolling(true);
+    setGameState("playing");
+
+    let rollsLeft = 10;
+    const interval = setInterval(() => {
+      setDiceValues([
+        Math.floor(Math.random() * 6) + 1,
+        Math.floor(Math.random() * 6) + 1,
+      ]);
+      rollsLeft--;
+      if (rollsLeft <= 0) {
+        clearInterval(interval);
+        const finalDice = [
+          Math.floor(Math.random() * 6) + 1,
+          Math.floor(Math.random() * 6) + 1,
+        ];
+        setDiceValues(finalDice);
+        setIsRolling(false);
+        const total = finalDice[0] + finalDice[1];
+        if (finalDice[0] === finalDice[1]) {
+          triggerWin(`DOUBLE ${finalDice[0]}! FREE PREMIUM SHAKE 🥤`);
+        } else if (total >= 8) {
+          triggerWin(`LUCKY TOTAL ${total}! 25% OFF YOUR BILL 🍔`);
+        } else {
+          triggerWin(`TOTAL ${total}! FREE EXTRA TOPPING 🍫`);
+        }
+      }
+    }, 120);
+  };
+
+  // Game 8: Rock Paper Scissors Handler
+  const handlePlayRPS = (choice: string) => {
+    if (gameState === "playing" || gameState === "won") return;
+    setUserChoice(choice);
+    setGameState("playing");
+
+    const choices = ["🪨", "📄", "✂️"];
+    let count = 0;
+    const interval = setInterval(() => {
+      setOpponentChoice(choices[count % 3]);
+      count++;
+      if (count > 10) {
+        clearInterval(interval);
+        const oppFinal = choices[Math.floor(Math.random() * choices.length)];
+        setOpponentChoice(oppFinal);
+        
+        let rewardName = "";
+        if (choice === oppFinal) {
+          rewardName = "DRAW BONUS: FREE COOKIE BITES 🍪";
+        } else if (
+          (choice === "🪨" && oppFinal === "✂️") ||
+          (choice === "📄" && oppFinal === "🪨") ||
+          (choice === "✂️" && oppFinal === "📄")
+        ) {
+          rewardName = "VICTORY: FREE LARGE DRINK UPGRADE 🥤";
+        } else {
+          rewardName = "PLAYED: 10% OFF ANY SANDWICH 🥪";
+        }
+        
+        setTimeout(() => {
+          triggerWin(rewardName);
+        }, 800);
+      }
+    }, 100);
   };
 
   const copyToClipboard = () => {
@@ -444,6 +521,83 @@ export default function CustomerGamePlayer() {
               >
                 STOP NEEDLE 🎯
               </button>
+            )}
+          </div>
+        )}
+
+        {/* GAME TYPE 7: LUCKY DICE */}
+        {(gameType === "lucky-dice" || gameType === "dice") && (
+          <div className="flex flex-col items-center my-auto w-full">
+            <h2 className="font-serif text-2xl font-black text-black mb-1">Lucky Dice Roll</h2>
+            <p className="text-xs font-semibold text-black/60 mb-6">Roll doubles or high total to win top-tier rewards!</p>
+
+            <div className="flex justify-center gap-6 my-4 w-full">
+              {diceValues.map((val, idx) => (
+                <div
+                  key={idx}
+                  className={`w-20 h-20 bg-white border-4 border-black rounded-2xl flex items-center justify-center text-5xl font-black shadow-[4px_4px_0px_0px_#FF4C29] transition-transform ${
+                    isRolling ? "animate-bounce" : ""
+                  }`}
+                >
+                  {val === 1 && "⚀"}
+                  {val === 2 && "⚁"}
+                  {val === 3 && "⚂"}
+                  {val === 4 && "⚃"}
+                  {val === 5 && "⚄"}
+                  {val === 6 && "⚅"}
+                </div>
+              ))}
+            </div>
+
+            {gameState !== "won" && (
+              <button
+                onClick={handleRollDice}
+                disabled={isRolling}
+                className="mt-6 w-full py-4 bg-[#FF4C29] text-white rounded-2xl font-black text-base border-3 border-black shadow-[4px_4px_0px_0px_#000] hover:translate-y-[1px] hover:shadow-none transition-all"
+              >
+                {isRolling ? "ROLLING DICE..." : "ROLL DICE 🎲"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* GAME TYPE 8: ROCK PAPER SCISSORS */}
+        {(gameType === "rock-paper-scissors" || gameType === "rps") && (
+          <div className="flex flex-col items-center my-auto w-full">
+            <h2 className="font-serif text-2xl font-black text-black mb-1">Rock Paper Scissors</h2>
+            <p className="text-xs font-semibold text-black/60 mb-6">Choose your move to challenge the Barista Bot!</p>
+
+            <div className="flex flex-col items-center gap-4 w-full bg-[#FBF9F4] p-4 rounded-2xl border-2 border-black/10">
+              <div className="flex items-center justify-center gap-8 py-2">
+                <div className="text-center">
+                  <span className="text-[10px] font-bold text-black/40 uppercase block">YOU</span>
+                  <span className="text-4xl mt-1 block">{userChoice || "❓"}</span>
+                </div>
+                <span className="text-xl font-black text-black/20">VS</span>
+                <div className="text-center">
+                  <span className="text-[10px] font-bold text-black/40 uppercase block">BOT</span>
+                  <span className="text-4xl mt-1 block">{opponentChoice || "❓"}</span>
+                </div>
+              </div>
+            </div>
+
+            {gameState !== "won" && gameState !== "playing" && (
+              <div className="grid grid-cols-3 gap-3 w-full mt-6">
+                {(["🪨", "📄", "✂️"]).map((choice) => (
+                  <button
+                    key={choice}
+                    onClick={() => handlePlayRPS(choice)}
+                    className="py-3 bg-white border-2 border-black rounded-xl text-2xl font-bold shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] hover:shadow-none transition-all"
+                  >
+                    {choice}
+                  </button>
+                ))}
+              </div>
+            )}
+            {gameState === "playing" && (
+              <p className="text-xs font-black text-[#FF4C29] mt-6 animate-pulse uppercase tracking-wider">
+                CHALLENGING THE BOT...
+              </p>
             )}
           </div>
         )}

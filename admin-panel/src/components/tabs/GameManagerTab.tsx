@@ -34,6 +34,54 @@ const DIFFICULTY_DETAILS: Record<string, Record<GameDifficulty, string>> = {
     hard: "Fast fall (3.2x), frequent spawns",
     insane: "Extreme fall (4.5x), constant spawns",
   },
+  "spin-wheel": {
+    easy: "Generous sectors, higher jackpot chances",
+    medium: "Standard sectors, balanced chances",
+    hard: "Tighter winning sectors, lower jackpot rate",
+    insane: "Extremely small winning sectors, maximum risk",
+  },
+  "scratchcard": {
+    easy: "Requires minor scratch area (30%) to reveal",
+    medium: "Requires standard scratch area (50%) to reveal",
+    hard: "Requires thorough scratch area (75%) to reveal",
+    insane: "Requires near complete scratch area (95%) to reveal",
+  },
+  "neon-slots": {
+    easy: "Fewer symbols, highly frequent payouts",
+    medium: "Standard symbols, balanced payouts",
+    hard: "Many symbols, rare payouts but higher reward value",
+    insane: "Extreme symbols, ultra-rare jackpot payouts",
+  },
+  "plinko": {
+    easy: "Fewer pegs, direct trajectories to high reward slots",
+    medium: "Standard pegs, balanced trajectories",
+    hard: "Dense pegs, highly randomized trajectories",
+    insane: "Max density pegs, high risk of hitting zero or low reward slots",
+  },
+  "mystery-boba": {
+    easy: "3 cups, 2 containing winning rewards",
+    medium: "3 cups, 1 containing winning reward",
+    hard: "4 cups, 1 containing winning reward",
+    insane: "5 cups, 1 containing winning reward",
+  },
+  "precision-tap": {
+    easy: "Wide target zone (35% - 65%), slow needle speed",
+    medium: "Standard target zone (40% - 60%), medium needle speed",
+    hard: "Narrow target zone (45% - 55%), fast needle speed",
+    insane: "Razor-thin target zone (48% - 52%), blistering needle speed",
+  },
+  "lucky-dice": {
+    easy: "Wins on sum >= 6, roll double probability boosted (+15%)",
+    medium: "Wins on sum >= 8, standard dice roll probabilities",
+    hard: "Wins on sum >= 10, roll double probability lowered (-10%)",
+    insane: "Wins only on sum >= 11 or natural double 6s",
+  },
+  "rock-paper-scissors": {
+    easy: "Barista Bot plays predictably (favors Rock)",
+    medium: "Barista Bot plays random moves",
+    hard: "Barista Bot uses pattern analysis to counter customer choice (55% counter rate)",
+    insane: "Barista Bot has extreme counter prediction intelligence (75% counter rate)",
+  },
 };
 
 export default function GameManagerTab({ configs, onUpdateConfig }: GameManagerTabProps) {
