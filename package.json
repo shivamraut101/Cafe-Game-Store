@@ -1,0 +1,21 @@
+{
+  "name": "cafe-game-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ForStore - White-Label Gamified Cafe Loyalty Platform",
+  "scripts": {
+    "dev": "npm run dev --prefix admin-panel",
+    "dev:admin": "npm run dev --prefix admin-panel",
+    "dev:storefront": "npm run dev --prefix storefront",
+    "build": "npm run build --prefix admin-panel && npm run build --prefix storefront",
+    "build:admin": "npm run build --prefix admin-panel",
+    "build:storefront": "npm run build --prefix storefront",
+    "seed": "npm run seed --prefix admin-panel",
+    "seed:dev": "npm run seed:dev --prefix admin-panel",
+    "seed:prod": "npm run seed:prod --prefix admin-panel"
+  },
+  "workspaces": [
+    "admin-panel",
+    "storefront"
+  ]
+}

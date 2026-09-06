@@ -1,9 +1,27 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ForStore Admin - Manage Gamified Loyalty",
-  description: "Configure and manage games, rewards, and QR scans.",
+  title: "ForStore - Gamified Loyalty & Merchant Portal",
+  description: "Configure and manage cafe games, rewards, QR scans, and staff counter voucher redemption.",
+  applicationName: "ForStore",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ForStore",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#111111",
 };
 
 export default function RootLayout({

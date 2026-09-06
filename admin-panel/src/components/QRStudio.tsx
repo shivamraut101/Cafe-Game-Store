@@ -111,16 +111,18 @@ export default function QRStudio({
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrCodeInstance, setQrCodeInstance] = useState<any>(null);
 
-  // QR Code Destination URL (Defaults to the /arcade website hub where games are listed)
-  const defaultUrl = typeof window !== "undefined" ? `${window.location.origin}/arcade` : "http://localhost:3001/arcade";
+  // QR Code Destination URL (Includes store slug for exact DB routing on scan)
+  const storeSlug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const defaultUrl = typeof window !== "undefined" ? `${window.location.origin}/arcade?store=${storeSlug}` : `http://localhost:3001/arcade?store=${storeSlug}`;
   const [targetUrl, setTargetUrl] = useState(defaultUrl);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !targetUrl.includes("localhost") && !targetUrl.includes(window.location.origin)) {
-      setTargetUrl(`${window.location.origin}/arcade`);
+    const slug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    if (typeof window !== "undefined") {
+      setTargetUrl(`${window.location.origin}/arcade?store=${slug}`);
     }
-  }, []);
+  }, [storeName]);
 
   const handleSelectPreset = (preset: ThemePreset) => {
     setActiveTheme(preset);

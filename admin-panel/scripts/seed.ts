@@ -5,16 +5,17 @@ dotenv.config({ path: ".env.local" });
 import mongoose from "mongoose";
 import * as Models from "../src/lib/models";
 import { getResolvedMongoURI } from "../src/lib/db";
+import { hashPassword } from "../src/lib/auth";
 
 async function seed() {
-  const envMode = (process.env.MONGODB_ENV || "demo").toUpperCase();
+  const envMode = (process.env.MONGODB_ENV || "demo").toLowerCase();
   const mongoUri = getResolvedMongoURI();
 
-  console.log(`🌱 Connecting to MongoDB Atlas [${envMode} DATABASE]...`);
+  console.log(`🌱 Connecting to MongoDB Atlas [${envMode.toUpperCase()} DATABASE]...`);
   console.log(`URI: ${mongoUri.substring(0, 45)}...`);
 
   await mongoose.connect(mongoUri);
-  console.log(`✅ Connected to ${envMode} Database on MongoDB Atlas!\n`);
+  console.log(`✅ Connected to ${envMode.toUpperCase()} Database on MongoDB Atlas!\n`);
 
   const {
     Store,
@@ -28,7 +29,7 @@ async function seed() {
   } = Models;
 
   // Clear existing data
-  console.log(`🗑️  Clearing existing data from [${envMode} DB]...`);
+  console.log(`🗑️  Clearing existing data from [${envMode.toUpperCase()} DB]...`);
   await Promise.all([
     Store.deleteMany({}),
     User.deleteMany({}),
@@ -40,8 +41,8 @@ async function seed() {
     RewardClaim.deleteMany({}),
   ]);
 
-  // ─── 1. Stores ──────────────────────────────────────────
-  console.log("🏪 Creating stores...");
+  // ─── 1. Stores (Clean 4 Cafes for DEV Mode) ──────────────
+  console.log("🏪 Creating 4 clean cafe stores...");
   const stores = await Store.insertMany([
     {
       storeName: "Brew & Bites Cafe (Main Branch)",
@@ -50,12 +51,12 @@ async function seed() {
       ownerName: "Sarah Jenkins",
       plan: "Pro Store",
       status: "Active",
-      walletBalance: 1455,
-      totalScans: 12400,
+      walletBalance: 1000,
+      totalScans: 0,
       churnRisk: "Low",
-      aiCreditsUsed: 4250,
+      aiCreditsUsed: 0,
       whiteLabelOverride: true,
-      joinedDate: new Date("2026-03-12"),
+      joinedDate: new Date(),
     },
     {
       storeName: "Downtown Tacos & Tequila",
@@ -64,13 +65,13 @@ async function seed() {
       ownerName: "Miguel Santos",
       plan: "Enterprise",
       status: "Active",
-      walletBalance: 8200,
-      totalScans: 45100,
+      walletBalance: 2500,
+      totalScans: 0,
       churnRisk: "Low",
-      aiCreditsUsed: 12500,
+      aiCreditsUsed: 0,
       whiteLabelOverride: true,
       watermarkRemoved: true,
-      joinedDate: new Date("2026-01-20"),
+      joinedDate: new Date(),
     },
     {
       storeName: "Pixel Arcade Cafe",
@@ -79,11 +80,11 @@ async function seed() {
       ownerName: "Alex Rivera",
       plan: "Pro Store",
       status: "Active",
-      walletBalance: 520,
-      totalScans: 9800,
-      churnRisk: "High",
-      aiCreditsUsed: 200,
-      joinedDate: new Date("2026-05-14"),
+      walletBalance: 500,
+      totalScans: 0,
+      churnRisk: "Low",
+      aiCreditsUsed: 0,
+      joinedDate: new Date(),
     },
     {
       storeName: "Corner Bakery & Espresso",
@@ -91,24 +92,24 @@ async function seed() {
       ownerEmail: "hello@cornerbakery.com",
       ownerName: "Emily Chen",
       plan: "Starter",
-      status: "Trialing",
+      status: "Active",
       walletBalance: 200,
-      totalScans: 180,
-      churnRisk: "Medium",
-      aiCreditsUsed: 50,
-      joinedDate: new Date("2026-07-28"),
+      totalScans: 0,
+      churnRisk: "Low",
+      aiCreditsUsed: 0,
+      joinedDate: new Date(),
     },
   ]);
-  console.log(`   ✅ ${stores.length} stores created`);
+  console.log(`   ✅ ${stores.length} clean stores created`);
 
-  // ─── 2. Users ───────────────────────────────────────────
-  console.log("👤 Creating users...");
+  // ─── 2. Auth Users ──────────────────────────────────────
+  console.log("👤 Creating admin and guest users...");
   const users = await User.insertMany([
     {
       email: "koushik@forstore.app",
       name: "Koushik (Super Admin)",
       role: "super_admin",
-      passwordHash: "$2b$10$placeholder_super_admin",
+      passwordHash: hashPassword("super123"),
       totalCafePoints: 0,
     },
     {
@@ -116,203 +117,105 @@ async function seed() {
       email: "manager@brewbites.com",
       name: "Sarah Jenkins",
       role: "store_admin",
-      passwordHash: "$2b$10$placeholder_store1",
+      passwordHash: hashPassword("admin123"),
       totalCafePoints: 0,
-    },
-    {
-      storeId: stores[0]._id,
-      email: "customer1@gmail.com",
-      name: "Raj Patel",
-      role: "customer",
-      passwordHash: "$2b$10$placeholder_cust1",
-      totalCafePoints: 1240,
-      dailyPlayCounts: {},
-    },
-    {
-      storeId: stores[0]._id,
-      email: "customer2@gmail.com",
-      name: "Priya Sharma",
-      role: "customer",
-      passwordHash: "$2b$10$placeholder_cust2",
-      totalCafePoints: 860,
-      dailyPlayCounts: {},
     },
     {
       storeId: stores[1]._id,
       email: "manager@downtowntacos.com",
       name: "Miguel Santos",
       role: "store_admin",
-      passwordHash: "$2b$10$placeholder_store2",
+      passwordHash: hashPassword("admin123"),
       totalCafePoints: 0,
     },
-  ]);
-  console.log(`   ✅ ${users.length} users created`);
-
-  // ─── 3. MiniGameConfigs ─────────────────────────────────
-  console.log("🎮 Creating mini-game configs...");
-  const gameConfigs = await MiniGameConfig.insertMany([
     {
       storeId: stores[0]._id,
-      slug: "coffee-tower",
-      name: "Coffee Stack Tower",
-      icon: "☕",
-      enabled: true,
-      difficulty: "medium",
-      maxDailyPlays: 0,
-      difficultyParams: {
-        easy: { speed: 1.5, startWidth: 200 },
-        medium: { speed: 2.5, startWidth: 180 },
-        hard: { speed: 3.5, startWidth: 160 },
-        insane: { speed: 5.0, startWidth: 140 },
-      },
-      rewardTiers: [
-        { id: "t1", pointThreshold: 5, rewardName: "Free Cookie", rewardDescription: "Any cookie from the display", rewardType: "item" },
-        { id: "t2", pointThreshold: 15, rewardName: "Free Coffee", rewardDescription: "Any regular size coffee", rewardType: "item" },
-        { id: "t3", pointThreshold: 30, rewardName: "20% Off Order", rewardDescription: "20% discount on total bill", rewardType: "discount", discountPercent: 20 },
-      ],
-    },
-    {
-      storeId: stores[0]._id,
-      slug: "flappy-barista",
-      name: "Flappy Barista",
-      icon: "🐦",
-      enabled: true,
-      difficulty: "medium",
-      maxDailyPlays: 5,
-      difficultyParams: {
-        easy: { gap: 180, speed: 1.2 },
-        medium: { gap: 155, speed: 1.6 },
-        hard: { gap: 130, speed: 2.2 },
-        insane: { gap: 110, speed: 3.0 },
-      },
-      rewardTiers: [
-        { id: "t4", pointThreshold: 10, rewardName: "Free Pastry", rewardDescription: "Any pastry item", rewardType: "item" },
-        { id: "t5", pointThreshold: 25, rewardName: "Buy 1 Get 1 Free", rewardDescription: "On any drink", rewardType: "item" },
-      ],
-    },
-    {
-      storeId: stores[0]._id,
-      slug: "barista-catch",
-      name: "Barista Catch",
-      icon: "🍽️",
-      enabled: true,
-      difficulty: "easy",
-      maxDailyPlays: 0,
-      difficultyParams: {
-        easy: { fallSpeed: 1.5, spawnInterval: 65 },
-        medium: { fallSpeed: 2.2, spawnInterval: 55 },
-        hard: { fallSpeed: 3.2, spawnInterval: 35 },
-        insane: { fallSpeed: 4.5, spawnInterval: 20 },
-      },
-      rewardTiers: [
-        { id: "t6", pointThreshold: 100, rewardName: "10% Off", rewardDescription: "10% off next order", rewardType: "discount", discountPercent: 10 },
-        { id: "t7", pointThreshold: 300, rewardName: "Free Combo Meal", rewardDescription: "Any combo from the lunch menu", rewardType: "item" },
-        { id: "t8", pointThreshold: 500, rewardName: "VIP Gold Card", rewardDescription: "Month-long 15% discount card", rewardType: "voucher" },
-      ],
+      email: "customer@forstore.app",
+      name: "Sam VIP Player",
+      role: "customer",
+      passwordHash: hashPassword("guest123"),
+      totalCafePoints: 350,
     },
   ]);
-  console.log(`   ✅ ${gameConfigs.length} game configs created`);
+  console.log(`   ✅ ${users.length} auth users created with cryptographically salted passwords`);
 
-  // ─── 4. Campaigns ───────────────────────────────────────
-  console.log("📢 Creating campaigns...");
-  const campaigns = await Campaign.insertMany([
-    { storeId: stores[0]._id, name: "Spin to Win", type: "Wheel", icon: "🎡", status: "Active", scans: 1240, winRate: 15, reward: "Free Coffee" },
-    { storeId: stores[0]._id, name: "Instant Lottery", type: "Scratch", icon: "🎟️", status: "Active", scans: 950, winRate: 8, reward: "10% Off Pastry" },
-    { storeId: stores[0]._id, name: "Slot Machine", type: "Slots", icon: "🎰", status: "Active", scans: 2100, winRate: 12, reward: "Free Size Upgrade" },
-    { storeId: stores[0]._id, name: "Catch & Win", type: "Catch", icon: "🧺", status: "Inactive", scans: 430, winRate: 20, reward: "Buy 1 Get 1 Free" },
-    { storeId: stores[0]._id, name: "Snakes & Ladders", type: "Board", icon: "🐍", status: "Active", scans: 880, winRate: 10, reward: "Secret Item" },
-  ]);
-  console.log(`   ✅ ${campaigns.length} campaigns created`);
+  // ─── 3. MiniGameConfigs for all 4 stores ────────────────
+  console.log("🎮 Provisioning default mini-game configs for all stores...");
+  const gameConfigsToInsert = [];
+  for (const s of stores) {
+    gameConfigsToInsert.push(
+      {
+        storeId: s._id,
+        slug: "coffee-tower",
+        name: "Coffee Stack Tower",
+        icon: "☕",
+        enabled: true,
+        difficulty: "medium",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t1", pointThreshold: 5, rewardName: "Free Cookie", rewardDescription: "Any cookie from display", rewardType: "item" },
+          { id: "t2", pointThreshold: 15, rewardName: "Free Coffee", rewardDescription: "Any regular size coffee", rewardType: "item" },
+          { id: "t3", pointThreshold: 30, rewardName: "20% Off Order", rewardDescription: "20% discount on total bill", rewardType: "discount", discountPercent: 20 },
+        ],
+      },
+      {
+        storeId: s._id,
+        slug: "flappy-barista",
+        name: "Flappy Barista",
+        icon: "🐦",
+        enabled: true,
+        difficulty: "medium",
+        maxDailyPlays: 5,
+        rewardTiers: [
+          { id: "t4", pointThreshold: 10, rewardName: "Free Pastry", rewardDescription: "Any pastry item", rewardType: "item" },
+          { id: "t5", pointThreshold: 25, rewardName: "Buy 1 Get 1 Free", rewardDescription: "On any drink", rewardType: "item" },
+        ],
+      },
+      {
+        storeId: s._id,
+        slug: "barista-catch",
+        name: "Barista Catch",
+        icon: "🍽️",
+        enabled: true,
+        difficulty: "easy",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t6", pointThreshold: 100, rewardName: "10% Off", rewardDescription: "10% off next order", rewardType: "discount", discountPercent: 10 },
+          { id: "t7", pointThreshold: 300, rewardName: "Free Combo Meal", rewardDescription: "Any combo from lunch menu", rewardType: "item" },
+        ],
+      }
+    );
+  }
+  const gameConfigs = await MiniGameConfig.insertMany(gameConfigsToInsert);
+  console.log(`   ✅ ${gameConfigs.length} game configs provisioned`);
 
-  // ─── 5. StoreBranding ───────────────────────────────────
-  console.log("🎨 Creating branding...");
-  await StoreBranding.create({
-    storeId: stores[0]._id,
-    primaryColor: "#FF4C29",
-    secondaryColor: "#332FD0",
-    fontFamily: "Inter",
-    darkMode: false,
-    watermarkVisible: true,
-  });
-  console.log("   ✅ 1 branding config created");
-
-  // ─── 6. Sample Game Sessions ────────────────────────────
-  console.log("🕹️  Creating sample game sessions...");
-  const sessionData = [];
-  const gameTypes = ["coffee-tower", "flappy-barista", "barista-catch"];
-  const customerIds = [users[2]._id, users[3]._id];
-  for (let i = 0; i < 50; i++) {
-    const gameSlug = gameTypes[i % 3];
-    const score = Math.floor(Math.random() * (gameSlug === "barista-catch" ? 400 : 25)) + 1;
-    sessionData.push({
-      storeId: stores[0]._id,
-      userId: customerIds[i % 2],
-      gameSlug,
-      difficulty: "medium",
-      score,
-      cafePointsEarned: score * 10,
-      duration: 20 + Math.floor(Math.random() * 120),
-      combo: Math.floor(Math.random() * 8),
-      playedAt: new Date(Date.now() - Math.floor(Math.random() * 86400000)),
+  // ─── 4. Store Branding ──────────────────────────────────
+  console.log("🎨 Creating store branding...");
+  for (const s of stores) {
+    await StoreBranding.create({
+      storeId: s._id,
+      primaryColor: "#FF4C29",
+      secondaryColor: "#332FD0",
+      fontFamily: "Inter",
+      darkMode: false,
+      watermarkVisible: true,
     });
   }
-  const sessions = await GameSession.insertMany(sessionData);
-  console.log(`   ✅ ${sessions.length} game sessions created`);
-
-  // ─── 7. Sample Audit Logs ──────────────────────────────
-  console.log("📜 Creating audit logs...");
-  const auditLogs = await AuditLog.insertMany([
-    {
-      storeId: stores[0]._id,
-      actorName: "Koushik (Super Admin)",
-      actorEmail: "koushik@forstore.app",
-      actorRole: "Super Admin",
-      ipAddress: "157.48.22.19",
-      action: "SUPER_ADMIN_CREDIT_GRANT",
-      actionCategory: "BILLING",
-      targetType: "Wallet",
-      targetName: "Brew & Bites Cafe (Main Branch)",
-      details: "Granted +1,000 bonus scan credits to store wallet.",
-    },
-    {
-      storeId: stores[0]._id,
-      actorName: "Sarah Jenkins (Store Admin)",
-      actorEmail: "manager@brewbites.com",
-      actorRole: "Store Admin",
-      ipAddress: "192.168.1.104",
-      action: "GAME_CONFIG_UPDATE",
-      actionCategory: "CAMPAIGN",
-      targetType: "Game Campaign",
-      targetName: "Coffee Stack Tower",
-      details: "Changed difficulty from Easy to Medium for Coffee Stack Tower.",
-    },
-    {
-      actorName: "Koushik (Super Admin)",
-      actorEmail: "koushik@forstore.app",
-      actorRole: "Super Admin",
-      ipAddress: "157.48.22.19",
-      action: "SUPER_ADMIN_IMPERSONATE",
-      actionCategory: "SECURITY",
-      targetType: "Store Account",
-      targetName: "Brew & Bites Cafe (Main Branch)",
-      details: "Super Admin initiated portal impersonation session.",
-    },
-  ]);
-  console.log(`   ✅ ${auditLogs.length} audit logs created`);
+  console.log(`   ✅ ${stores.length} store branding records created`);
 
   // ─── Summary ────────────────────────────────────────────
-  console.log(`\n🎉 Seed complete! [${envMode} DATABASE] summary:`);
+  console.log(`\n🎉 Clean Seed Complete! [${envMode.toUpperCase()} DATABASE] summary:`);
   console.log(`   Stores:           ${await Store.countDocuments()}`);
   console.log(`   Users:            ${await User.countDocuments()}`);
   console.log(`   MiniGameConfigs:  ${await MiniGameConfig.countDocuments()}`);
   console.log(`   Campaigns:        ${await Campaign.countDocuments()}`);
   console.log(`   StoreBranding:    ${await StoreBranding.countDocuments()}`);
-  console.log(`   GameSessions:     ${await GameSession.countDocuments()}`);
-  console.log(`   RewardClaims:     ${await RewardClaim.countDocuments()}`);
-  console.log(`   AuditLogs:        ${await AuditLog.countDocuments()}`);
+  console.log(`   GameSessions:     ${await GameSession.countDocuments()} (Clean 0)`);
+  console.log(`   RewardClaims:     ${await RewardClaim.countDocuments()} (Clean 0)`);
+  console.log(`   AuditLogs:        ${await AuditLog.countDocuments()} (Clean 0)`);
 
   await mongoose.disconnect();
-  console.log("\n✅ Disconnected. Done!");
+  console.log("\n✅ Disconnected cleanly. Done!");
 }
 
 seed().catch((err) => {

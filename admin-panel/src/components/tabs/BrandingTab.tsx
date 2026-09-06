@@ -3,28 +3,34 @@
 import React, { useState, useEffect } from "react";
 import { getStoreBrandingAction, updateStoreBrandingAction } from "../../app/actions/adminActions";
 
-export default function BrandingTab() {
-  const [storeName, setStoreName] = useState("Brew & Bites Cafe");
+interface BrandingTabProps {
+  storeName?: string;
+}
+
+export default function BrandingTab({ storeName: currentStoreName }: BrandingTabProps) {
+  const [storeName, setStoreName] = useState(currentStoreName || "Brew & Bites Cafe");
   const [tagline, setTagline] = useState("Your daily dose of caffeine and fun.");
   const [primaryColor, setPrimaryColor] = useState("#FF4C29");
   const [secondaryColor, setSecondaryColor] = useState("#332FD0");
+  const [activeGames, setActiveGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBranding();
-  }, []);
+  }, [currentStoreName]);
 
   const fetchBranding = async () => {
     try {
       setLoading(true);
-      const res = await getStoreBrandingAction();
+      const res = await getStoreBrandingAction(currentStoreName);
       if (res.success && res.branding) {
-        setStoreName(res.branding.storeName || "Brew & Bites Cafe");
+        setStoreName(res.branding.storeName || currentStoreName || "Brew & Bites Cafe");
         setTagline(res.branding.tagline || "");
         setPrimaryColor(res.branding.primaryColor || "#FF4C29");
         setSecondaryColor(res.branding.secondaryColor || "#332FD0");
+        setActiveGames(res.branding.activeGames || []);
       }
     } catch (e) {
       console.error("Failed to load branding from DB", e);
@@ -37,11 +43,14 @@ export default function BrandingTab() {
     try {
       setSaving(true);
       setMsg(null);
-      const res = await updateStoreBrandingAction({
-        storeName,
-        primaryColor,
-        secondaryColor,
-      });
+      const res = await updateStoreBrandingAction(
+        {
+          storeName,
+          primaryColor,
+          secondaryColor,
+        },
+        currentStoreName
+      );
 
       if (res.success) {
         setMsg("✅ Branding saved to MongoDB Atlas successfully!");
@@ -153,19 +162,39 @@ export default function BrandingTab() {
 
         {/* Right Col: Live Preview */}
         <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_#000000] flex flex-col gap-4">
-          <h3 className="font-serif text-xl font-bold text-black border-b-2 border-black pb-3">Live Mobile Hub Preview</h3>
+          <h3 className="font-serif text-xl font-bold text-black border-b-2 border-black pb-3">
+            Live Mobile Hub Preview ({activeGames.length} Active Games)
+          </h3>
           
           <div className="w-full max-w-sm mx-auto bg-[#F6F3EB] border-4 border-black rounded-3xl p-5 shadow-[6px_6px_0px_0px_#000000] flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <span className="font-serif text-lg font-black text-black">{storeName}</span>
-              <span className="w-3 h-3 rounded-full border border-black" style={{ backgroundColor: primaryColor }} />
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-black" style={{ backgroundColor: primaryColor }} />
             </div>
 
-            <div className="p-4 rounded-2xl border-3 border-black text-white font-bold" style={{ backgroundColor: primaryColor }}>
-              <p className="text-xs uppercase tracking-wider opacity-80">Active Campaign</p>
-              <h4 className="font-serif text-lg font-black">Coffee Stack Challenge</h4>
-              <p className="text-xs mt-1 opacity-90">Play now to win 20% Off!</p>
-            </div>
+            {loading ? (
+              <div className="p-4 text-center text-xs font-bold text-black/40">Loading active games...</div>
+            ) : activeGames.length === 0 ? (
+              <div className="p-4 text-center text-xs font-bold text-black/40 bg-white rounded-xl border border-black/20">
+                No active games enabled. Enable games in Game Manager!
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activeGames.map((game) => (
+                  <div
+                    key={game.id || game.name}
+                    className="p-3.5 rounded-2xl border-3 border-black text-white font-bold flex items-center gap-3 shadow-[2px_2px_0px_0px_#000]"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <span className="text-2xl">{game.icon}</span>
+                    <div className="flex-1">
+                      <h4 className="font-serif text-sm font-black">{game.name}</h4>
+                      <p className="text-[10px] opacity-90">Win {game.reward}!</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

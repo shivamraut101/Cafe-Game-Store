@@ -37,11 +37,11 @@ export default function CustomDropdown({ options, value, onChange, className = "
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between bg-white border-2 border-black rounded-lg px-4 py-2 text-sm font-bold shadow-[2px_2px_0px_0px_#000000] focus:outline-none hover:bg-[#FBF9F4] transition-colors"
+        className="w-full flex items-center justify-between bg-white text-black border-2 border-black rounded-lg px-4 py-2.5 text-sm font-bold shadow-[3px_3px_0px_0px_#000000] focus:outline-none hover:bg-[#FBF9F4] transition-colors cursor-pointer"
       >
-        <span className="truncate">{selectedLabel}</span>
+        <span className="truncate text-black font-black">{selectedLabel}</span>
         <svg 
-          className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`w-4 h-4 ml-2 transition-transform text-black ${isOpen ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -51,7 +51,7 @@ export default function CustomDropdown({ options, value, onChange, className = "
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_#000000] overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-2 bg-white text-black border-2 border-black rounded-xl shadow-[6px_6px_0px_0px_#000000] overflow-hidden max-h-60 overflow-y-auto">
           {normalizedOptions.map((opt, index) => (
             <button
               key={index}
@@ -60,8 +60,8 @@ export default function CustomDropdown({ options, value, onChange, className = "
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2 text-sm font-bold transition-colors border-b-2 border-black/5 last:border-b-0 hover:bg-[#FF4C29] hover:text-white ${
-                value === opt.value ? 'bg-black/5' : ''
+              className={`w-full text-left px-4 py-2.5 text-sm font-black text-black transition-colors border-b-2 border-black/5 last:border-b-0 hover:bg-[#FF4C29] hover:text-white cursor-pointer ${
+                value === opt.value ? 'bg-black/10 text-black' : 'bg-white text-black'
               }`}
             >
               {opt.label}

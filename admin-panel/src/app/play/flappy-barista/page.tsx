@@ -44,6 +44,8 @@ export default function FlappyBaristaGame() {
   const [, forceRender] = React.useState(0);
   const rerender = useCallback(() => forceRender((n) => n + 1), []);
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
+  const [limitNotice, setLimitNotice] = useState<string | null>(null);
+  const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
 
   const birdRef = useRef({ y: H / 2 - 40, vy: 0, rot: 0, tRot: 0, flapFrame: 0 });
   const pipesRef = useRef<Pipe[]>([]);
@@ -112,6 +114,9 @@ export default function FlappyBaristaGame() {
     e.preventDefault(); e.stopPropagation();
     const s = stateRef.current;
     if (s === "idle") {
+      setEarnedReward(null);
+      setLimitNotice(null);
+      setCooldownNotice(null);
       birdRef.current = { y: H / 2 - 40, vy: 0, rot: 0, tRot: 0, flapFrame: 0 };
       pipesRef.current = []; particlesRef.current = [];
       scoreRef.current = 0; fRef.current = 0; distRef.current = 0; flashRef.current = 0;
@@ -122,6 +127,9 @@ export default function FlappyBaristaGame() {
     }
     if (s === "dead") {
       if (cooldownRef.current > 0) return;
+      setEarnedReward(null);
+      setLimitNotice(null);
+      setCooldownNotice(null);
       birdRef.current = { y: H / 2 - 40, vy: 0, rot: 0, tRot: 0, flapFrame: 0 };
       pipesRef.current = []; particlesRef.current = [];
       scoreRef.current = 0; fRef.current = 0; distRef.current = 0; flashRef.current = 0;
@@ -547,7 +555,14 @@ export default function FlappyBaristaGame() {
           rerender();
 
           // Submit session & check for reward vouchers via Server Action
-          submitGameSessionAction({ gameSlug: "flappy-barista", score: fs }).then((res) => {
+          const targetStoreName = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+          const elapsedSec = Math.max(2, Math.round(fRef.current / 60));
+          submitGameSessionAction({ gameSlug: "flappy-barista", score: fs, storeName: targetStoreName, duration: elapsedSec }).then((res) => {
+            if (res.limitReached) {
+              setLimitNotice(res.error || "Daily limit reached for this game.");
+            } else if (res.cooldownNotice) {
+              setCooldownNotice(res.cooldownNotice);
+            }
             if (res.success && res.rewardEarned && res.claimCode) {
               setEarnedReward({
                 rewardName: res.rewardEarned.rewardName,
@@ -727,6 +742,18 @@ export default function FlappyBaristaGame() {
                 >
                   SHOW TO STAFF AT COUNTER 📱
                 </a>
+              </div>
+            )}
+
+            {/* Daily Limit & Cooldown Notices */}
+            {limitNotice && (
+              <div className="bg-rose-500/20 border-2 border-rose-500 text-rose-300 px-3 py-2 rounded-xl text-xs font-bold mb-3 w-full">
+                ⚠️ {limitNotice}
+              </div>
+            )}
+            {cooldownNotice && (
+              <div className="bg-amber-500/20 border-2 border-amber-500 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold mb-3 w-full">
+                ⏳ {cooldownNotice}
               </div>
             )}
 

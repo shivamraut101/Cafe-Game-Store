@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3000";
+
 export default function Home() {
   const [scansPerMonth, setScansPerMonth] = useState(1500);
   const [avgTicket, setAvgTicket] = useState(12);
@@ -34,13 +36,13 @@ export default function Home() {
 
         <div className="flex items-center gap-3">
           <a
-            href="/admin-panel"
+            href={ADMIN_URL}
             className="font-bold text-sm hover:text-black/70 transition-colors hidden sm:inline-block px-3 py-2"
           >
             Merchant Sign In
           </a>
           <a
-            href="/admin-panel"
+            href={ADMIN_URL}
             className="bg-[#111111] text-white px-5 py-2.5 rounded-xl font-bold border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all text-xs flex items-center gap-2"
           >
             Launch Merchant Portal <span>→</span>
@@ -68,7 +70,7 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-4 w-full sm:w-auto pt-2">
               <a
-                href="/admin-panel"
+                href={ADMIN_URL}
                 className="bg-[#111111] text-white text-center py-4 px-8 rounded-2xl font-bold border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all flex items-center justify-center gap-2 text-sm"
               >
                 Start Free Trial <span>→</span>
@@ -258,7 +260,7 @@ export default function Home() {
               </div>
 
               <a
-                href="/admin-panel"
+                href={ADMIN_URL}
                 className="w-full mt-8 py-3.5 text-center font-bold border-2 border-black rounded-xl text-xs hover:bg-black/5"
               >
                 Get Started Free
@@ -290,7 +292,7 @@ export default function Home() {
               </div>
 
               <a
-                href="/admin-panel"
+                href={ADMIN_URL}
                 className="w-full mt-8 py-3.5 text-center font-bold bg-[#111111] text-white rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] text-xs hover:translate-y-[1px]"
               >
                 Start Pro 14-Day Trial
@@ -318,7 +320,7 @@ export default function Home() {
               </div>
 
               <a
-                href="/admin-panel"
+                href={ADMIN_URL}
                 className="w-full mt-8 py-3.5 text-center font-bold border-2 border-black rounded-xl text-xs hover:bg-black/5"
               >
                 Contact Enterprise Sales
@@ -333,7 +335,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <span>© 2026 ForStore White-Label SaaS Engine. All rights reserved.</span>
           <div className="flex items-center gap-6">
-            <a href="/admin-panel" className="hover:underline">Merchant Portal</a>
+            <a href={ADMIN_URL} className="hover:underline">Merchant Portal</a>
             <a href="#pricing" className="hover:underline">Pricing</a>
             <a href="#calculator" className="hover:underline">ROI Calculator</a>
           </div>

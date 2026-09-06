@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import CustomDropdown from "../CustomDropdown";
 import { getAuditLogsAction } from "../../app/actions/adminActions";
+import { downloadCSV } from "../../lib/csvExport";
 
 export default function AuditLogsTab() {
   const [filter, setFilter] = useState("All Actions");
@@ -27,6 +28,22 @@ export default function AuditLogsTab() {
     }
   };
 
+  const handleExportAuditLogsCSV = () => {
+    if (logs.length === 0) return;
+    const headers = ["Timestamp", "Action Type", "Category", "Actor Name", "Actor Email", "Actor Role", "IP Address", "Details"];
+    const rows = logs.map((l) => [
+      l.timestamp ? new Date(l.timestamp).toISOString() : "",
+      l.action,
+      l.actionCategory || "GENERAL",
+      l.actorName || "",
+      l.actorEmail || "",
+      l.actorRole || "",
+      l.ipAddress || "",
+      l.details || "",
+    ]);
+    downloadCSV(`Audit_Logs_${new Date().toISOString().substring(0, 10)}`, headers, rows);
+  };
+
   return (
     <div className="flex flex-col gap-8 pb-12 select-none">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -34,12 +51,23 @@ export default function AuditLogsTab() {
           <h2 className="font-serif text-3xl font-bold text-black mb-1">Audit Logs (Live DB)</h2>
           <p className="text-sm font-semibold text-black/60">Monitor security and track all live system actions in MongoDB Atlas.</p>
         </div>
-        <div className="w-48">
-          <CustomDropdown 
-            options={["All Actions", "Campaign Changes", "Billing & Credits", "Authentication"]}
-            value={filter}
-            onChange={setFilter}
-          />
+        <div className="flex items-center gap-3">
+          {logs.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportAuditLogsCSV}
+              className="text-xs font-bold text-black bg-white border-2 border-black px-3.5 py-2.5 rounded-xl hover:bg-black/5 shadow-[2px_2px_0px_0px_#000] cursor-pointer whitespace-nowrap"
+            >
+              📥 Export CSV
+            </button>
+          )}
+          <div className="w-48">
+            <CustomDropdown 
+              options={["All Actions", "Campaign Changes", "Billing & Credits", "Authentication"]}
+              value={filter}
+              onChange={setFilter}
+            />
+          </div>
         </div>
       </div>
 

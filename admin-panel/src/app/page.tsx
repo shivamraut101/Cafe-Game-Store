@@ -26,8 +26,12 @@ import {
   updateMiniGameConfigAction,
 } from "./actions/adminActions";
 
+import AdminLoginGuard from "../components/AdminLoginGuard";
+
 export default function AdminPortal() {
   const [role, setRole] = useState<UserRole>("store_admin");
+  const [authRole, setAuthRole] = useState<UserRole>("store_admin");
+  const [userEmail, setUserEmail] = useState<string>("");
   const [tier, setTier] = useState<TierLevel>("Pro Store");
   const [impersonatedStore, setImpersonatedStore] = useState<string | null>(null);
 
@@ -77,6 +81,21 @@ export default function AdminPortal() {
     }
     loadDataFromDb();
   }, []);
+
+  // Re-fetch / Auto-provision game configs when selected store changes in dropdown
+  useEffect(() => {
+    if (!currentStore) return;
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("selectedStore", currentStore);
+    }
+    async function loadStoreGames() {
+      const res = await getMiniGameConfigsAction(undefined, currentStore);
+      if (res.success && res.configs) {
+        setMiniGameConfigs(res.configs as any);
+      }
+    }
+    loadStoreGames();
+  }, [currentStore]);
 
   const handleUpdateMiniGameConfig = async (updated: MiniGameConfig) => {
     setMiniGameConfigs((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
@@ -233,11 +252,25 @@ export default function AdminPortal() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F6F3EB]">
+    <AdminLoginGuard
+      activeRole={role}
+      onLoginSuccess={(r, email, storeName) => {
+        setAuthRole(r);
+        setRole(r);
+        if (email) setUserEmail(email);
+        if (r === "store_admin" && storeName) {
+          setCurrentStore(storeName);
+        }
+      }}
+    >
+      <div className="flex flex-col min-h-screen bg-[#F6F3EB]">
       {/* Top Global Role Switcher Bar */}
       <RoleHeader
         currentRole={role}
         currentTier={tier}
+        authRole={authRole}
+        userEmail={userEmail}
+        storeName={currentStore}
         onRoleChange={(newRole) => {
           setRole(newRole);
           const defaultTab = newRole === "super_admin" ? superAdminTab : activeTab;
@@ -266,13 +299,18 @@ export default function AdminPortal() {
           </div>
 
           <div className="flex items-center gap-4">
-            {role === "store_admin" && (
+            {authRole === "super_admin" ? (
               <div className="w-64">
                 <CustomDropdown
                   options={storesList}
                   value={currentStore}
                   onChange={setCurrentStore}
                 />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 bg-[#FBF9F4] text-black px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000]">
+                <span>🏪</span>
+                <span>{currentStore || "Brew & Bites Cafe"}</span>
               </div>
             )}
 
@@ -466,12 +504,13 @@ export default function AdminPortal() {
                   </div>
                 </div>
               )}
-              {activeTab === "analytics" && <AnalyticsTab />}
-              {activeTab === "branding" && <BrandingTab />}
-              {activeTab === "wallet" && <WalletTab />}
-              {activeTab === "subscription" && <SubscriptionTab currentTier={tier} onTierChange={setTier} />}
+              {activeTab === "analytics" && <AnalyticsTab storeName={currentStore} />}
+              {activeTab === "branding" && <BrandingTab storeName={currentStore} />}
+              {activeTab === "wallet" && <WalletTab storeName={currentStore} />}
+              {activeTab === "subscription" && <SubscriptionTab storeName={currentStore} currentTier={tier} onTierChange={setTier} />}
               {activeTab === "qr-studio" && (
                 <QRStudio
+                  storeName={currentStore}
                   games={games}
                   showAddModal={showAddModal}
                   setShowAddModal={setShowAddModal}
@@ -503,5 +542,6 @@ export default function AdminPortal() {
         onStoreCreated={handleStoreCreated}
       />
     </div>
+  </AdminLoginGuard>
   );
 }

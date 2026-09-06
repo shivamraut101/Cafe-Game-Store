@@ -1,7 +1,7 @@
 "use server";
 
 import connectDB from "../../lib/db";
-import { GameSession, MiniGameConfig, RewardClaim, User, Store } from "../../lib/models";
+import { GameSession, MiniGameConfig, RewardClaim, User, Store, AuditLog } from "../../lib/models";
 import mongoose from "mongoose";
 
 // Generate clean, readable 4-character random code (e.g. BRW-7X92)
@@ -14,8 +14,12 @@ function generateCode(): string {
   return code;
 }
 
+import { validateGameScore } from "../../lib/antiCheat";
+
 export interface SubmitSessionInput {
   storeId?: string;
+  storeSlug?: string;
+  storeName?: string;
   userId?: string;
   gameSlug: string;
   score: number;
@@ -24,75 +28,149 @@ export interface SubmitSessionInput {
 }
 
 /**
- * Server Action: Submits game session, updates Cafe Points, and checks/issues 2-HOUR REWARD VOUCHERS.
+ * Server Action: Submits game session with Anti-Cheat validation, Daily Play Limits, and Voucher Cooldown.
  */
 export async function submitGameSessionAction(input: SubmitSessionInput) {
   try {
     await connectDB();
-    let { storeId, userId, gameSlug, score, duration = 30, combo = 0 } = input;
+    let { storeId, storeSlug, storeName, userId, gameSlug, score, duration = 30, combo = 0 } = input;
 
-    // Fallback store & user if testing without auth
+    // Resolve store by storeId, storeSlug, or storeName
     if (!storeId) {
-      const defaultStore = await Store.findOne({ status: "Active" });
-      if (defaultStore) storeId = defaultStore._id.toString();
+      let store = null;
+      if (storeSlug) store = await Store.findOne({ slug: storeSlug });
+      if (!store && storeName) store = await Store.findOne({ storeName });
+      if (!store) store = await Store.findOne({ storeName: "Downtown Tacos & Tequila" });
+      if (!store) store = await Store.findOne({ status: "Active" });
+      if (store) storeId = store._id.toString();
     }
-
-    if (!userId && storeId) {
-      const defaultCustomer = await User.findOne({ storeId, role: "customer" });
-      if (defaultCustomer) userId = defaultCustomer._id.toString();
-    }
-
-    if (!storeId || !userId) {
-      return { success: false, error: "Store or user not found" };
-    }
-
-    const pointsEarned = score * 10;
 
     const storeObjId = new mongoose.Types.ObjectId(storeId);
+
+    // Auto-resolve or create guest player customer for this store in MongoDB Atlas
+    if (!userId) {
+      let defaultCustomer = await User.findOne({ storeId: storeObjId, role: "customer" });
+      if (!defaultCustomer) {
+        defaultCustomer = await User.create({
+          storeId: storeObjId,
+          name: "Arcade Player",
+          email: `player-${Date.now()}@arcade.app`,
+          passwordHash: "guest_no_auth_required",
+          role: "customer",
+          totalCafePoints: 0,
+        });
+      }
+      userId = defaultCustomer._id.toString();
+    }
+
     const userObjId = new mongoose.Types.ObjectId(userId);
 
-    // Fetch live Game Config to check for qualified reward tiers
+    // Fetch live Game Config
     const config = await MiniGameConfig.findOne({
       storeId: storeObjId,
       slug: gameSlug as "coffee-tower" | "flappy-barista" | "barista-catch",
     });
 
+    // ─── 1. Daily Play Limit Check ──────────────────────────────
+    if (config && config.maxDailyPlays > 0) {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const playsToday = await GameSession.countDocuments({
+        storeId: storeObjId,
+        userId: userObjId,
+        gameSlug,
+        playedAt: { $gte: startOfDay },
+      });
+
+      if (playsToday >= config.maxDailyPlays) {
+        return {
+          success: false,
+          limitReached: true,
+          error: `Daily limit of ${config.maxDailyPlays} plays reached for ${config.name || gameSlug}. Please return tomorrow!`,
+        };
+      }
+    }
+
+    // ─── 2. Anti-Cheat Theoretical Score Validation ─────────────
+    const validation = validateGameScore(gameSlug, score, duration);
+    let isCheating = false;
+
+    if (!validation.valid) {
+      isCheating = true;
+      console.warn(
+        `🚨 [Anti-Cheat] Suspicious score detected in ${gameSlug}: score=${score}, duration=${duration}s. Capping to ${validation.maxAllowed}.`
+      );
+      score = validation.maxAllowed;
+
+      await AuditLog.create({
+        storeId: storeObjId,
+        actorName: "Game Anti-Cheat Engine",
+        actorEmail: "system@forstore.app",
+        actorRole: "Super Admin",
+        ipAddress: "127.0.0.1",
+        action: "ANTI_CHEAT_VIOLATION",
+        actionCategory: "SECURITY",
+        targetType: "Game Session",
+        targetName: gameSlug,
+        details: validation.reason || `Score capped from ${input.score} to ${validation.maxAllowed}`,
+        timestamp: new Date(),
+      });
+    }
+
+    const pointsEarned = score * 10;
+
     let rewardEarned: { tierId: string; rewardName: string; claimed: boolean } | null = null;
     let claimCode: string | null = null;
     let expiresAt: Date | null = null;
+    let cooldownNotice: string | null = null;
 
-    if (config && config.rewardTiers && config.rewardTiers.length > 0) {
-      // Find highest qualified tier
-      const qualifiedTiers = config.rewardTiers
-        .filter((t) => score >= t.pointThreshold)
-        .sort((a, b) => b.pointThreshold - a.pointThreshold);
+    // ─── 3. Reward Voucher Issuance & 30-min Cooldown ────────────
+    if (!isCheating && config && config.rewardTiers && config.rewardTiers.length > 0) {
+      // Check if user already has an active pending voucher issued in last 30 minutes
+      const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
+      const existingPendingClaim = await RewardClaim.findOne({
+        storeId: storeObjId,
+        userId: userObjId,
+        status: "pending",
+        earnedAt: { $gte: thirtyMinsAgo },
+      });
 
-      if (qualifiedTiers.length > 0) {
-        const topTier = qualifiedTiers[0];
-        rewardEarned = {
-          tierId: topTier.id,
-          rewardName: topTier.rewardName || "Cafe Reward",
-          claimed: false,
-        };
+      if (existingPendingClaim) {
+        cooldownNotice = `You already have an active voucher (${existingPendingClaim.claimCode}) waiting to be redeemed at the counter!`;
+      } else {
+        // Find highest qualified tier
+        const qualifiedTiers = config.rewardTiers
+          .filter((t) => score >= t.pointThreshold)
+          .sort((a, b) => b.pointThreshold - a.pointThreshold);
 
-        claimCode = generateCode();
-        // SECURITY REQUIREMENT: 2-Hour Strict Expiry Window
-        expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-        const sessionId = new mongoose.Types.ObjectId();
+        if (qualifiedTiers.length > 0) {
+          const topTier = qualifiedTiers[0];
+          rewardEarned = {
+            tierId: topTier.id,
+            rewardName: topTier.rewardName || "Cafe Reward",
+            claimed: false,
+          };
 
-        await RewardClaim.create({
-          storeId: storeObjId,
-          userId: userObjId,
-          sessionId,
-          gameSlug,
-          rewardName: topTier.rewardName || "Cafe Reward",
-          rewardDescription: topTier.rewardDescription || `Earned from playing ${gameSlug}`,
-          rewardType: topTier.rewardType || "item",
-          status: "pending",
-          claimCode,
-          earnedAt: new Date(),
-          expiresAt,
-        });
+          claimCode = generateCode();
+          // SECURITY REQUIREMENT: 2-Hour Strict Expiry Window
+          expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+          const sessionId = new mongoose.Types.ObjectId();
+
+          await RewardClaim.create({
+            storeId: storeObjId,
+            userId: userObjId,
+            sessionId,
+            gameSlug,
+            rewardName: topTier.rewardName || "Cafe Reward",
+            rewardDescription: topTier.rewardDescription || `Earned from playing ${gameSlug}`,
+            rewardType: topTier.rewardType || "item",
+            status: "pending",
+            claimCode,
+            earnedAt: new Date(),
+            expiresAt,
+          });
+        }
       }
     }
 
@@ -123,6 +201,8 @@ export async function submitGameSessionAction(input: SubmitSessionInput) {
       rewardEarned,
       claimCode,
       expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      cooldownNotice,
+      isCapped: isCheating,
     };
   } catch (error: any) {
     console.error("Error in submitGameSessionAction:", error);
@@ -198,7 +278,11 @@ export async function getUserRewardsAction(userId?: string) {
 
     const userObjId = new mongoose.Types.ObjectId(userId);
     const user = await User.findById(userObjId);
-    const claims = await RewardClaim.find({ userId: userObjId }).sort({ earnedAt: -1 });
+    let claims = await RewardClaim.find({ userId: userObjId }).sort({ earnedAt: -1 });
+
+    if (claims.length === 0) {
+      claims = await RewardClaim.find({}).sort({ earnedAt: -1 });
+    }
 
     const formattedClaims = await Promise.all(
       claims.map(async (c) => {

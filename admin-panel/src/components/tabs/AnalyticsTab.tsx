@@ -4,7 +4,11 @@ import React, { useState, useEffect } from "react";
 import CustomDropdown from "../CustomDropdown";
 import { getAnalyticsDataAction } from "../../app/actions/adminActions";
 
-export default function AnalyticsTab() {
+interface AnalyticsTabProps {
+  storeName?: string;
+}
+
+export default function AnalyticsTab({ storeName }: AnalyticsTabProps) {
   const [timeRange, setTimeRange] = useState("Last 30 Days");
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
@@ -18,12 +22,12 @@ export default function AnalyticsTab() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [storeName]);
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const res = await getAnalyticsDataAction();
+      const res = await getAnalyticsDataAction(storeName);
       if (res.success && res.metrics && res.hourlyPeakData) {
         setMetrics(res.metrics);
         setHourlyPeakData(res.hourlyPeakData);
@@ -47,27 +51,43 @@ export default function AnalyticsTab() {
 
       {/* Top Level Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="bg-[#111111] text-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex flex-col justify-between">
+        <div className="bg-[#111111] text-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex flex-col justify-between min-h-[130px]">
           <span className="text-xs font-bold uppercase tracking-wider text-white/60">Total Table Scans</span>
-          <span className="text-4xl font-black mt-2">{metrics.totalScans.toLocaleString()}</span>
+          {loading ? (
+            <div className="h-9 w-20 bg-white/20 animate-pulse rounded-lg mt-2" />
+          ) : (
+            <span className="text-4xl font-black mt-2">{metrics.totalScans.toLocaleString()}</span>
+          )}
           <span className="text-[11px] font-bold text-emerald-400 mt-2">Live from DB</span>
         </div>
 
-        <div className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
+        <div className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between min-h-[130px]">
           <span className="text-xs font-bold uppercase tracking-wider text-black/50">Vouchers Won</span>
-          <span className="text-4xl font-black mt-2">{metrics.totalVouchersWon.toLocaleString()}</span>
+          {loading ? (
+            <div className="h-9 w-20 bg-black/10 animate-pulse rounded-lg mt-2" />
+          ) : (
+            <span className="text-4xl font-black mt-2">{metrics.totalVouchersWon.toLocaleString()}</span>
+          )}
           <span className="text-[11px] font-bold text-emerald-600 mt-2">Live from DB</span>
         </div>
 
-        <div className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
+        <div className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between min-h-[130px]">
           <span className="text-xs font-bold uppercase tracking-wider text-black/50">Redeemed at Register</span>
-          <span className="text-4xl font-black text-emerald-600 mt-2">{metrics.totalRedeemed.toLocaleString()}</span>
-          <span className="text-[11px] font-bold text-black/60 mt-2">{metrics.redemptionRate}% Redemption Rate</span>
+          {loading ? (
+            <div className="h-9 w-20 bg-black/10 animate-pulse rounded-lg mt-2" />
+          ) : (
+            <span className="text-4xl font-black text-emerald-600 mt-2">{metrics.totalRedeemed.toLocaleString()}</span>
+          )}
+          <span className="text-[11px] font-bold text-black/60 mt-2">{loading ? "..." : `${metrics.redemptionRate}% Redemption Rate`}</span>
         </div>
 
-        <div className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex flex-col justify-between">
+        <div className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex flex-col justify-between min-h-[130px]">
           <span className="text-xs font-bold uppercase tracking-wider text-black/50">Avg Play Duration</span>
-          <span className="text-4xl font-black mt-2">{metrics.avgDuration}s</span>
+          {loading ? (
+            <div className="h-9 w-20 bg-black/10 animate-pulse rounded-lg mt-2" />
+          ) : (
+            <span className="text-4xl font-black mt-2">{metrics.avgDuration}s</span>
+          )}
           <span className="text-[11px] font-bold text-black/60 mt-2">Optimal Dwell Time</span>
         </div>
       </div>
@@ -85,19 +105,23 @@ export default function AnalyticsTab() {
         </div>
 
         <div className="grid grid-cols-6 sm:grid-cols-12 gap-2 pt-4">
-          {hourlyPeakData.map((item) => (
-            <div key={item.hour} className="flex flex-col items-center gap-2">
-              <div className="w-full h-24 bg-[#FBF9F4] rounded-xl border-2 border-black relative overflow-hidden flex items-end">
-                <div
-                  className={`w-full transition-all rounded-t-lg ${
-                    item.peak ? "bg-[#FF4C29]" : "bg-black/20"
-                  }`}
-                  style={{ height: `${(item.scans / 650) * 100}%` }}
-                />
+          {(() => {
+            const maxScans = Math.max(...hourlyPeakData.map((h) => h.scans), 1);
+            return hourlyPeakData.map((item) => (
+              <div key={item.hour} className="flex flex-col items-center gap-2">
+                <div className="w-full h-24 bg-[#FBF9F4] rounded-xl border-2 border-black relative overflow-hidden flex items-end">
+                  <div
+                    className={`w-full transition-all rounded-t-lg ${
+                      item.peak ? "bg-[#FF4C29]" : "bg-black/20"
+                    }`}
+                    style={{ height: `${Math.max(5, (item.scans / maxScans) * 100)}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-bold text-black/60 font-mono">{item.hour}</span>
+                <span className="text-[11px] font-black text-black">{item.scans}</span>
               </div>
-              <span className="text-[10px] font-black text-black/60">{item.hour}</span>
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       </div>
 

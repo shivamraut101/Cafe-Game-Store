@@ -327,3 +327,52 @@ AuditLogSchema.index({ timestamp: -1 });
 
 export const AuditLog: Model<IAuditLog> =
   mongoose.models.AuditLog || mongoose.model<IAuditLog>("AuditLog", AuditLogSchema);
+
+// ─── TopUpRequest (Bank Transfer & UPI) ────────────────────
+export interface ITopUpRequest extends Document {
+  storeId: mongoose.Types.ObjectId;
+  storeName: string;
+  creditsRequested: number;
+  amountInINR: number;
+  paymentMethod: "bank_transfer" | "upi" | "cash";
+  referenceId: string; // UTR or UPI transaction reference
+  status: "pending" | "approved" | "rejected";
+  notes?: string;
+  approvedAt?: Date;
+  approvedBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TopUpRequestSchema = new Schema<ITopUpRequest>(
+  {
+    storeId: { type: Schema.Types.ObjectId, ref: "Store", required: true },
+    storeName: { type: String, required: true },
+    creditsRequested: { type: Number, required: true },
+    amountInINR: { type: Number, required: true },
+    paymentMethod: {
+      type: String,
+      enum: ["bank_transfer", "upi", "cash"],
+      default: "upi",
+    },
+    referenceId: { type: String, required: true, trim: true },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    notes: { type: String, default: "" },
+    approvedAt: { type: Date },
+    approvedBy: { type: String },
+  },
+  { timestamps: true }
+);
+
+TopUpRequestSchema.index({ storeId: 1, status: 1 });
+TopUpRequestSchema.index({ status: 1, createdAt: -1 });
+TopUpRequestSchema.index({ referenceId: 1 });
+
+export const TopUpRequest: Model<ITopUpRequest> =
+  mongoose.models.TopUpRequest ||
+  mongoose.model<ITopUpRequest>("TopUpRequest", TopUpRequestSchema);
+

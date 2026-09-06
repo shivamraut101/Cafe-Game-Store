@@ -29,6 +29,8 @@ export default function CoffeeTowerGame() {
   const [waitTime, setWaitTime] = useState(0);
   const [showPerfect, setShowPerfect] = useState(false);
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
+  const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
+  const [limitNotice, setLimitNotice] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
@@ -265,7 +267,18 @@ export default function CoffeeTowerGame() {
       setGameState("gameover");
 
       // Submit session & check for reward vouchers via Server Action
-      submitGameSessionAction({ gameSlug: "coffee-tower", score: fs }).then((res) => {
+      const targetStoreName = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+      submitGameSessionAction({
+        gameSlug: "coffee-tower",
+        score: fs,
+        storeName: targetStoreName,
+        duration: Math.max(2, waitTime),
+      }).then((res) => {
+        if (res.limitReached) {
+          setLimitNotice(res.error || "Daily limit reached for this game.");
+        } else if (res.cooldownNotice) {
+          setCooldownNotice(res.cooldownNotice);
+        }
         if (res.success && res.rewardEarned && res.claimCode) {
           setEarnedReward({
             rewardName: res.rewardEarned.rewardName,
@@ -424,6 +437,18 @@ export default function CoffeeTowerGame() {
               <h3 className="font-serif text-3xl font-black text-[#FF4C29]">{score} CUPS</h3>
               <p className="text-[11px] font-bold text-emerald-700 mt-1">+{score * 10} Cafe Points earned</p>
             </div>
+
+            {limitNotice && (
+              <div className="bg-amber-400 text-black w-full p-3 rounded-2xl border-2 border-black mb-4 text-xs font-black text-center shadow-[3px_3px_0px_0px_#000]">
+                ⏳ {limitNotice}
+              </div>
+            )}
+
+            {cooldownNotice && !earnedReward && (
+              <div className="bg-blue-100 text-blue-900 w-full p-3 rounded-2xl border-2 border-blue-400 mb-4 text-xs font-bold text-center">
+                ℹ️ {cooldownNotice}
+              </div>
+            )}
 
             {/* Earned Reward Voucher Banner */}
             {earnedReward && (

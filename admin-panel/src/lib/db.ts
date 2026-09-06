@@ -14,10 +14,13 @@ export function getResolvedMongoURI(): string {
     targetUri = process.env.MONGODB_URI_DEMO || process.env.MONGODB_URI;
   }
 
-  return (
-    targetUri ||
-    "mongodb+srv://shivamkumarraut12_db_user:XrQ3FmIzz4S7j058@cluster0.5qmwn8w.mongodb.net/cafe-game-store-demo?retryWrites=true&w=majority&appName=Cluster0"
-  );
+  if (!targetUri) {
+    throw new Error(
+      `[MongoDB] Missing MongoDB connection string for environment "${envMode}". Please configure MONGODB_URI or MONGODB_URI_${envMode.toUpperCase()} in your environment variables.`
+    );
+  }
+
+  return targetUri;
 }
 
 interface MongooseCache {

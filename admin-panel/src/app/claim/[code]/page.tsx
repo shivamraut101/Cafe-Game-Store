@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 import { redeemRewardVoucherAction } from "../../actions/gameActions";
 
@@ -17,6 +17,11 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [redeemSuccess, setRedeemSuccess] = useState(false);
   const [isRedeeming, setIsRedeeming] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>("");
+  const [isExpired, setIsExpired] = useState(false);
+
+  const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchClaimDetails();
@@ -44,6 +49,82 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
     }
   };
 
+  // Render QR Code once claim is loaded
+  useEffect(() => {
+    if (!claim || !qrRef.current) return;
+
+    let mounted = true;
+    import("qr-code-styling").then((QRCodeStylingModule) => {
+      if (!mounted || !qrRef.current) return;
+      const QRCodeStyling = QRCodeStylingModule.default;
+      const url = typeof window !== "undefined" ? window.location.href : `https://forstore.app/claim/${code}`;
+      
+      const qr = new QRCodeStyling({
+        width: 190,
+        height: 190,
+        type: "svg",
+        data: url,
+        dotsOptions: { color: "#1A1A1A", type: "rounded" },
+        backgroundOptions: { color: "#FFFFFF" },
+        cornersSquareOptions: { type: "extra-rounded", color: "#FF4C29" },
+        cornersDotOptions: { type: "dot", color: "#FF4C29" },
+      });
+
+      qrRef.current.innerHTML = "";
+      qr.append(qrRef.current);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [claim, code]);
+
+  // Live countdown timer for the 2-hour window
+  useEffect(() => {
+    if (!claim?.expiresAt) return;
+
+    const updateTimer = () => {
+      const diff = new Date(claim.expiresAt).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft("Expired");
+        setIsExpired(true);
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(`${hours}h ${mins.toString().padStart(2, "0")}m ${secs.toString().padStart(2, "0")}s`);
+        setIsExpired(false);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [claim?.expiresAt]);
+
+  const handleCopy = () => {
+    if (!claim?.claimCode) return;
+    navigator.clipboard.writeText(claim.claimCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleShare = async () => {
+    if (typeof window !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `Reward Voucher: ${claim?.rewardName}`,
+          text: `Here is my cafe reward voucher: ${claim?.claimCode}`,
+          url: window.location.href,
+        });
+      } catch {
+        handleCopy();
+      }
+    } else {
+      handleCopy();
+    }
+  };
+
   const handleRedeem = async () => {
     try {
       setIsRedeeming(true);
@@ -58,7 +139,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
           window.navigator.vibrate([100, 50, 200]);
         }
       }
-    } catch (e) {
+    } catch {
       alert("Network error redeeming voucher");
     } finally {
       setIsRedeeming(false);
@@ -71,7 +152,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
         
         {/* Top Header Badge */}
         <div className="bg-black text-white px-4 py-1.5 rounded-full text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] mb-4">
-          STAFF VOUCHER REDEMPTION
+          CAFE REWARD VOUCHER PASS
         </div>
 
         {loading ? (
@@ -93,30 +174,67 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
           </div>
         ) : (
           <div className="w-full flex flex-col items-center">
-            {/* Voucher Icon */}
-            <div className="w-20 h-20 rounded-3xl bg-amber-100 border-3 border-black flex items-center justify-center text-4xl shadow-[4px_4px_0px_0px_#000] mb-4">
-              🎁
-            </div>
-
-            {/* Store & Customer */}
+            {/* Store & Customer Header */}
             <p className="text-[10px] font-black uppercase tracking-widest text-[#FF4C29]">
               {claim.storeName}
             </p>
-            <h2 className="font-serif text-2xl font-black text-black my-1">{claim.rewardName}</h2>
-            <p className="text-xs font-semibold text-black/60 mb-6">{claim.rewardDescription}</p>
+            <h2 className="font-serif text-2xl font-black text-black my-0.5">{claim.rewardName}</h2>
+            <p className="text-xs font-semibold text-black/60 mb-4">{claim.rewardDescription}</p>
 
-            {/* Claim Code Card */}
-            <div className="bg-[#FBF9F4] w-full p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#000] mb-6">
-              <span className="text-[10px] font-black uppercase tracking-wider text-black/40 block">
-                Verification Claim Code
-              </span>
-              <h3 className="font-mono text-3xl font-black text-[#FF4C29] tracking-wider my-1">
-                {claim.claimCode}
-              </h3>
-              <p className="text-[11px] font-bold text-black/60 mt-1">Customer: {claim.customerName}</p>
+            {/* QR Code Presentation Frame */}
+            <div className="bg-[#FBF9F4] p-4 rounded-3xl border-3 border-black shadow-[5px_5px_0px_0px_#000] flex flex-col items-center mb-4 w-full">
+              <div
+                ref={qrRef}
+                className="w-[190px] h-[190px] bg-white rounded-2xl border-2 border-black/10 flex items-center justify-center p-2 shadow-inner"
+              >
+                <span className="text-2xl animate-pulse">☕</span>
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mt-2">
+                SCAN AT COUNTER TO REDEEM
+              </p>
             </div>
 
-            {/* Status / Action Button */}
+            {/* Claim Code Card with One-Tap Copy */}
+            <div className="bg-[#FBF9F4] w-full p-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000] mb-4 flex items-center justify-between">
+              <div className="text-left">
+                <span className="text-[9px] font-black uppercase tracking-wider text-black/40 block">
+                  Claim Code
+                </span>
+                <span className="font-mono text-2xl font-black text-[#FF4C29] tracking-wider">
+                  {claim.claimCode}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="px-3.5 py-2 bg-black text-white text-xs font-black rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] active:translate-y-[1px] transition-all cursor-pointer"
+              >
+                {copied ? "COPIED! ✅" : "COPY 📋"}
+              </button>
+            </div>
+
+            {/* 2-Hour Strict Window Countdown Timer */}
+            <div
+              className={`w-full py-2.5 px-3 rounded-2xl border-2 border-black text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000] ${
+                isExpired
+                  ? "bg-red-100 text-red-700 border-red-500"
+                  : "bg-amber-100 text-amber-900 border-amber-400"
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <span>⏳</span>
+                <span>2-Hour Expiry Window:</span>
+              </div>
+              <span className="font-mono font-black">{timeLeft || "Checking..."}</span>
+            </div>
+
+            {/* Customer & Store Info Details */}
+            <div className="w-full bg-white p-2.5 rounded-xl border border-black/10 text-[11px] font-bold text-black/60 flex justify-between mb-4">
+              <span>Customer: <strong className="text-black">{claim.customerName}</strong></span>
+              <span>Issued: <strong className="text-black">{new Date(claim.earnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+            </div>
+
+            {/* Status / Staff Action Button */}
             {redeemSuccess ? (
               <div className="w-full py-4 bg-emerald-400 text-black border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#000] flex flex-col items-center">
                 <span className="text-2xl mb-1">✅</span>
@@ -125,26 +243,45 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
                   Claimed at: {new Date(claim.claimedAt || Date.now()).toLocaleTimeString()}
                 </span>
               </div>
-            ) : claim.status === "expired" ? (
+            ) : isExpired || claim.status === "expired" ? (
               <div className="w-full py-4 bg-red-400 text-black border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#000]">
-                ⚠️ VOUCHER EXPIRED
+                ⚠️ VOUCHER EXPIRED (2-HOUR WINDOW PASSED)
               </div>
             ) : (
-              <button
-                onClick={handleRedeem}
-                disabled={isRedeeming}
-                className="w-full py-4 bg-[#FF4C29] text-white border-3 border-black rounded-2xl font-black text-base shadow-[4px_4px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
-              >
-                {isRedeeming ? "REDEEMING..." : "STAFF: TAP TO VERIFY & REDEEM 🎯"}
-              </button>
+              <div className="w-full flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={handleRedeem}
+                  disabled={isRedeeming}
+                  className="w-full py-3.5 bg-[#FF4C29] text-white border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
+                >
+                  {isRedeeming ? "REDEEMING..." : "STAFF: TAP TO VERIFY & REDEEM 🎯"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="w-full py-2 bg-white text-black border-2 border-black rounded-xl font-black text-xs hover:bg-[#FBF9F4] transition-colors cursor-pointer"
+                >
+                  SHARE / SAVE VOUCHER 📱
+                </button>
+              </div>
             )}
 
-            <Link
-              href="/my-rewards"
-              className="text-xs font-bold text-black/50 underline mt-6 hover:text-black"
-            >
-              Back to Customer Wallet
-            </Link>
+            <div className="flex gap-4 mt-5">
+              <Link
+                href="/my-rewards"
+                className="text-xs font-bold text-black/50 underline hover:text-black"
+              >
+                Customer Wallet
+              </Link>
+              <span className="text-black/20">•</span>
+              <Link
+                href="/claim"
+                className="text-xs font-bold text-black/50 underline hover:text-black"
+              >
+                Staff Portal
+              </Link>
+            </div>
           </div>
         )}
       </main>

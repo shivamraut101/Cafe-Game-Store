@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getMiniGameConfigsAction } from "../actions/adminActions";
+import { getMiniGameConfigsAction, getStoreBrandingAction } from "../actions/adminActions";
 
 interface GameCard {
   slug: string;
@@ -22,7 +22,16 @@ export default function ArcadeLandingPage() {
   const [games, setGames] = useState<GameCard[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [storeName, setStoreName] = useState("Brew & Bites Arcade");
+
   useEffect(() => {
+    // Read store parameter from URL query string (e.g. ?store=downtown-tacos-tequila)
+    let storeParam = "";
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      storeParam = params.get("store") || sessionStorage.getItem("selectedStore") || "";
+    }
+
     // Fetch customer profile & points from API
     fetch("/api/rewards/user")
       .then((res) => res.json())
@@ -34,8 +43,17 @@ export default function ArcadeLandingPage() {
       })
       .catch(() => {});
 
-    // Fetch live game configs from active MongoDB database
-    getMiniGameConfigsAction()
+    // Fetch store branding for header
+    getStoreBrandingAction(storeParam)
+      .then((res) => {
+        if (res.success && res.branding && res.branding.storeName) {
+          setStoreName(res.branding.storeName);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch live game configs from active MongoDB database for target store
+    getMiniGameConfigsAction(undefined, storeParam)
       .then((res) => {
         if (res.success && res.configs) {
           const mapped: GameCard[] = res.configs.map((c) => {
@@ -66,7 +84,7 @@ export default function ArcadeLandingPage() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-2xl">☕</span>
-            <h1 className="font-serif font-black text-xl text-white">Brew & Bites Arcade</h1>
+            <h1 className="font-serif font-black text-xl text-white">{storeName}</h1>
           </div>
           <p className="text-xs font-bold text-white/60 mt-0.5">
             Welcome, <span className="text-emerald-400 font-bold">{userName}</span>

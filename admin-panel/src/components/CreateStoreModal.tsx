@@ -5,6 +5,7 @@ import { TierLevel } from "./SubscriptionPlanCard";
 import { logAction } from "../lib/auditLogger";
 import { MerchantAccount } from "./SuperAdminDashboard";
 import CustomDropdown from "./CustomDropdown";
+import { createStoreAction } from "../app/actions/adminActions";
 
 interface CreateStoreModalProps {
   isOpen: boolean;
@@ -22,9 +23,12 @@ export default function CreateStoreModal({
   const [storeName, setStoreName] = useState("");
   const [storeSlug, setStoreSlug] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerName, setOwnerName] = useState("");
   const [category, setCategory] = useState("Cafe / Coffee Shop");
   const [plan, setPlan] = useState<TierLevel>("Pro Store");
   const [initialCredits, setInitialCredits] = useState(500);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -33,43 +37,41 @@ export default function CreateStoreModal({
     setStoreSlug(name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!storeName.trim() || !ownerEmail.trim()) return;
 
-    const newStore: MerchantAccount = {
-      id: `M-${Math.floor(100 + Math.random() * 900)}`,
-      storeName: storeName.trim(),
-      ownerEmail: ownerEmail.trim(),
-      plan: plan,
-      status: "Active",
-      walletBalance: initialCredits,
-      totalScans: 0,
-      joinedDate: new Date().toISOString().substring(0, 10),
-      whiteLabelOverride: plan !== "Starter",
-      watermarkRemoved: plan === "Enterprise",
-      churnRisk: "Low",
-      aiCreditsUsed: 0,
-    };
+    try {
+      setSubmitting(true);
+      setErrorMsg(null);
 
-    logAction({
-      actorName: actorRole === "Super Admin" ? "Koushik (Super Admin)" : "Store Owner",
-      actorEmail: actorRole === "Super Admin" ? "koushik@forstore.app" : ownerEmail,
-      actorRole: actorRole,
-      ipAddress: "157.48.22.19",
-      action: "SUPER_ADMIN_STORE_CREATE",
-      actionCategory: "SYSTEM",
-      targetType: "Store Account",
-      targetName: newStore.storeName,
-      details: `Provisioned new ${category} store "${newStore.storeName}" on ${plan} plan with ${initialCredits} bonus credits.`,
-    });
+      const res = await createStoreAction({
+        storeName: storeName.trim(),
+        slug: storeSlug.trim(),
+        ownerEmail: ownerEmail.trim(),
+        ownerName: ownerName.trim() || storeName.trim(),
+        plan,
+        initialCredits,
+        actorRole,
+      });
 
-    onStoreCreated(newStore);
-    onClose();
-    // Reset form
-    setStoreName("");
-    setStoreSlug("");
-    setOwnerEmail("");
+      if (!res.success || !res.store) {
+        setErrorMsg(res.error || "Failed to provision store in database.");
+        return;
+      }
+
+      onStoreCreated(res.store as any);
+      onClose();
+      // Reset form
+      setStoreName("");
+      setStoreSlug("");
+      setOwnerEmail("");
+      setOwnerName("");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Network error provisioning store.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -194,19 +196,27 @@ export default function CreateStoreModal({
             />
           </div>
 
+          {errorMsg && (
+            <div className="bg-red-100 border-2 border-red-500 text-red-700 p-3 rounded-xl text-xs font-bold">
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
           <div className="flex gap-3 mt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-xs bg-white hover:bg-black/5"
+              disabled={submitting}
+              className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-xs bg-white hover:bg-black/5 disabled:opacity-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 bg-[#111111] text-white rounded-xl font-bold text-xs border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all"
+              disabled={submitting}
+              className="flex-1 py-3 bg-[#111111] text-white rounded-xl font-bold text-xs border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all disabled:opacity-50 cursor-pointer"
             >
-              ⚡ Provision Store Now
+              {submitting ? "Provisioning..." : "⚡ Provision Store Now"}
             </button>
           </div>
         </form>

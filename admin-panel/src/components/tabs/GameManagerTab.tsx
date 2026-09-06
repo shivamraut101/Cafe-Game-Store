@@ -138,19 +138,19 @@ export default function GameManagerTab({ configs, onUpdateConfig }: GameManagerT
         <div className="bg-white rounded-2xl p-4 border-2 border-black shadow-[4px_4px_0px_0px_#10B981]">
           <p className="text-xs font-bold text-black/40 uppercase tracking-wider">Total Plays Today</p>
           <h3 className="font-serif text-2xl font-black mt-1">
-            {configs.reduce((sum, c) => sum + c.stats.totalPlaysToday, 0).toLocaleString()}
+            {configs.reduce((sum, c) => sum + (c.stats?.totalPlaysToday || 0), 0).toLocaleString()}
           </h3>
         </div>
         <div className="bg-white rounded-2xl p-4 border-2 border-black shadow-[4px_4px_0px_0px_#332FD0]">
           <p className="text-xs font-bold text-black/40 uppercase tracking-wider">Avg Score Across Games</p>
           <h3 className="font-serif text-2xl font-black mt-1">
-            {Math.round(configs.reduce((sum, c) => sum + c.stats.avgScore, 0) / configs.length)}
+            {configs.length > 0 ? Math.round(configs.reduce((sum, c) => sum + (c.stats?.avgScore || 0), 0) / configs.length) : 0}
           </h3>
         </div>
         <div className="bg-white rounded-2xl p-4 border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29]">
           <p className="text-xs font-bold text-black/40 uppercase tracking-wider">Rewards Claimed Today</p>
           <h3 className="font-serif text-2xl font-black mt-1">
-            {configs.reduce((sum, c) => sum + c.stats.rewardsClaimed, 0).toLocaleString()}
+            {configs.reduce((sum, c) => sum + (c.stats?.rewardsClaimed || 0), 0).toLocaleString()}
           </h3>
         </div>
       </div>
