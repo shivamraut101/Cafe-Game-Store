@@ -33,7 +33,69 @@ Configure these in your storefront hosting project:
 
 ---
 
-## 3. Deploying to Vercel (Recommended 5-Minute Setup)
+## 3. Deploying to Hostinger (Subdomain Setup)
+
+You can host both apps on your existing Hostinger plan with **$0 additional infrastructure cost**:
+
+### Architecture on Hostinger:
+* **Admin / Arcade / Games App**: Hosted on your subdomain (e.g. `https://app.yourdomain.com` or `https://arcade.yourdomain.com`).
+* **Marketing Storefront**: Hosted on your root domain (e.g. `https://yourdomain.com`).
+
+### Environment Variables on Hostinger:
+1. **In `admin-panel/.env.local`** (or Hostinger Environment Variables):
+   ```env
+   MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/cafe-game-store-prod?retryWrites=true&w=majority
+   MONGODB_ENV=prod
+   SESSION_SECRET=a_secure_random_64_character_hex_string
+   PORT=3000
+   ```
+2. **In `storefront/.env.local`**:
+   ```env
+   NEXT_PUBLIC_ADMIN_URL=https://app.yourdomain.com
+   PORT=3001
+   ```
+
+### Option A: Hostinger VPS (Recommended - 1 Command with PM2)
+1. Clone repo onto your Hostinger VPS:
+   ```bash
+   git clone https://github.com/shivamraut101/Cafe-Game-Store.git
+   cd Cafe-Game-Store
+   npm install
+   npm run build
+   ```
+2. Start both services simultaneously using the included PM2 configuration:
+   ```bash
+   pm2 start ecosystem.config.js
+   pm2 save
+   pm2 startup
+   ```
+3. In your Nginx configuration on Hostinger, proxy your subdomain to port `3000`:
+   ```nginx
+   server {
+       server_name app.yourdomain.com;
+       location / {
+           proxy_pass http://127.0.0.1:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+### Option B: Hostinger Cloud / hPanel (Node.js Application Manager)
+1. In Hostinger **hPanel** -> **Domains** -> **Subdomains**: Create your subdomain (e.g. `app`).
+2. In **Node.js** app manager:
+   - Point application root to `admin-panel`.
+   - Set Node version to `20.x`.
+   - Set Startup command to `npm start`.
+   - Enter your environment variables (`MONGODB_URI`, `MONGODB_ENV=prod`, `SESSION_SECRET`).
+3. Click **Deploy**.
+
+---
+
+## 4. Deploying to Vercel (Alternative Option)
 
 ### Project 1: Deploy `admin-panel`
 1. Go to [Vercel Dashboard](https://vercel.com/new) -> **Import Git Repository**.

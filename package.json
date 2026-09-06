@@ -10,6 +10,8 @@
     "build": "npm run build --prefix admin-panel && npm run build --prefix storefront",
     "build:admin": "npm run build --prefix admin-panel",
     "build:storefront": "npm run build --prefix storefront",
+    "start:admin": "npm run start --prefix admin-panel",
+    "start:storefront": "npm run start --prefix storefront",
     "seed": "npm run seed --prefix admin-panel",
     "seed:dev": "npm run seed:dev --prefix admin-panel",
     "seed:prod": "npm run seed:prod --prefix admin-panel"
