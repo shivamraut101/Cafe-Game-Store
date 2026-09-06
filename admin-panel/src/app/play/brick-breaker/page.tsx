@@ -34,10 +34,11 @@ interface PowerUp {
 const W = 340;
 const H = 520;
 const COLS = 7;
-const BRICK_H = 28;
+const BRICK_H = 26;
 const BRICK_PAD = 4;
 const BRICK_W = (W - (COLS + 1) * BRICK_PAD) / COLS;
-const BALL_SPEED = 9.5;
+const BALL_SPEED = 9.8;
+const FLOOR_Y = H - 55;
 
 export default function BrickBreakerGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -47,6 +48,7 @@ export default function BrickBreakerGame() {
   const [gameState, setGameState] = useState<"aiming" | "shooting" | "gameover">("aiming");
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
 
   const bricksRef = useRef<Brick[]>([]);
   const powerUpsRef = useRef<PowerUp[]>([]);
@@ -54,9 +56,13 @@ export default function BrickBreakerGame() {
   const aimAngleRef = useRef<number>(-Math.PI / 2);
   const isAimingRef = useRef<boolean>(false);
   const startXRef = useRef<number>(W / 2);
-  const startYRef = useRef<number>(H - 30);
+  const startYRef = useRef<number>(FLOOR_Y - 6);
   const nextStartXRef = useRef<number>(W / 2);
-  const ballsReturnedRef = useRef<number>(0);
+  const hasFirstBallLandedRef = useRef<boolean>(false);
+  const ballsSpawnedRef = useRef<number>(0);
+  const shootTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const shootStartTimeRef = useRef<number>(0);
+
   const scoreRef = useRef<number>(0);
   const levelRef = useRef<number>(1);
   const totalBallsRef = useRef<number>(25);
@@ -76,9 +82,9 @@ export default function BrickBreakerGame() {
     for (let c = 0; c < COLS; c++) {
       const rand = Math.random();
       const x = BRICK_PAD + c * (BRICK_W + BRICK_PAD);
-      const y = 60;
+      const y = 58;
 
-      if (rand < 0.55) {
+      if (rand < 0.52) {
         const hp = lvl + Math.floor(Math.random() * 2);
         newBricks.push({
           id: Math.random(),
@@ -92,7 +98,7 @@ export default function BrickBreakerGame() {
           maxHp: hp,
           color: getBrickColor(hp, hp),
         });
-      } else if (rand < 0.7) {
+      } else if (rand < 0.68) {
         newPowerUps.push({
           x: x + BRICK_W / 2,
           y: y + BRICK_H / 2,
@@ -123,29 +129,47 @@ export default function BrickBreakerGame() {
     spawnRow(2);
   }, [spawnRow]);
 
+  // Recall all balls immediately (Failsafe & Fast Forward)
+  const recallAllBalls = useCallback(() => {
+    shootTimeoutsRef.current.forEach(clearTimeout);
+    shootTimeoutsRef.current = [];
+    ballsRef.current.forEach((b) => {
+      b.active = false;
+    });
+  }, []);
+
   // Shoot balls in sequence
   const shoot = useCallback(() => {
     if (gameState !== "aiming") return;
+    ArcadeAudio.init();
     setGameState("shooting");
-    ballsReturnedRef.current = 0;
+    setSpeedMultiplier(1);
+    hasFirstBallLandedRef.current = false;
+    ballsSpawnedRef.current = 0;
     ballsRef.current = [];
+    shootStartTimeRef.current = Date.now();
 
     const angle = aimAngleRef.current;
-    const vx = Math.cos(angle) * BALL_SPEED;
-    const vy = Math.sin(angle) * BALL_SPEED;
+    const baseVx = Math.cos(angle) * BALL_SPEED;
+    const baseVy = Math.sin(angle) * BALL_SPEED;
 
     const count = totalBallsRef.current;
+    shootTimeoutsRef.current.forEach(clearTimeout);
+    shootTimeoutsRef.current = [];
+
     for (let i = 0; i < count; i++) {
-      setTimeout(() => {
+      const t = setTimeout(() => {
         ballsRef.current.push({
           x: startXRef.current,
           y: startYRef.current,
-          vx,
-          vy,
+          vx: baseVx,
+          vy: baseVy,
           active: true,
         });
+        ballsSpawnedRef.current++;
         if (i % 4 === 0) ArcadeAudio.playTap();
-      }, i * 38);
+      }, i * 36);
+      shootTimeoutsRef.current.push(t);
     }
   }, [gameState]);
 
@@ -159,142 +183,161 @@ export default function BrickBreakerGame() {
     let raf: number;
 
     const loop = () => {
-      // --- Update Physics ---
       const balls = ballsRef.current;
       const bricks = bricksRef.current;
       const powerUps = powerUpsRef.current;
 
-      let allDone = gameState === "shooting" && balls.length >= totalBallsRef.current;
+      // Update active balls physics
+      if (gameState === "shooting") {
+        const elapsed = (Date.now() - shootStartTimeRef.current) / 1000;
+        // Auto speed-up after 8s, auto recall after 13s to prevent any freeze
+        const speedFactor = elapsed > 8 ? 2.5 : 1.0;
 
-      for (let i = 0; i < balls.length; i++) {
-        const b = balls[i];
-        if (!b.active) continue;
-        allDone = false;
+        for (let i = 0; i < balls.length; i++) {
+          const b = balls[i];
+          if (!b.active) continue;
 
-        b.x += b.vx;
-        b.y += b.vy;
+          b.x += b.vx * speedFactor;
+          b.y += b.vy * speedFactor;
 
-        // Wall collisions
-        if (b.x - 4 <= 8) {
-          b.x = 12;
-          b.vx = Math.abs(b.vx);
-        } else if (b.x + 4 >= W - 8) {
-          b.x = W - 12;
-          b.vx = -Math.abs(b.vx);
-        }
-
-        if (b.y - 4 <= 45) {
-          b.y = 49;
-          b.vy = Math.abs(b.vy);
-        }
-
-        // Bottom floor
-        if (b.y + 4 >= H - 15) {
-          b.active = false;
-          ballsReturnedRef.current++;
-          if (ballsReturnedRef.current === 1) {
-            nextStartXRef.current = b.x;
+          // Prevent infinite horizontal trap
+          if (Math.abs(b.vy) < 0.6) {
+            b.vy = b.vy < 0 ? -0.9 : 0.9;
           }
-        }
 
-        // Brick collisions
-        for (let j = bricks.length - 1; j >= 0; j--) {
-          const br = bricks[j];
-          if (
-            b.x + 4 >= br.x &&
-            b.x - 4 <= br.x + br.w &&
-            b.y + 4 >= br.y &&
-            b.y - 4 <= br.y + br.h
-          ) {
-            // Collision side detection
-            const prevX = b.x - b.vx;
-            const prevY = b.y - b.vy;
+          // Left / Right wall collisions
+          if (b.x - 4 <= 8) {
+            b.x = 12;
+            b.vx = Math.abs(b.vx);
+          } else if (b.x + 4 >= W - 8) {
+            b.x = W - 12;
+            b.vx = -Math.abs(b.vx);
+          }
 
-            if (prevX < br.x || prevX > br.x + br.w) b.vx = -b.vx;
-            else b.vy = -b.vy;
+          // Ceiling collision
+          if (b.y - 4 <= 45) {
+            b.y = 49;
+            b.vy = Math.abs(b.vy);
+          }
 
-            br.hp--;
-            br.color = getBrickColor(br.hp, br.maxHp);
-            scoreRef.current += 1;
-            setScore(scoreRef.current);
-            ArcadeAudio.playCatch();
+          // Floor line collision
+          if (b.y + 4 >= FLOOR_Y) {
+            b.active = false;
+            b.y = FLOOR_Y - 6;
 
-            if (br.hp <= 0) {
-              bricks.splice(j, 1);
-              ArcadeAudio.playBonus();
+            if (!hasFirstBallLandedRef.current) {
+              hasFirstBallLandedRef.current = true;
+              nextStartXRef.current = Math.max(18, Math.min(W - 18, b.x));
             }
-            break;
+          }
+
+          // Brick collisions
+          for (let j = bricks.length - 1; j >= 0; j--) {
+            const br = bricks[j];
+            if (
+              b.x + 4 >= br.x &&
+              b.x - 4 <= br.x + br.w &&
+              b.y + 4 >= br.y &&
+              b.y - 4 <= br.y + br.h
+            ) {
+              const prevX = b.x - b.vx * speedFactor;
+              const prevY = b.y - b.vy * speedFactor;
+
+              if (prevX < br.x || prevX > br.x + br.w) b.vx = -b.vx;
+              else b.vy = -b.vy;
+
+              br.hp--;
+              br.color = getBrickColor(br.hp, br.maxHp);
+              scoreRef.current += 1;
+              setScore(scoreRef.current);
+              ArcadeAudio.playCatch();
+
+              if (br.hp <= 0) {
+                bricks.splice(j, 1);
+                ArcadeAudio.playBonus();
+              }
+              break;
+            }
+          }
+
+          // Power-up collisions (+1 balls)
+          for (let k = 0; k < powerUps.length; k++) {
+            const p = powerUps[k];
+            if (!p.collected && Math.hypot(b.x - p.x, b.y - p.y) < 13) {
+              p.collected = true;
+              totalBallsRef.current += 1;
+              setTotalBalls(totalBallsRef.current);
+              ArcadeAudio.playScore();
+            }
           }
         }
 
-        // Power-up collisions
-        for (let k = 0; k < powerUps.length; k++) {
-          const p = powerUps[k];
-          if (!p.collected && Math.hypot(b.x - p.x, b.y - p.y) < 12) {
-            p.collected = true;
-            totalBallsRef.current += 1;
-            setTotalBalls(totalBallsRef.current);
-            ArcadeAudio.playScore();
+        // Check if turn finished (clean robust condition)
+        const allSpawned = ballsSpawnedRef.current >= totalBallsRef.current;
+        const activeCount = balls.filter((b) => b.active).length;
+        const timedOut = elapsed > 13;
+
+        if ((allSpawned && activeCount === 0) || timedOut) {
+          startXRef.current = nextStartXRef.current;
+          startYRef.current = FLOOR_Y - 6;
+          ballsRef.current = [];
+
+          // Check gameover condition (any brick touches/passes floor line)
+          let lost = false;
+          for (const br of bricks) {
+            if (br.y + br.h >= FLOOR_Y) {
+              lost = true;
+              break;
+            }
+          }
+
+          if (lost) {
+            setGameState("gameover");
+            ArcadeAudio.playCrash();
+
+            const targetStore =
+              typeof window !== "undefined"
+                ? sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila"
+                : "Downtown Tacos & Tequila";
+
+            submitGameSessionAction({
+              gameSlug: "brick-breaker",
+              score: scoreRef.current,
+              storeName: targetStore,
+              duration: levelRef.current * 15,
+            }).then((res) => {
+              if (res?.limitReached) setLimitNotice(res.error || "Daily limit reached.");
+              if (res?.success && res.rewardEarned && res.claimCode) {
+                setEarnedReward({ rewardName: res.rewardEarned.rewardName, claimCode: res.claimCode });
+              }
+            });
+          } else {
+            levelRef.current++;
+            setLevel(levelRef.current);
+            spawnRow(levelRef.current);
+            setGameState("aiming");
           }
         }
       }
 
-      // Check if turn finished
-      if (gameState === "shooting" && ballsReturnedRef.current >= totalBallsRef.current && allDone) {
-        startXRef.current = nextStartXRef.current;
-        ballsRef.current = [];
-
-        // Check loss condition (bricks reaching bottom)
-        let lost = false;
-        for (const br of bricks) {
-          if (br.y + br.h >= H - 55) {
-            lost = true;
-            break;
-          }
-        }
-
-        if (lost) {
-          setGameState("gameover");
-          ArcadeAudio.playCrash();
-
-          const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
-          submitGameSessionAction({
-            gameSlug: "brick-breaker",
-            score: scoreRef.current,
-            storeName: targetStore,
-            duration: levelRef.current * 15,
-          }).then((res) => {
-            if (res.limitReached) setLimitNotice(res.error || "Daily limit reached.");
-            if (res.success && res.rewardEarned && res.claimCode) {
-              setEarnedReward({ rewardName: res.rewardEarned.rewardName, claimCode: res.claimCode });
-            }
-          });
-        } else {
-          levelRef.current++;
-          setLevel(levelRef.current);
-          spawnRow(levelRef.current);
-          setGameState("aiming");
-        }
-      }
-
-      // --- Draw Canvas ---
+      // --- RENDERING ---
       ctx.clearRect(0, 0, W, H);
 
       // Background
-      ctx.fillStyle = "#111111";
+      ctx.fillStyle = "#0A0A0A";
       ctx.fillRect(0, 0, W, H);
 
-      // Border walls
-      ctx.strokeStyle = "#333333";
+      // Outer Arena Border
+      ctx.strokeStyle = "#262626";
       ctx.lineWidth = 4;
-      ctx.strokeRect(8, 45, W - 16, H - 60);
+      ctx.strokeRect(8, 45, W - 16, H - 55);
 
-      // Floor line
-      ctx.strokeStyle = "#FF4C29";
+      // Floor Baseline
+      ctx.strokeStyle = "#EF4444";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(8, H - 55);
-      ctx.lineTo(W - 8, H - 55);
+      ctx.moveTo(8, FLOOR_Y);
+      ctx.lineTo(W - 8, FLOOR_Y);
       ctx.stroke();
 
       // Draw Power-ups (+1 orbs)
@@ -302,12 +345,13 @@ export default function BrickBreakerGame() {
         if (p.collected) continue;
         ctx.fillStyle = "#10B981";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 8.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = "#FFF";
+        ctx.strokeStyle = "#FFFFFF";
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.fillStyle = "#FFF";
+
+        ctx.fillStyle = "#FFFFFF";
         ctx.font = "bold 9px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -320,7 +364,7 @@ export default function BrickBreakerGame() {
         ctx.beginPath();
         ctx.roundRect(br.x, br.y, br.w, br.h, 6);
         ctx.fill();
-        ctx.strokeStyle = "#000";
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -331,29 +375,44 @@ export default function BrickBreakerGame() {
         ctx.fillText(String(br.hp), br.x + br.w / 2, br.y + br.h / 2);
       }
 
-      // Aiming line
+      // Draw Aiming Guide & Launcher
       if (gameState === "aiming") {
+        const sx = startXRef.current;
+        const sy = startYRef.current;
+        const angle = aimAngleRef.current;
+
+        // Dotted Aim Trajectory Line (10 dots)
         ctx.save();
-        ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = "rgba(255, 76, 41, 0.75)";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(startXRef.current, startYRef.current);
-        ctx.lineTo(
-          startXRef.current + Math.cos(aimAngleRef.current) * 120,
-          startYRef.current + Math.sin(aimAngleRef.current) * 120
-        );
-        ctx.stroke();
+        for (let d = 1; d <= 10; d++) {
+          const dist = d * 22;
+          const dotX = sx + Math.cos(angle) * dist;
+          const dotY = sy + Math.sin(angle) * dist;
+          if (dotY < 50 || dotX < 14 || dotX > W - 14) break;
+
+          ctx.fillStyle = `rgba(255, 76, 41, ${1 - d * 0.08})`;
+          ctx.beginPath();
+          ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.restore();
 
-        // Launcher Base Indicator
-        ctx.fillStyle = "#FF4C29";
+        // Launcher Base Ball
+        ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
-        ctx.arc(startXRef.current, startYRef.current, 7, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 6.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = "#FF4C29";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Ball Count Badge above launcher
+        ctx.fillStyle = "#94A3B8";
+        ctx.font = "bold 10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`x${totalBallsRef.current}`, sx, sy - 12);
       }
 
-      // Draw Active Balls
+      // Draw Active Flying Balls
       for (const b of balls) {
         if (!b.active) continue;
         ctx.fillStyle = "#FFFFFF";
@@ -369,41 +428,85 @@ export default function BrickBreakerGame() {
     return () => cancelAnimationFrame(raf);
   }, [gameState, spawnRow]);
 
-  // Pointer Aim & Release
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (gameState !== "aiming") return;
-    isAimingRef.current = true;
-    updateAimAngle(e);
+  // Update Aim Angle from pointer event
+  const updateAimAngle = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+
+    const px = (clientX - rect.left) * scaleX;
+    const py = (clientY - rect.top) * scaleY;
+
+    const dx = px - startXRef.current;
+    const dy = py - startYRef.current;
+
+    // Both direct upward pointing and slingshot drag supported naturally
+    let angle = Math.atan2(dy, dx);
+    if (dy > 0) {
+      // User dragged downwards (slingshot): flip to upward angle
+      angle = Math.atan2(-dy, -dx);
+    }
+
+    // Lock aiming upward only (avoid shooting completely sideways/flat)
+    if (angle > -0.12) angle = -0.12;
+    if (angle < -Math.PI + 0.12) angle = -Math.PI + 0.12;
+    aimAngleRef.current = angle;
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (isAimingRef.current) updateAimAngle(e);
+  // Pointer Handlers
+  const handlePointerDown = (clientX: number, clientY: number) => {
+    if (gameState !== "aiming") return;
+    isAimingRef.current = true;
+    updateAimAngle(clientX, clientY);
+  };
+
+  const handlePointerMove = (clientX: number, clientY: number) => {
+    if (isAimingRef.current && gameState === "aiming") {
+      updateAimAngle(clientX, clientY);
+    }
   };
 
   const handlePointerUp = () => {
-    if (isAimingRef.current) {
+    if (isAimingRef.current && gameState === "aiming") {
       isAimingRef.current = false;
       shoot();
     }
   };
 
-  const updateAimAngle = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const clientX = (e.clientX - rect.left) * (W / rect.width);
-    const clientY = (e.clientY - rect.top) * (H / rect.height);
+  // Keyboard controls for desktop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState === "aiming") {
+        if (e.key === "ArrowLeft" || e.key === "a") {
+          aimAngleRef.current = Math.max(-Math.PI + 0.12, aimAngleRef.current - 0.08);
+        } else if (e.key === "ArrowRight" || e.key === "d") {
+          aimAngleRef.current = Math.min(-0.12, aimAngleRef.current + 0.08);
+        } else if (e.key === " " || e.key === "Enter") {
+          shoot();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameState, shoot]);
 
-    const dx = clientX - startXRef.current;
-    const dy = clientY - startYRef.current;
-    let angle = Math.atan2(dy, dx);
-
-    // Lock aiming upward only
-    if (angle > -0.15) angle = -0.15;
-    if (angle < -Math.PI + 0.15) angle = -Math.PI + 0.15;
-    aimAngleRef.current = angle;
-  };
+  // Global pointer up listener
+  useEffect(() => {
+    const handleGlobalUp = () => {
+      if (isAimingRef.current && gameState === "aiming") {
+        isAimingRef.current = false;
+        shoot();
+      }
+    };
+    window.addEventListener("pointerup", handleGlobalUp);
+    return () => window.removeEventListener("pointerup", handleGlobalUp);
+  }, [gameState, shoot]);
 
   const resetGame = () => {
+    shootTimeoutsRef.current.forEach(clearTimeout);
+    shootTimeoutsRef.current = [];
     bricksRef.current = [];
     powerUpsRef.current = [];
     ballsRef.current = [];
@@ -411,6 +514,7 @@ export default function BrickBreakerGame() {
     levelRef.current = 1;
     totalBallsRef.current = 25;
     startXRef.current = W / 2;
+    startYRef.current = FLOOR_Y - 6;
     setLevel(1);
     setScore(0);
     setTotalBalls(25);
@@ -422,72 +526,94 @@ export default function BrickBreakerGame() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white flex flex-col items-center justify-between p-3 select-none">
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col items-center justify-between p-3 select-none">
       {/* Header */}
-      <header className="w-full max-w-md bg-[#1A1A1A] p-3.5 rounded-2xl border-2 border-[#333] shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center">
+      <header className="w-full max-w-md bg-[#171717] p-3.5 rounded-2xl border border-neutral-800 shadow-md flex justify-between items-center">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🧱</span>
           <div>
             <h1 className="font-serif font-black text-base leading-tight">Swipe Breaker</h1>
-            <p className="text-[9px] font-bold text-[#FF4C29] tracking-widest uppercase">
+            <p className="text-[10px] font-bold text-[#FF4C29] tracking-wider uppercase">
               Wave {level} • {totalBalls} Balls
             </p>
           </div>
         </div>
 
-        <div className="text-right">
-          <span className="text-[9px] font-bold text-white/40 uppercase block">Score</span>
-          <span className="font-mono text-emerald-400 font-black text-lg">{score}</span>
+        <div className="flex items-center gap-3">
+          {gameState === "shooting" && (
+            <button
+              onClick={recallAllBalls}
+              className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-amber-400 text-xs font-bold border border-amber-500/30 active:scale-95 transition"
+            >
+              ⚡ Recall (x2)
+            </button>
+          )}
+
+          <div className="text-right">
+            <span className="text-[10px] font-bold text-neutral-400 uppercase block">Score</span>
+            <span className="font-mono text-emerald-400 font-black text-lg">{score}</span>
+          </div>
         </div>
       </header>
 
-      {/* Canvas */}
-      <main className="w-full max-w-md bg-black border-3 border-[#333] rounded-3xl shadow-[6px_6px_0px_0px_#000] flex flex-col items-center my-3 relative overflow-hidden">
+      {/* Canvas Area */}
+      <main className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-3xl shadow-2xl flex flex-col items-center my-2 relative overflow-hidden">
         <canvas
           ref={canvasRef}
           width={W}
           height={H}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className="block rounded-3xl cursor-crosshair"
-          style={{ width: "100%", maxWidth: W, height: "auto", aspectRatio: `${W}/${H}`, touchAction: "none" }}
+          onMouseDown={(e) => handlePointerDown(e.clientX, e.clientY)}
+          onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
+          onMouseUp={handlePointerUp}
+          onTouchStart={(e) => {
+            if (e.touches[0]) handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+          }}
+          onTouchMove={(e) => {
+            if (e.touches[0]) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+          }}
+          onTouchEnd={handlePointerUp}
+          className="block rounded-3xl cursor-crosshair touch-none"
+          style={{ width: "100%", maxWidth: W, height: "auto", aspectRatio: `${W}/${H}` }}
         />
+
+        {/* Start / Aiming Guidance */}
+        {gameState === "aiming" && (
+          <div className="absolute top-14 left-0 right-0 pointer-events-none flex justify-center">
+            <div className="bg-black/80 backdrop-blur-md border border-neutral-700 text-neutral-300 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+              👆 Drag anywhere & release to launch
+            </div>
+          </div>
+        )}
 
         {/* Game Over Screen */}
         {gameState === "gameover" && (
-          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-5 text-center text-white z-40 rounded-3xl">
-            <span className="text-6xl mb-2">💥</span>
-            <h2 className="font-serif text-3xl font-black text-[#FF4C29] mb-1">WALL BREACHED!</h2>
-            <p className="text-xs text-white/50 mb-4">Bricks reached the floor</p>
+          <div className="absolute inset-0 bg-neutral-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-5 text-center text-white z-40 rounded-3xl animate-in fade-in">
+            <span className="text-5xl mb-2">💥</span>
+            <h2 className="font-serif text-2xl font-black text-[#FF4C29] mb-1">WALL BREACHED!</h2>
+            <p className="text-xs text-neutral-400 mb-4">Bricks reached the baseline</p>
 
-            <div className="bg-[#1C1C1C] text-white w-full p-4 rounded-2xl border-2 border-[#333] mb-3 shadow-[3px_3px_0px_0px_#FF4C29]">
-              <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Blocks Smashed</span>
-              <h3 className="font-serif text-4xl font-black text-[#FF4C29]">{score}</h3>
+            <div className="bg-neutral-900 border border-neutral-800 w-full p-4 rounded-2xl mb-3 shadow-md">
+              <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Blocks Smashed</span>
+              <h3 className="font-serif text-3xl font-black text-[#FF4C29]">{score}</h3>
             </div>
 
             {limitNotice && (
-              <div className="bg-amber-400 text-black w-full p-2.5 rounded-xl border-2 border-black mb-3 text-xs font-black">
-                ⏳ {limitNotice}
+              <div className="bg-amber-950/50 text-amber-300 border border-amber-800/40 w-full p-2.5 rounded-xl mb-3 text-xs font-bold">
+                {limitNotice}
               </div>
             )}
 
             {earnedReward && (
-              <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-black w-full p-3 rounded-xl border-2 border-black mb-3 text-center animate-bounce">
-                <span className="text-[10px] font-black uppercase block text-black/60">🎉 YOU WON A REWARD!</span>
-                <h4 className="font-serif text-base font-black">{earnedReward.rewardName}</h4>
-                <p className="font-mono font-black text-xs bg-black text-white px-2 py-0.5 rounded-md inline-block my-1">
-                  Code: {earnedReward.claimCode}
-                </p>
-                <a href={`/claim/${earnedReward.claimCode}`} className="block text-[10px] font-black underline">
-                  SHOW TO STAFF AT COUNTER 📱
-                </a>
+              <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-white w-full p-3 rounded-xl mb-3 text-left">
+                <span className="text-[10px] font-black uppercase text-amber-300 block">Reward Unlocked!</span>
+                <h4 className="text-sm font-black text-white">{earnedReward.rewardName}</h4>
+                <p className="font-mono text-xs text-amber-200 mt-0.5">Code: {earnedReward.claimCode}</p>
               </div>
             )}
 
             <button
               onClick={resetGame}
-              className="w-full py-3.5 bg-emerald-400 text-black rounded-xl font-black text-sm border-2 border-black shadow-[3px_3px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-500/25 active:scale-98 transition cursor-pointer"
             >
               PLAY AGAIN 🔄
             </button>
@@ -495,8 +621,8 @@ export default function BrickBreakerGame() {
         )}
       </main>
 
-      <footer className="text-center text-xs font-bold text-white/40 pb-1">
-        Drag back to aim trajectory • Release to launch balls
+      <footer className="text-center text-xs font-medium text-neutral-400 pb-1">
+        Drag on screen to aim • Release to shoot all balls
       </footer>
     </div>
   );
