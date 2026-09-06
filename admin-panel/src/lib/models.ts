@@ -10,6 +10,8 @@ export interface IStore extends Document {
   status: "Active" | "Trialing" | "Suspended";
   walletBalance: number;
   totalScans: number;
+  totalPlays: number;
+  sponsoredPlays: number;
   churnRisk: "Low" | "Medium" | "High";
   aiCreditsUsed: number;
   whiteLabelOverride: boolean;
@@ -31,6 +33,8 @@ const StoreSchema = new Schema<IStore>(
     status: { type: String, enum: ["Active", "Trialing", "Suspended"], default: "Active" },
     walletBalance: { type: Number, default: 0 },
     totalScans: { type: Number, default: 0 },
+    totalPlays: { type: Number, default: 0 },
+    sponsoredPlays: { type: Number, default: 0 },
     churnRisk: { type: String, enum: ["Low", "Medium", "High"], default: "Low" },
     aiCreditsUsed: { type: Number, default: 0 },
     whiteLabelOverride: { type: Boolean, default: false },
@@ -165,6 +169,9 @@ export interface IGameSession extends Document {
     rewardName: string;
     claimed: boolean;
   };
+  billingStatus?: "billed" | "platform_sponsored" | "free";
+  creditsBilled?: number;
+  playIndexToday?: number;
   playedAt: Date;
 }
 
@@ -183,6 +190,13 @@ const GameSessionSchema = new Schema<IGameSession>({
     rewardName: { type: String },
     claimed: { type: Boolean, default: false },
   },
+  billingStatus: {
+    type: String,
+    enum: ["billed", "platform_sponsored", "free"],
+    default: "billed",
+  },
+  creditsBilled: { type: Number, default: 1 },
+  playIndexToday: { type: Number, default: 1 },
   playedAt: { type: Date, default: Date.now },
 });
 

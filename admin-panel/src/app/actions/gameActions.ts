@@ -260,7 +260,88 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
       }
     }
 
-    // Save Game Session to MongoDB
+    // ─── 4. Pay-Per-Play Billing Model (Capped at 10 plays/user/day) ──────
+    // Check how many games this customer/device has played TODAY at this store
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const orUserFilter: any[] = [{ userId: userObjId }];
+    if (deviceFingerprint) {
+      orUserFilter.push({ deviceFingerprint });
+    }
+    const userPlaysToday = await GameSession.countDocuments({
+      storeId: storeObjId,
+      $or: orUserFilter,
+      playedAt: { $gte: startOfDay },
+    });
+
+    const playIndexToday = userPlaysToday + 1;
+    let billingStatus: "billed" | "platform_sponsored" = "billed";
+    let creditsToDeduct = 0;
+
+    // PAY-PER-PLAY POLICY:
+    // Plays 1 to 10 per customer per day: 1 credit deducted from store wallet.
+    // Play 11+ for same customer on same day: 100% on us (Platform Sponsored / Free courtesy).
+    if (playIndexToday <= 10) {
+      billingStatus = "billed";
+      creditsToDeduct = 1;
+    } else {
+      billingStatus = "platform_sponsored";
+      creditsToDeduct = 0;
+    }
+
+    // Process store credit deduction and billing telemetry
+    if (storeObjId) {
+      const storeDoc = await Store.findById(storeObjId);
+      if (storeDoc) {
+        if (billingStatus === "billed") {
+          // Store pays 1 credit
+          storeDoc.walletBalance = Math.max(0, (storeDoc.walletBalance || 0) - creditsToDeduct);
+          storeDoc.aiCreditsUsed = (storeDoc.aiCreditsUsed || 0) + creditsToDeduct;
+          storeDoc.totalPlays = (storeDoc.totalPlays || 0) + 1;
+          await storeDoc.save();
+
+          try {
+            await AuditLog.create({
+              storeId: storeObjId,
+              actorName: customer.name || "Customer",
+              actorEmail: customer.email || "guest@arcade.app",
+              actorRole: "Store Admin",
+              ipAddress: "127.0.0.1",
+              action: "WALLET_PLAY_DEDUCT",
+              actionCategory: "BILLING",
+              targetType: "GameSession",
+              targetName: gameSlug,
+              details: `Pay-Per-Play: 1 credit deducted for "${gameSlug}" (Play #${playIndexToday}/10 today for customer). Remaining wallet balance: ${storeDoc.walletBalance} credits.`,
+              timestamp: new Date(),
+            });
+          } catch {}
+        } else {
+          // Play 11+: Platform Sponsored! Cost is on us.
+          storeDoc.sponsoredPlays = (storeDoc.sponsoredPlays || 0) + 1;
+          storeDoc.totalPlays = (storeDoc.totalPlays || 0) + 1;
+          await storeDoc.save();
+
+          try {
+            await AuditLog.create({
+              storeId: storeObjId,
+              actorName: customer.name || "Customer",
+              actorEmail: customer.email || "guest@arcade.app",
+              actorRole: "Store Admin",
+              ipAddress: "127.0.0.1",
+              action: "WALLET_PLAY_SPONSORED",
+              actionCategory: "BILLING",
+              targetType: "GameSession",
+              targetName: gameSlug,
+              details: `Platform Sponsored Play: Customer reached daily cap of 10 paid plays today (Play #${playIndexToday}). Cost is on us! 0 credits deducted from store.`,
+              timestamp: new Date(),
+            });
+          } catch {}
+        }
+      }
+    }
+
+    // Save Game Session to MongoDB with billing attribution
     const session = await GameSession.create({
       storeId: storeObjId,
       userId: userObjId,
@@ -272,6 +353,9 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
       duration,
       combo,
       rewardEarned: rewardEarned || undefined,
+      billingStatus,
+      creditsBilled: creditsToDeduct,
+      playIndexToday,
       playedAt: new Date(),
     });
 
@@ -290,6 +374,12 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
       expiresAt: expiresAt ? expiresAt.toISOString() : null,
       cooldownNotice,
       isCapped: isCheating,
+      billing: {
+        status: billingStatus,
+        creditsBilled: creditsToDeduct,
+        playIndexToday,
+        isSponsored: billingStatus === "platform_sponsored",
+      },
     };
   } catch (error: any) {
     console.error("Error in submitGameSessionAction:", error);

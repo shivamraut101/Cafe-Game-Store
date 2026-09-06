@@ -15,6 +15,8 @@ interface WalletTabProps {
 export default function WalletTab({ storeName: currentStoreName }: WalletTabProps) {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [aiCreditsUsed, setAiCreditsUsed] = useState<number>(0);
+  const [totalPlays, setTotalPlays] = useState<number>(0);
+  const [sponsoredPlays, setSponsoredPlays] = useState<number>(0);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [topUpRequests, setTopUpRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,8 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
       if (res.success && res.wallet) {
         setWalletBalance(res.wallet.walletBalance || 0);
         setAiCreditsUsed(res.wallet.aiCreditsUsed || 0);
+        setTotalPlays(res.wallet.totalPlays || 0);
+        setSponsoredPlays(res.wallet.sponsoredPlays || 0);
         setTransactions(res.wallet.transactions || []);
       }
     } catch (e) {
@@ -138,11 +142,11 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">💳</span>
-            <h2 className="font-serif text-3xl font-bold text-black">Scan Credits & Wallet</h2>
+            <span className="text-2xl">🎮</span>
+            <h2 className="font-serif text-3xl font-bold text-black">Game Play Credits & Wallet</h2>
           </div>
           <p className="text-sm font-semibold text-black/60">
-            Manage scan and game credits for {currentStoreName || "your store"}. Top up anytime via Direct Bank Transfer or UPI.
+            Pay-Per-Play credit wallet for {currentStoreName || "your store"}. Top up anytime via Direct Bank Transfer or UPI.
           </p>
         </div>
 
@@ -156,6 +160,43 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
         >
           <span>⚡</span> Top Up via Bank / UPI
         </button>
+      </div>
+
+      {/* Pay-Per-Play Model & Fair Cap Protection Banner */}
+      <div className="bg-[#FFFBEB] border-4 border-black rounded-3xl p-6 shadow-[6px_6px_0px_0px_#F59E0B] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-400 border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_#000] shrink-0">
+            🛡️
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-black text-white text-[10px] font-black uppercase rounded-full tracking-wider">
+                PAY-PER-PLAY MODEL
+              </span>
+              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-black uppercase rounded-full">
+                10-PLAY FAIR CAP PROTECTION
+              </span>
+            </div>
+            <h3 className="font-serif text-xl font-bold text-black mt-1">
+              Never Overpay for Addictive Gamers
+            </h3>
+            <p className="text-xs text-black/70 font-semibold mt-1 max-w-2xl leading-relaxed">
+              Your store only pays <strong>1 credit per customer game play</strong> for the first <strong>10 plays per customer each day</strong>.
+              From play 11 onwards for that same customer on the same day, <strong>the cost is 100% on us (Platform Courtesy)</strong>! Your store wallet is never drained.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 shrink-0">
+          <div className="bg-white border-2 border-black rounded-2xl px-4 py-2.5 shadow-[3px_3px_0px_0px_#000] text-center">
+            <span className="text-[10px] font-bold text-black/50 uppercase block">Store Billed Cap</span>
+            <span className="font-mono text-sm font-black text-black">10 Plays/Day</span>
+          </div>
+          <div className="bg-emerald-400 border-2 border-black rounded-2xl px-4 py-2.5 shadow-[3px_3px_0px_0px_#000] text-center">
+            <span className="text-[10px] font-bold text-black uppercase block">Plays 11+ Free</span>
+            <span className="font-mono text-sm font-black text-black">Cost on Us 🎁</span>
+          </div>
+        </div>
       </div>
 
       {/* Wallet Balance Card */}
@@ -174,7 +215,8 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
               )}
             </div>
             <p className="text-sm font-semibold text-black/60 mt-1">
-              Supports roughly <span className="text-black font-black">~{walletBalance.toLocaleString()}</span> customer game plays & scans. ({aiCreditsUsed} credits used so far)
+              Supports roughly <span className="text-black font-black">~{walletBalance.toLocaleString()}</span> customer game plays.
+              ({aiCreditsUsed} credits billed • {sponsoredPlays} platform sponsored plays on us)
             </p>
           </div>
 
@@ -194,7 +236,7 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-[#FBF9F4] transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <span>🪙</span> 500 Credits
+                  <span>🪙</span> 500 Plays
                 </div>
                 <span className="font-bold bg-black text-white px-3 py-1 rounded-lg text-xs group-hover:bg-[#FF4C29] transition-colors">
                   ₹500 ($10)
@@ -209,7 +251,7 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-amber-50 transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <span>💰</span> 2,000 Credits
+                  <span>💰</span> 2,000 Plays
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Save 20%</span>
@@ -227,7 +269,7 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-purple-50 transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <span>🚀</span> 5,000 Credits
+                  <span>🚀</span> 5,000 Plays
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">Save 30%</span>
@@ -353,8 +395,16 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
                     <tr key={tx.id} className="hover:bg-black/[0.02]">
                       <td className="p-4 pl-6 text-black/60 font-mono text-xs">{tx.date}</td>
                       <td className="p-4 text-black">{tx.desc}</td>
-                      <td className={`p-4 text-right font-mono font-bold ${tx.isPositive ? "text-emerald-600" : "text-red-500"}`}>
-                        {tx.isPositive ? "+" : ""}{tx.amount}
+                      <td className="p-4 text-right font-mono font-bold">
+                        {tx.isFree ? (
+                          <span className="inline-block bg-purple-100 text-purple-800 text-xs px-2.5 py-0.5 rounded-full border border-purple-300 font-bold">
+                            🎁 0 (COST ON US)
+                          </span>
+                        ) : (
+                          <span className={tx.isPositive ? "text-emerald-600" : "text-red-500"}>
+                            {tx.isPositive ? "+" : ""}{tx.amount}
+                          </span>
+                        )}
                       </td>
                       <td className="p-4 pr-6 text-right text-black/50 font-mono">{tx.balance}</td>
                     </tr>
@@ -379,10 +429,10 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
 
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">⚡</span>
-              <h2 className="font-serif text-2xl font-black text-black">Top Up Scan Credits</h2>
+              <h2 className="font-serif text-2xl font-black text-black">Top Up Game Play Credits</h2>
             </div>
             <p className="text-xs text-black/60 mb-5">
-              Direct transfer via UPI or NEFT/IMPS Bank Wire. Enter your UTR reference ID below to activate credits immediately.
+              Direct transfer via UPI or NEFT/IMPS Bank Wire. 1 Credit = 1 Game Play (Plays 11+ per user/day are free on us!). Enter your UTR reference ID below to activate credits immediately.
             </p>
 
             {/* Step 1: Package Selector */}

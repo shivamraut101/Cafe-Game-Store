@@ -779,7 +779,9 @@ export async function getStoreWalletAction(storeName?: string) {
     await connectDB();
     let store = null;
     if (storeName) {
-      store = await Store.findOne({ storeName });
+      store = await Store.findOne({
+        $or: [{ storeName }, { slug: storeName }],
+      });
     }
     if (!store) {
       store = await Store.findOne({ status: "Active" });
@@ -787,19 +789,43 @@ export async function getStoreWalletAction(storeName?: string) {
     if (!store) return { success: false, error: "Store not found" };
 
     const recentLogs = await AuditLog.find({
-      $or: [{ targetName: store.storeName }, { actionCategory: "BILLING" }],
+      $or: [
+        { storeId: store._id },
+        { targetName: store.storeName },
+        { actionCategory: "BILLING" },
+      ],
     })
       .sort({ timestamp: -1 })
-      .limit(6);
+      .limit(30);
 
-    const formattedTxs = recentLogs.map((l) => ({
-      id: l._id.toString(),
-      date: l.timestamp ? l.timestamp.toISOString().substring(0, 10) : "",
-      desc: l.details || l.action,
-      amount: l.action.includes("GRANT") ? 500 : -50,
-      balance: store.walletBalance,
-      isPositive: l.action.includes("GRANT"),
-    }));
+    const formattedTxs = recentLogs.map((l) => {
+      let isPositive = false;
+      let isFree = false;
+      let displayAmount = "-1";
+
+      if (l.action === "WALLET_TOPUP_GRANT" || l.action.includes("GRANT")) {
+        isPositive = true;
+        displayAmount = "+2,000";
+      } else if (l.action === "WALLET_PLAY_SPONSORED") {
+        isFree = true;
+        displayAmount = "0 (FREE)";
+      } else if (l.action === "WALLET_PLAY_DEDUCT") {
+        isPositive = false;
+        displayAmount = "-1";
+      } else {
+        displayAmount = "-1";
+      }
+
+      return {
+        id: l._id.toString(),
+        date: l.timestamp ? l.timestamp.toISOString().substring(0, 10) : "",
+        desc: l.details || l.action,
+        amount: displayAmount,
+        balance: store.walletBalance,
+        isPositive,
+        isFree,
+      };
+    });
 
     return {
       success: true,
@@ -807,6 +833,8 @@ export async function getStoreWalletAction(storeName?: string) {
         storeName: store.storeName,
         walletBalance: store.walletBalance || 0,
         aiCreditsUsed: store.aiCreditsUsed || 0,
+        totalPlays: store.totalPlays || 0,
+        sponsoredPlays: store.sponsoredPlays || 0,
         transactions: formattedTxs,
       },
     };

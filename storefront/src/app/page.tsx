@@ -235,7 +235,7 @@ export default function Home() {
             <span className="text-xs font-bold uppercase tracking-wider text-[#FF4C29]">SUBSCRIPTION & WALLET PRICING</span>
             <h2 className="font-serif text-4xl font-black text-black">Flexible plans for stores of any size.</h2>
             <p className="text-sm text-black/70">
-              Combine fixed monthly subscription tiers with Pay-As-You-Go wallet scan credits.
+              Combine fixed monthly subscription tiers with our Pay-Per-Play wallet model (Capped at 10 plays/user/day — plays 11+ same day are 100% on us).
             </p>
           </div>
 
@@ -248,14 +248,14 @@ export default function Home() {
                 <span className="text-xs text-black/60 font-semibold block">Free Forever</span>
 
                 <div className="bg-[#F6F3EB] rounded-xl p-3 border border-black/10 my-6 text-xs font-bold">
-                  🎁 Includes 200 Monthly Bonus Credits
+                  🎁 Includes 200 Monthly Bonus Game Plays
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
                   <li className="flex items-center gap-2">✓ 1 Active Game Campaign</li>
                   <li className="flex items-center gap-2">✓ Standard Printable QR Codes</li>
-                  <li className="flex items-center gap-2">✓ $0.02 per extra scan credit</li>
-                  <li className="flex items-center gap-2">✓ Community Support</li>
+                  <li className="flex items-center gap-2">✓ Pay-Per-Play (Capped at 10 plays/user/day)</li>
+                  <li className="flex items-center gap-2">✓ Plays 11+ same day are 100% on us!</li>
                 </ul>
               </div>
 
@@ -279,7 +279,7 @@ export default function Home() {
                 <span className="text-xs text-black/60 font-semibold block">per month</span>
 
                 <div className="bg-orange-50 rounded-xl p-3 border border-orange-200 my-6 text-xs font-bold text-orange-900">
-                  🎁 Includes 1,000 Monthly Bonus Credits
+                  🎁 Includes 1,000 Monthly Bonus Game Plays
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
@@ -307,7 +307,7 @@ export default function Home() {
                 <span className="text-xs text-black/60 font-semibold block">per month</span>
 
                 <div className="bg-purple-50 rounded-xl p-3 border border-purple-200 my-6 text-xs font-bold text-purple-900">
-                  🎁 Includes 3,500 Monthly Bonus Credits
+                  🎁 Includes 3,500 Monthly Bonus Game Plays
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
