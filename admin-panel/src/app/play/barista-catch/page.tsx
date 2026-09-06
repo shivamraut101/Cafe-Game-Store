@@ -36,14 +36,14 @@ interface CatchParticle {
 }
 
 const GOOD_ITEMS = [
-  { emoji: "☕", points: 10, size: 28 },
-  { emoji: "🥐", points: 15, size: 26 },
-  { emoji: "🍩", points: 12, size: 26 },
-  { emoji: "🧁", points: 20, size: 28 },
-  { emoji: "🍰", points: 25, size: 30 },
-  { emoji: "🍪", points: 8, size: 22 },
-  { emoji: "🧋", points: 18, size: 28 },
-  { emoji: "🥞", points: 22, size: 28 },
+  { emoji: "⭐", points: 10, size: 28 },
+  { emoji: "💎", points: 15, size: 26 },
+  { emoji: "🎁", points: 12, size: 26 },
+  { emoji: "🏆", points: 20, size: 28 },
+  { emoji: "⚡", points: 25, size: 30 },
+  { emoji: "🪙", points: 8, size: 22 },
+  { emoji: "👑", points: 18, size: 28 },
+  { emoji: "🎯", points: 22, size: 28 },
 ];
 
 const BAD_ITEMS = [
@@ -640,9 +640,9 @@ export default function BaristaCatchGame() {
 
         // Falling demo items
         const di = [
-          { emoji: "☕", x: W * 0.3, y: (f * 1.5 + 100) % (H + 50) - 30, rot: f * 0.02 },
-          { emoji: "🍩", x: W * 0.6, y: (f * 1.8 + 250) % (H + 50) - 30, rot: -f * 0.03 },
-          { emoji: "🧁", x: W * 0.8, y: (f * 1.3 + 400) % (H + 50) - 30, rot: f * 0.015 },
+          { emoji: "⭐", x: W * 0.3, y: (f * 1.5 + 100) % (H + 50) - 30, rot: f * 0.02 },
+          { emoji: "💎", x: W * 0.6, y: (f * 1.8 + 250) % (H + 50) - 30, rot: -f * 0.03 },
+          { emoji: "🎁", x: W * 0.8, y: (f * 1.3 + 400) % (H + 50) - 30, rot: f * 0.015 },
         ];
         di.forEach((d) => {
           ctx.save();
@@ -685,9 +685,9 @@ export default function BaristaCatchGame() {
       <header className="w-full max-w-md bg-gradient-to-r from-[#1A1A1A] to-[#2D2D2D] text-white p-3.5 rounded-2xl border-2 border-[#444] shadow-[4px_4px_0px_0px_#F59E0B] flex justify-between items-center">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">🍽️</span>
+            <span className="text-2xl">🎁</span>
             <div>
-              <h1 className="font-serif font-black text-base leading-tight">Barista Catch</h1>
+              <h1 className="font-serif font-black text-base leading-tight">Prize Catcher</h1>
               <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
                 Wait: <span className="font-mono text-white/90">{fmt(waitRef.current)}</span>
               </p>
@@ -725,8 +725,8 @@ export default function BaristaCatchGame() {
         {state === "dead" && cooldownRef.current <= 0 && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-5 text-center text-white z-40 rounded-3xl pointer-events-none">
             <span className="text-6xl mb-3">💔</span>
-            <h2 className="font-serif text-3xl font-black text-[#F59E0B] mb-1">ORDER DROPPED!</h2>
-            <p className="text-xs text-white/50 mb-4">Too many bombs on the tray</p>
+            <h2 className="font-serif text-3xl font-black text-[#F59E0B] mb-1">RUN COMPLETE!</h2>
+            <p className="text-xs text-white/50 mb-4">You missed too many prizes</p>
 
             <div className="bg-white text-black w-full p-4 rounded-2xl border-2 border-black mb-3 shadow-[3px_3px_0px_0px_#F59E0B]">
               <span className="text-[9px] font-black uppercase text-black/35 tracking-widest">Final Score</span>

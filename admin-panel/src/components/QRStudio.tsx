@@ -26,49 +26,58 @@ export interface ThemePreset {
 
 const themePresets: ThemePreset[] = [
   {
-    id: "cafe-roast",
-    name: "Warm Cafe Roast",
-    icon: "☕",
-    qrColor: "#4A2A18",
-    posterBg: "#FAF6EE",
-    headerBg: "#4A2A18",
-    accentColor: "#D97706",
-  },
-  {
-    id: "neon-diner",
-    name: "Retro Neon Diner",
-    icon: "🔥",
+    id: "midnight-dark",
+    name: "Midnight Luxury",
+    icon: "🖤",
     qrColor: "#111111",
     posterBg: "#F6F3EB",
+    headerBg: "#111111",
+    accentColor: "#EAB308",
+  },
+  {
+    id: "electric-vibe",
+    name: "Electric Energy",
+    icon: "⚡",
+    qrColor: "#111111",
+    posterBg: "#FBF9F4",
     headerBg: "#FF4C29",
     accentColor: "#FF4C29",
   },
   {
-    id: "matcha-bistro",
-    name: "Matcha & Tea Bistro",
-    icon: "🍵",
-    qrColor: "#15803D",
-    posterBg: "#F4FBF7",
-    headerBg: "#15803D",
-    accentColor: "#047857",
+    id: "fresh-emerald",
+    name: "Fresh Emerald",
+    icon: "🌿",
+    qrColor: "#064E3B",
+    posterBg: "#F0FDF4",
+    headerBg: "#065F46",
+    accentColor: "#059669",
   },
   {
-    id: "dark-espresso",
-    name: "Dark Espresso Bar",
-    icon: "🖤",
-    qrColor: "#18181B",
-    posterBg: "#FFFFFF",
-    headerBg: "#18181B",
-    accentColor: "#EAB308",
+    id: "ocean-cyan",
+    name: "Ocean & Steel",
+    icon: "🌊",
+    qrColor: "#0C4A6E",
+    posterBg: "#F0F9FF",
+    headerBg: "#0284C7",
+    accentColor: "#0369A1",
   },
   {
-    id: "bakery-pink",
-    name: "Sweet Bakery & Pastry",
-    icon: "🧁",
-    qrColor: "#9D174D",
-    posterBg: "#FDF2F8",
-    headerBg: "#BE185D",
-    accentColor: "#F43F5E",
+    id: "royal-gold",
+    name: "Royal Gold & Velvet",
+    icon: "👑",
+    qrColor: "#4A044E",
+    posterBg: "#FDF4FF",
+    headerBg: "#701A75",
+    accentColor: "#D97706",
+  },
+  {
+    id: "warm-earth",
+    name: "Warm Earth & Caramel",
+    icon: "✨",
+    qrColor: "#451A03",
+    posterBg: "#FEF3C7",
+    headerBg: "#78350F",
+    accentColor: "#B45309",
   },
 ];
 
@@ -238,7 +247,7 @@ export default function QRStudio({
             <p className="text-[#4A4A4A] text-sm mt-1">
               {isAiMode 
                 ? "Generate breathtaking, scannable QR artworks using ControlNet & Stable Diffusion."
-                : "Custom-styled high-density QR code templates tailored to your cafe or restaurant theme."}
+                : "Custom-styled high-density QR code standees and table tents tailored to your business branding."}
             </p>
           </div>
           
@@ -321,10 +330,22 @@ export default function QRStudio({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold uppercase text-black/70 tracking-wider">Table / Location Tag</label>
+                <label className="block text-xs font-bold uppercase text-black/70 tracking-wider">Spot / Location Tag</label>
                 <span className="text-[11px] font-bold text-black/50">{tableNumber.length} / 20</span>
               </div>
               <input type="text" maxLength={20} value={tableNumber} onChange={e => setTableNumber(e.target.value)} className="w-full p-3 rounded-xl border-2 border-black bg-[#FBF9F4] text-sm font-semibold focus:outline-none" />
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {["Table #01", "Seat #01", "Station #01", "Lounge #01", "Counter", "Waiting Area"].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setTableNumber(tag)}
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-black/30 bg-white hover:bg-black hover:text-white transition-all cursor-pointer"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-bold uppercase text-black/70 tracking-wider mb-1.5">QR Main Color</label>

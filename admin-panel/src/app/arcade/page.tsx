@@ -66,13 +66,13 @@ export default function ArcadeLandingPage() {
       .then((res) => {
         if (res.success && res.configs) {
           const mapped: GameCard[] = res.configs.map((c) => {
-            const topReward = c.rewardTiers && c.rewardTiers.length > 0 ? c.rewardTiers[0].rewardName : "Cafe Rewards";
+            const topReward = c.rewardTiers && c.rewardTiers.length > 0 ? c.rewardTiers[0].rewardName : "Instant Rewards";
             return {
               slug: c.slug,
               name: c.name,
               type: `${c.difficulty.toUpperCase()} • Max ${c.maxDailyPlays > 0 ? c.maxDailyPlays + "/day" : "Unlimited"}`,
               icon: c.icon,
-              description: `Play ${c.name} while waiting for your order to earn Cafe Points!`,
+              description: `Play ${c.name} while you wait to earn Reward Points & instant perks!`,
               rewardHighlight: `Win ${topReward}`,
               color: c.slug === "coffee-tower" ? "bg-[#FF4C29]" : c.slug === "flappy-barista" ? "bg-[#F59E0B]" : "bg-[#10B981]",
               shadowColor: c.slug === "coffee-tower" ? "shadow-[4px_4px_0px_0px_#FF4C29]" : c.slug === "flappy-barista" ? "shadow-[4px_4px_0px_0px_#F59E0B]" : "shadow-[4px_4px_0px_0px_#10B981]",
@@ -92,7 +92,7 @@ export default function ArcadeLandingPage() {
       <header className="w-full max-w-md bg-black text-white p-5 rounded-3xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">☕</span>
+            <span className="text-2xl">✨</span>
             <h1 className="font-serif font-black text-xl text-white">{storeName}</h1>
           </div>
           <p className="text-xs font-bold text-white/60 mt-0.5">
@@ -100,7 +100,7 @@ export default function ArcadeLandingPage() {
           </p>
         </div>
         <div className="text-right">
-          <span className="text-[10px] font-bold text-white/50 uppercase block">Cafe Points</span>
+          <span className="text-[10px] font-bold text-white/50 uppercase block">Reward Points</span>
           <span className="font-mono text-emerald-400 font-black text-xl">+{userPoints} PTS</span>
         </div>
       </header>
@@ -117,7 +117,7 @@ export default function ArcadeLandingPage() {
               </span>
               <h2 className="font-serif text-2xl font-black mt-1">Pick a Game & Win!</h2>
               <p className="text-xs font-bold text-white/90 mt-0.5">
-                Play mini-games to win free coffee, pastries & discount vouchers!
+                Play mini-games while you wait to win exclusive discounts & instant perks!
               </p>
             </div>
             <span className="text-5xl animate-bounce">🎮</span>
@@ -203,7 +203,7 @@ export default function ArcadeLandingPage() {
 
       {/* Footer */}
       <footer className="text-center text-xs font-bold text-black/40 py-2">
-        Scan QR at table • Play mini-games while waiting for your order
+        Scan QR at your spot • Play mini-games while you wait to win perks
       </footer>
     </div>
   );

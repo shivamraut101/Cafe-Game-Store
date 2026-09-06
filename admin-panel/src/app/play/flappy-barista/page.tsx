@@ -676,9 +676,9 @@ export default function FlappyBaristaGame() {
       <header className="w-full max-w-md bg-gradient-to-r from-[#1A1A1A] to-[#2D2D2D] text-white p-3.5 rounded-2xl border-2 border-[#333] shadow-[4px_4px_0px_0px_#F59E0B] flex justify-between items-center">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">☕</span>
+            <span className="text-2xl">🚀</span>
             <div>
-              <h1 className="font-serif font-black text-base leading-tight">Flappy Barista</h1>
+              <h1 className="font-serif font-black text-base leading-tight">Flappy Flight</h1>
               <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
                 Wait: <span className="font-mono text-white/90">{fmt(waitRef.current)}</span>
               </p>
@@ -715,9 +715,9 @@ export default function FlappyBaristaGame() {
         {/* Game Over */}
         {state === "dead" && cooldownRef.current <= 0 && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-5 text-center text-white z-40 rounded-3xl pointer-events-none">
-            <span className="text-6xl mb-3">💔</span>
-            <h2 className="font-serif text-3xl font-black text-[#F59E0B] mb-1">SPILLED!</h2>
-            <p className="text-xs text-white/50 mb-4">The coffee didn&apos;t make it through</p>
+            <span className="text-6xl mb-3">💥</span>
+            <h2 className="font-serif text-3xl font-black text-[#F59E0B] mb-1">CRASHED!</h2>
+            <p className="text-xs text-white/50 mb-4">You hit an obstacle</p>
 
             <div className="bg-white text-black w-full p-4 rounded-2xl border-2 border-black mb-4 shadow-[3px_3px_0px_0px_#F59E0B]">
               <span className="text-[9px] font-black uppercase text-black/35 tracking-widest">Score</span>

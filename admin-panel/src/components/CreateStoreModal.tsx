@@ -24,7 +24,7 @@ export default function CreateStoreModal({
   const [storeSlug, setStoreSlug] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerName, setOwnerName] = useState("");
-  const [category, setCategory] = useState("Cafe / Coffee Shop");
+  const [category, setCategory] = useState("General Business & Lounge");
   const [plan, setPlan] = useState<TierLevel>("Pro Store");
   const [initialCredits, setInitialCredits] = useState(500);
   const [submitting, setSubmitting] = useState(false);
@@ -86,10 +86,10 @@ export default function CreateStoreModal({
 
         <div className="flex items-center gap-2 mb-1">
           <span className="text-2xl">🏪</span>
-          <h2 className="font-serif text-2xl font-black text-black">Provision New Store Account</h2>
+          <h2 className="font-serif text-2xl font-black text-black">Provision New Business Account</h2>
         </div>
         <p className="text-xs text-black/60 mb-6">
-          Set up a new merchant account or add a new branch location to the ForStore SaaS engine.
+          Set up a new merchant account or add a new branch location to the SaaS wait-time engagement engine.
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -97,12 +97,12 @@ export default function CreateStoreModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase text-black/70 tracking-wider mb-1">
-                Store Name
+                Business Name
               </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. Downtown Roast Cafe"
+                placeholder="e.g. Apex Detailing, Luxe Salon, Downtown Grill"
                 value={storeName}
                 onChange={e => handleNameChange(e.target.value)}
                 className="w-full p-3 rounded-xl border-2 border-black bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#FF4C29]"
@@ -116,7 +116,7 @@ export default function CreateStoreModal({
               <input
                 type="text"
                 required
-                placeholder="downtown-roast"
+                placeholder="downtown-grill"
                 value={storeSlug}
                 onChange={e => setStoreSlug(e.target.value)}
                 className="w-full p-3 rounded-xl border-2 border-black bg-white text-xs font-mono focus:outline-none"
@@ -133,7 +133,7 @@ export default function CreateStoreModal({
               <input
                 type="email"
                 required
-                placeholder="owner@downtownroast.com"
+                placeholder="owner@yourbusiness.com"
                 value={ownerEmail}
                 onChange={e => setOwnerEmail(e.target.value)}
                 className="w-full p-3 rounded-xl border-2 border-black bg-white text-xs font-semibold focus:outline-none"
@@ -142,15 +142,17 @@ export default function CreateStoreModal({
 
             <div>
               <label className="block text-xs font-bold uppercase text-black/70 tracking-wider mb-1">
-                Store Category
+                Business Type
               </label>
               <CustomDropdown
                 options={[
-                  { label: "☕ Cafe / Coffee Shop", value: "Cafe / Coffee Shop" },
-                  { label: "🍔 Restaurant / Diner", value: "Restaurant / Diner" },
-                  { label: "🥐 Bakery & Pastry", value: "Bakery & Pastry" },
-                  { label: "🍺 Bar & Pub", value: "Bar & Pub" },
-                  { label: "🎮 Arcade & Entertainment", value: "Arcade & Entertainment" }
+                  { label: "🏪 General Business & Lounge", value: "General Business & Lounge" },
+                  { label: "☕ Cafe & Restaurant", value: "Cafe & Restaurant" },
+                  { label: "💇 Salon & Spa", value: "Salon & Spa" },
+                  { label: "🚗 Car Care & Detailing", value: "Car Care & Detailing" },
+                  { label: "🩺 Clinic & Health", value: "Clinic & Health" },
+                  { label: "🎮 Gaming & Entertainment", value: "Gaming & Entertainment" },
+                  { label: "🛍️ Retail Store", value: "Retail Store" },
                 ]}
                 value={category}
                 onChange={setCategory}

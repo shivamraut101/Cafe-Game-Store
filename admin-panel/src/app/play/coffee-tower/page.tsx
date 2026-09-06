@@ -5,13 +5,13 @@ import Matter from "matter-js";
 import { submitGameSessionAction } from "../../actions/gameActions";
 
 const ITEMS = [
-  { name: "Coffee ☕", color: "#FF4C29" },
-  { name: "Croissant 🥐", color: "#F59E0B" },
-  { name: "Cake 🍰", color: "#EC4899" },
-  { name: "Donut 🍩", color: "#8B5CF6" },
-  { name: "Boba 🧋", color: "#10B981" },
-  { name: "Cupcake 🧁", color: "#332FD0" },
-  { name: "Cookie 🍪", color: "#D97706" },
+  { name: "Bonus Block ⭐", color: "#FF4C29" },
+  { name: "Gem Block 💎", color: "#F59E0B" },
+  { name: "Golden Block 👑", color: "#EC4899" },
+  { name: "Mystery Block 🎁", color: "#8B5CF6" },
+  { name: "Lucky Block 🍀", color: "#10B981" },
+  { name: "Super Block ⚡", color: "#332FD0" },
+  { name: "Prize Block 🏆", color: "#D97706" },
 ];
 
 const CANVAS_W = 320;
@@ -374,8 +374,8 @@ export default function CoffeeTowerGame() {
       <header className="w-full max-w-md bg-black text-white p-4 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xl">☕</span>
-            <h1 className="font-serif font-black text-lg">Cafe Stack Tower</h1>
+            <span className="text-xl">🏗️</span>
+            <h1 className="font-serif font-black text-lg">Tower Stack</h1>
           </div>
           <p className="text-[10px] font-bold text-[#FF4C29] tracking-widest uppercase">
             Waiting: <span className="font-mono text-white">{fmt(waitTime)}</span>
@@ -392,7 +392,7 @@ export default function CoffeeTowerGame() {
         {/* HUD */}
         <div className="w-full flex justify-between items-center p-3 z-10">
           <div className="bg-black text-white px-3 py-1 rounded-full text-xs font-black shadow-[2px_2px_0px_0px_#FF4C29]">
-            {score} CUPS
+            {score} BLOCKS
           </div>
           {showPerfect && (
             <div className="bg-emerald-400 text-black px-3 py-1 rounded-full text-xs font-black border-2 border-black animate-bounce shadow-[2px_2px_0px_0px_#000]">
@@ -414,10 +414,10 @@ export default function CoffeeTowerGame() {
         {/* Start Overlay */}
         {gameState === "start" && (
           <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center text-white z-40 rounded-3xl">
-            <span className="text-7xl mb-3 animate-bounce">☕</span>
-            <h2 className="font-serif text-3xl font-black mb-2">Cafe Stack Tower</h2>
+            <span className="text-7xl mb-3 animate-bounce">🏗️</span>
+            <h2 className="font-serif text-3xl font-black mb-2">Tower Stack</h2>
             <p className="text-xs text-white/70 max-w-xs mb-6">
-              Stack cups as high as possible! Overhang slices tumble with <strong>real Matter.js physics</strong>. Miss completely and the whole tower collapses!
+              Stack blocks as high as possible! Overhang slices tumble with <strong>real Matter.js physics</strong>. Miss completely and the whole tower collapses!
             </p>
             <div className="w-full py-4 bg-[#FF4C29] text-white rounded-2xl font-black text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] text-center cursor-pointer">
               TAP ANYWHERE TO PLAY 🚀
@@ -430,12 +430,12 @@ export default function CoffeeTowerGame() {
           <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center text-white z-40 rounded-3xl">
             <span className="text-6xl mb-2">💥</span>
             <h2 className="font-serif text-3xl font-black text-red-500 mb-1">TOWER COLLAPSED!</h2>
-            <p className="text-xs font-bold text-white/60 mb-4">Watch the cups tumble below!</p>
+            <p className="text-xs font-bold text-white/60 mb-4">Watch the blocks tumble below!</p>
 
             <div className="bg-white text-black w-full p-4 rounded-2xl border-2 border-black mb-4 shadow-[4px_4px_0px_0px_#FF4C29]">
               <span className="text-[10px] font-black uppercase text-black/50 tracking-wider">HEIGHT REACHED</span>
-              <h3 className="font-serif text-3xl font-black text-[#FF4C29]">{score} CUPS</h3>
-              <p className="text-[11px] font-bold text-emerald-700 mt-1">+{score * 10} Cafe Points earned</p>
+              <h3 className="font-serif text-3xl font-black text-[#FF4C29]">{score} BLOCKS</h3>
+              <p className="text-[11px] font-bold text-emerald-700 mt-1">+{score * 10} Reward Points earned</p>
             </div>
 
             {limitNotice && (

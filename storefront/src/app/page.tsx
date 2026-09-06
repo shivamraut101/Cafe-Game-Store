@@ -61,11 +61,11 @@ export default function Home() {
             </span>
 
             <h1 className="font-serif text-5xl md:text-6xl font-black tracking-tight leading-[1.05] text-[#111111]">
-              Turn every cafe visit into a game under <span className="underline decoration-[#FF4C29] decoration-wavy">your brand</span>.
+              Turn every customer wait into revenue under <span className="underline decoration-[#FF4C29] decoration-wavy">your brand</span>.
             </h1>
 
             <p className="text-lg text-[#4A4A4A] leading-relaxed max-w-xl">
-              Fully white-labeled QR loyalty platform for local stores. Run custom branded minigames, pay only for active customer scans with zero hardware, and boost repeat visits by up to 25%.
+              Fully white-labeled QR game & reward platform for any local business. Run custom branded minigames, pay only for active customer scans with zero hardware, and boost repeat visits by up to 25%.
             </p>
 
             <div className="flex flex-wrap gap-4 w-full sm:w-auto pt-2">
@@ -220,7 +220,7 @@ export default function Home() {
               </div>
 
               <a
-                href="/admin-panel"
+                href={ADMIN_URL}
                 className="w-full bg-[#FF4C29] text-white py-4 rounded-xl font-bold border-2 border-black shadow-[3px_3px_0px_0px_#FFFFFF] text-center hover:translate-y-[1px] text-sm"
               >
                 Top-Up Store Wallet & Start

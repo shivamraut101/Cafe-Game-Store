@@ -82,11 +82,11 @@ export default function BrandingTab({ storeName: currentStoreName }: BrandingTab
         <div className="flex flex-col gap-6">
           {/* Identity */}
           <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_#000000]">
-            <h3 className="font-serif text-xl font-bold text-black mb-4">Store Identity</h3>
+            <h3 className="font-serif text-xl font-bold text-black mb-4">Business Identity</h3>
             
             <div className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">Store Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">Business Name</label>
                 <input 
                   type="text" 
                   value={storeName}

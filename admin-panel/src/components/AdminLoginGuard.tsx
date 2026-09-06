@@ -304,7 +304,7 @@ export default function AdminLoginGuard({
                   onClick={() => handleQuickDemoFill("store_admin")}
                   className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  Brew & Bites Admin ☕
+                  Merchant Admin 🏪
                 </button>
                 <button
                   type="button"
@@ -319,26 +319,26 @@ export default function AdminLoginGuard({
           ) : (
             /* Register New Store Form */
             <>
-              <h1 className="font-serif text-2xl font-black text-black mb-1">Launch Your Cafe Arcade</h1>
+              <h1 className="font-serif text-2xl font-black text-black mb-1">Turn Wait Time Into Revenue</h1>
               <p className="text-xs font-semibold text-black/60 mb-3">
-                Get started in 30 seconds with 100 free table scan credits.
+                Get started in 30 seconds with 100 free scan credits for your business.
               </p>
 
               <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-900 rounded-xl p-2.5 text-xs font-bold mb-4 w-full text-left">
-                🎁 <span className="font-black">Trial Perks:</span> 100 Free Scan Credits • 3 Pre-configured Minigames • Custom Printable QR Studio
+                🎁 <span className="font-black">Trial Perks:</span> 100 Free Scan Credits • 3 Ready-to-Play Minigames • Custom Printable QR Studio
               </div>
 
               <form onSubmit={handleRegister} className="w-full flex flex-col gap-3 text-left">
                 <div>
                   <label className="block text-[11px] font-black uppercase tracking-wider text-black/60 mb-1">
-                    Cafe / Store Name
+                    Business / Store Name
                   </label>
                   <input
                     type="text"
                     required
                     value={regStoreName}
                     onChange={(e) => setRegStoreName(e.target.value)}
-                    placeholder="e.g. Sunset Roast & Bakery"
+                    placeholder="e.g. Apex Detailing, Luxe Salon, Downtown Grill"
                     className="w-full p-2.5 rounded-xl border-2 border-black bg-[#FBF9F4] font-semibold text-sm focus:outline-none focus:border-[#FF4C29] shadow-[2px_2px_0px_0px_#000]"
                   />
                 </div>
@@ -366,7 +366,7 @@ export default function AdminLoginGuard({
                     required
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
-                    placeholder="owner@sunsetroast.com"
+                    placeholder="owner@yourbusiness.com"
                     className="w-full p-2.5 rounded-xl border-2 border-black bg-[#FBF9F4] font-semibold text-sm focus:outline-none focus:border-[#FF4C29] shadow-[2px_2px_0px_0px_#000]"
                   />
                 </div>
