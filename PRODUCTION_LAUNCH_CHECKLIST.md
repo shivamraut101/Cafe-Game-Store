@@ -33,25 +33,27 @@ Configure these in your storefront hosting project:
 
 ---
 
-## 3. Deploying to Hostinger (Subdomain Setup)
+## 3. Deploying to Hostinger (Dual Subdomain Setup under Curaflow Studio)
 
-You can host both apps on your existing Hostinger plan with **$0 additional infrastructure cost**:
+Since your main root domain hosts your **Curaflow Studio** website, both **ForStore applications** run on separate subdomains with **$0 additional cost**:
 
-### Architecture on Hostinger:
-* **Admin / Arcade / Games App**: Hosted on your subdomain (e.g. `https://app.yourdomain.com` or `https://arcade.yourdomain.com`).
-* **Marketing Storefront**: Hosted on your root domain (e.g. `https://yourdomain.com`).
+### Recommended Subdomain Architecture:
+* **Root Domain (`curaflow.studio`)**: Unaffected (remains your primary Curaflow Studio website).
+* **Subdomain 1 (`forstore.curaflow.studio` or `games.curaflow.studio`)**: **Marketing Storefront** (landing page, ROI calculator, pricing).
+* **Subdomain 2 (`app.forstore.curaflow.studio` or `app.curaflow.studio`)**: **Admin & Arcade Engine** (merchant dashboard, customer arcade `/arcade`, games `/play/*`, and scanner `/claim`).
 
 ### Environment Variables on Hostinger:
-1. **In `admin-panel/.env.local`** (or Hostinger Environment Variables):
+1. **In `admin-panel/.env.local`** (Subdomain 2):
    ```env
    MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/cafe-game-store-prod?retryWrites=true&w=majority
    MONGODB_ENV=prod
    SESSION_SECRET=a_secure_random_64_character_hex_string
    PORT=3000
    ```
-2. **In `storefront/.env.local`**:
+2. **In `storefront/.env.local`** (Subdomain 1):
    ```env
-   NEXT_PUBLIC_ADMIN_URL=https://app.yourdomain.com
+   # Points directly to Subdomain 2 (Admin Portal & Arcade)
+   NEXT_PUBLIC_ADMIN_URL=https://app.curaflow.studio
    PORT=3001
    ```
 
