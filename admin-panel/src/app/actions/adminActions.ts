@@ -233,9 +233,19 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
 
     let storeObjId: mongoose.Types.ObjectId | null = null;
     if (storeId) {
-      storeObjId = new mongoose.Types.ObjectId(storeId);
-    } else if (storeName) {
-      const store = await Store.findOne({ storeName });
+      if (mongoose.Types.ObjectId.isValid(storeId)) {
+        storeObjId = new mongoose.Types.ObjectId(storeId);
+      } else {
+        const store = await Store.findOne({
+          $or: [{ slug: storeId.toLowerCase().trim() }, { storeName: storeId }],
+        });
+        if (store) storeObjId = store._id as mongoose.Types.ObjectId;
+      }
+    }
+    if (!storeObjId && storeName) {
+      const store = await Store.findOne({
+        $or: [{ slug: storeName.toLowerCase().trim() }, { storeName }],
+      });
       if (store) storeObjId = store._id as mongoose.Types.ObjectId;
     }
 
@@ -373,9 +383,21 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
+    // Pre-aggregate total play counts per game specifically for this store
+    const playCountsAgg = await GameSession.aggregate([
+      { $match: { storeId: storeObjId } },
+      { $group: { _id: "$gameSlug", totalPlays: { $sum: 1 } } },
+    ]);
+
+    const playCountMap: Record<string, number> = {};
+    playCountsAgg.forEach((item: any) => {
+      if (item._id) playCountMap[item._id] = item.totalPlays || 0;
+    });
+
     // Compute live stats per game from GameSession & RewardClaim
     const formattedConfigs = await Promise.all(
       configs.map(async (c) => {
+        const totalPlays = playCountMap[c.slug] || 0;
         const totalPlaysToday = await GameSession.countDocuments({
           storeId: storeObjId,
           gameSlug: c.slug,
@@ -410,6 +432,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
             rewardDescription: t.rewardDescription,
           })),
           stats: {
+            totalPlays,
             totalPlaysToday,
             avgScore,
             rewardsClaimed,
@@ -417,6 +440,13 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         };
       })
     );
+
+    // Sort games strictly based on number of times played in that store (most played first)
+    formattedConfigs.sort((a, b) => {
+      const playsDiff = (b.stats?.totalPlays || 0) - (a.stats?.totalPlays || 0);
+      if (playsDiff !== 0) return playsDiff;
+      return a.name.localeCompare(b.name);
+    });
 
     return {
       success: true,

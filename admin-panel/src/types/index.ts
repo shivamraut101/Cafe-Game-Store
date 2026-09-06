@@ -32,6 +32,7 @@ export interface MiniGameConfig {
   maxDailyPlays: number; // 0 = unlimited
   rewardTiers: GameRewardTier[];
   stats: {
+    totalPlays?: number;
     totalPlaysToday: number;
     avgScore: number;
     rewardsClaimed: number;

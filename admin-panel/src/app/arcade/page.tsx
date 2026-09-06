@@ -16,6 +16,7 @@ interface GameCard {
   rewardHighlight: string;
   color: string;
   shadowColor: string;
+  totalPlays?: number;
   popular?: boolean;
 }
 
@@ -243,6 +244,8 @@ export default function ArcadeLandingPage() {
                 ? `Lay phone on the table & duel your friend, partner, or kid in real-time!`
                 : `Play ${c.name} to beat boredom, unlock streaks & claim perks!`;
 
+              const totalPlays = c.stats?.totalPlays || 0;
+
               return {
                 slug: c.slug,
                 name: c.name,
@@ -252,9 +255,23 @@ export default function ArcadeLandingPage() {
                 rewardHighlight: `Win ${topReward}`,
                 color,
                 shadowColor,
-                popular: true,
+                totalPlays,
+                popular: false,
               };
             });
+
+          // Sort strictly based on the number of times played in that store (most played first)
+          mapped.sort((a, b) => {
+            const diff = (b.totalPlays || 0) - (a.totalPlays || 0);
+            if (diff !== 0) return diff;
+            return a.name.localeCompare(b.name);
+          });
+
+          // Mark the #1 most played game in this store as popular
+          if (mapped.length > 0 && (mapped[0].totalPlays || 0) > 0) {
+            mapped[0].popular = true;
+          }
+
           setGames(mapped.length > 0 ? mapped : DEFAULT_ARCADE_GAMES);
         } else {
           setGames(DEFAULT_ARCADE_GAMES);
@@ -371,7 +388,12 @@ export default function ArcadeLandingPage() {
 
         {/* Games List Title */}
         <div className="flex items-center justify-between px-1 mt-2">
-          <h3 className="font-serif text-lg font-black text-black">Available Arcade Games</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-serif text-lg font-black text-black">Available Arcade Games</h3>
+            <span className="text-[9px] font-black uppercase tracking-wider bg-black text-white px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_0px_0px_#FF4C29]">
+              Most Played First
+            </span>
+          </div>
           <span className="text-xs font-bold text-black/40">{games.length} Active Games</span>
         </div>
 
@@ -394,7 +416,7 @@ export default function ArcadeLandingPage() {
             >
               {game.popular && (
                 <span className="absolute top-3 right-3 bg-[#FF4C29] text-white text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-black shadow-[1px_1px_0px_0px_#000]">
-                  🔥 POPULAR
+                  🔥 #1 MOST PLAYED
                 </span>
               )}
 
@@ -404,9 +426,16 @@ export default function ArcadeLandingPage() {
                 </div>
                 <div className="flex-1 pr-12">
                   <h4 className="font-serif text-lg font-black text-black">{game.name}</h4>
-                  <span className="text-[10px] font-black text-black/40 uppercase tracking-wider block">
-                    {game.type}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    <span className="text-[10px] font-black text-black/40 uppercase tracking-wider block">
+                      {game.type}
+                    </span>
+                    {typeof game.totalPlays === "number" && game.totalPlays > 0 && (
+                      <span className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.2 rounded-md font-mono">
+                        🕹️ {game.totalPlays} play{game.totalPlays !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs font-semibold text-black/60 mt-1 leading-snug">
                     {game.description}
                   </p>
