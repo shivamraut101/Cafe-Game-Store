@@ -194,50 +194,99 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
 
     let configs = await MiniGameConfig.find({ storeId: storeObjId }).sort({ slug: 1 });
 
-    // Auto-provision standard games if store has 0 configs in DB
-    if (configs.length === 0) {
-      await MiniGameConfig.insertMany([
-        {
-          storeId: storeObjId,
-          slug: "coffee-tower",
-          name: "Tower Stack",
-          icon: "🏗️",
-          enabled: true,
-          difficulty: "medium",
-          maxDailyPlays: 0,
-          rewardTiers: [
-            { id: "t1", pointThreshold: 5, rewardName: "10% Off Discount", rewardDescription: "10% off your bill or service" },
-            { id: "t2", pointThreshold: 15, rewardName: "Special Perk Upgrade", rewardDescription: "Complimentary upgrade or add-on" },
-            { id: "t3", pointThreshold: 30, rewardName: "20% Off Next Visit", rewardDescription: "20% discount on your next visit" },
-          ],
-        },
-        {
-          storeId: storeObjId,
-          slug: "flappy-barista",
-          name: "Flappy Flight",
-          icon: "🚀",
-          enabled: true,
-          difficulty: "medium",
-          maxDailyPlays: 5,
-          rewardTiers: [
-            { id: "t4", pointThreshold: 10, rewardName: "Instant 5% Off", rewardDescription: "5% off total bill" },
-            { id: "t5", pointThreshold: 25, rewardName: "Buy 1 Get 1 Special", rewardDescription: "Special 2-for-1 offer" },
-          ],
-        },
-        {
-          storeId: storeObjId,
-          slug: "barista-catch",
-          name: "Prize Catcher",
-          icon: "🎁",
-          enabled: true,
-          difficulty: "easy",
-          maxDailyPlays: 0,
-          rewardTiers: [
-            { id: "t6", pointThreshold: 100, rewardName: "15% Off Voucher", rewardDescription: "15% off today's visit" },
-            { id: "t7", pointThreshold: 300, rewardName: "VIP Surprise Gift", rewardDescription: "Special surprise gift or top-tier perk" },
-          ],
-        },
-      ]);
+    const standardGames = [
+      {
+        slug: "coffee-tower",
+        name: "Tower Stack",
+        icon: "🏗️",
+        enabled: true,
+        difficulty: "medium",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t1", pointThreshold: 5, rewardName: "10% Off Discount", rewardDescription: "10% off your bill or service" },
+          { id: "t2", pointThreshold: 15, rewardName: "Special Perk Upgrade", rewardDescription: "Complimentary upgrade or add-on" },
+          { id: "t3", pointThreshold: 30, rewardName: "20% Off Next Visit", rewardDescription: "20% discount on your next visit" },
+        ],
+      },
+      {
+        slug: "flappy-barista",
+        name: "Flappy Flight",
+        icon: "🚀",
+        enabled: true,
+        difficulty: "medium",
+        maxDailyPlays: 5,
+        rewardTiers: [
+          { id: "t4", pointThreshold: 10, rewardName: "Instant 5% Off", rewardDescription: "5% off total bill" },
+          { id: "t5", pointThreshold: 25, rewardName: "Buy 1 Get 1 Special", rewardDescription: "Special 2-for-1 offer" },
+        ],
+      },
+      {
+        slug: "barista-catch",
+        name: "Prize Catcher",
+        icon: "🎁",
+        enabled: true,
+        difficulty: "easy",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t6", pointThreshold: 100, rewardName: "15% Off Voucher", rewardDescription: "15% off today's visit" },
+          { id: "t7", pointThreshold: 300, rewardName: "VIP Surprise Gift", rewardDescription: "Special surprise gift or top-tier perk" },
+        ],
+      },
+      {
+        slug: "drop-merge",
+        name: "Drop & Merge",
+        icon: "🍉",
+        enabled: true,
+        difficulty: "easy",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t8", pointThreshold: 200, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
+          { id: "t9", pointThreshold: 600, rewardName: "Crown Master Perk", rewardDescription: "Top-tier upgrade reward" },
+        ],
+      },
+      {
+        slug: "brick-breaker",
+        name: "Swipe Brick Breaker",
+        icon: "🧱",
+        enabled: true,
+        difficulty: "medium",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t10", pointThreshold: 15, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
+          { id: "t11", pointThreshold: 40, rewardName: "Breaker Star Perk", rewardDescription: "Special combo reward" },
+        ],
+      },
+      {
+        slug: "helix-drop",
+        name: "Helix Drop",
+        icon: "🌀",
+        enabled: true,
+        difficulty: "medium",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t12", pointThreshold: 20, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
+          { id: "t13", pointThreshold: 50, rewardName: "Helix Smash Perk", rewardDescription: "Special store reward" },
+        ],
+      },
+      {
+        slug: "sky-hopper",
+        name: "Sky Hopper",
+        icon: "🦘",
+        enabled: true,
+        difficulty: "easy",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t14", pointThreshold: 15, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
+          { id: "t15", pointThreshold: 45, rewardName: "High Altitude Perk", rewardDescription: "Top customer reward" },
+        ],
+      },
+    ];
+
+    // Auto-provision or insert missing games for this store
+    const existingSlugs = new Set(configs.map((c) => c.slug));
+    const missing = standardGames.filter((g) => !existingSlugs.has(g.slug));
+    if (missing.length > 0) {
+      await MiniGameConfig.insertMany(missing.map((g) => ({ ...g, storeId: storeObjId })));
       configs = await MiniGameConfig.find({ storeId: storeObjId }).sort({ slug: 1 });
     }
 

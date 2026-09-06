@@ -34,6 +34,30 @@ const DIFFICULTY_DETAILS: Record<string, Record<GameDifficulty, string>> = {
     hard: "Fast fall (3.2x), frequent spawns",
     insane: "Extreme fall (4.5x), constant spawns",
   },
+  "drop-merge": {
+    easy: "Generous container, slow item bounce",
+    medium: "Standard container, normal physics bounce",
+    hard: "Narrow container, bouncy physics challenge",
+    insane: "High-friction container, strict overflow line",
+  },
+  "brick-breaker": {
+    easy: "Slow ball velocity, 1.5x hit power",
+    medium: "Standard velocity, normal brick health",
+    hard: "Fast ball speed, reinforced bricks",
+    insane: "Ultra-fast ricochet, heavy armored bricks",
+  },
+  "helix-drop": {
+    easy: "Wide gaps (45deg), slow rotation",
+    medium: "Balanced gaps (30deg), standard speed",
+    hard: "Narrow gaps (20deg), moving hazard sectors",
+    insane: "Tiny gaps (12deg), shifting danger zones",
+  },
+  "sky-hopper": {
+    easy: "Dense platforms, high springboard bounce",
+    medium: "Balanced platforms, regular springs",
+    hard: "Sparse platforms, moving clouds",
+    insane: "Tiny breaking platforms, fast vertical scroll",
+  },
   "spin-wheel": {
     easy: "Generous sectors, higher jackpot chances",
     medium: "Standard sectors, balanced chances",

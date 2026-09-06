@@ -30,10 +30,13 @@ export interface SubmitSessionInput {
 /**
  * Server Action: Submits game session with Anti-Cheat validation, Daily Play Limits, and Voucher Cooldown.
  */
-export async function submitGameSessionAction(input: SubmitSessionInput) {
+export async function submitGameSessionAction(input: SubmitSessionInput | string, scoreArg?: number) {
   try {
     await connectDB();
-    let { storeId, storeSlug, storeName, userId, gameSlug, score, duration = 30, combo = 0 } = input;
+    const normalized: SubmitSessionInput =
+      typeof input === "string" ? { gameSlug: input, score: scoreArg ?? 0 } : input;
+
+    let { storeId, storeSlug, storeName, userId, gameSlug, score, duration = 30, combo = 0 } = normalized;
 
     // Resolve store by storeId, storeSlug, or storeName
     if (!storeId) {
@@ -68,7 +71,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput) {
     // Fetch live Game Config
     const config = await MiniGameConfig.findOne({
       storeId: storeObjId,
-      slug: gameSlug as "coffee-tower" | "flappy-barista" | "barista-catch",
+      slug: gameSlug,
     });
 
     // ─── 1. Daily Play Limit Check ──────────────────────────────
@@ -113,7 +116,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput) {
         actionCategory: "SECURITY",
         targetType: "Game Session",
         targetName: gameSlug,
-        details: validation.reason || `Score capped from ${input.score} to ${validation.maxAllowed}`,
+        details: validation.reason || `Score capped from ${score} to ${validation.maxAllowed}`,
         timestamp: new Date(),
       });
     }

@@ -65,20 +65,45 @@ export default function ArcadeLandingPage() {
     getMiniGameConfigsAction(undefined, storeParam)
       .then((res) => {
         if (res.success && res.configs) {
-          const mapped: GameCard[] = res.configs.map((c) => {
-            const topReward = c.rewardTiers && c.rewardTiers.length > 0 ? c.rewardTiers[0].rewardName : "Instant Rewards";
-            return {
-              slug: c.slug,
-              name: c.name,
-              type: `${c.difficulty.toUpperCase()} • Max ${c.maxDailyPlays > 0 ? c.maxDailyPlays + "/day" : "Unlimited"}`,
-              icon: c.icon,
-              description: `Play ${c.name} to earn Reward Points & instant perks!`,
-              rewardHighlight: `Win ${topReward}`,
-              color: c.slug === "coffee-tower" ? "bg-[#FF4C29]" : c.slug === "flappy-barista" ? "bg-[#F59E0B]" : "bg-[#10B981]",
-              shadowColor: c.slug === "coffee-tower" ? "shadow-[4px_4px_0px_0px_#FF4C29]" : c.slug === "flappy-barista" ? "shadow-[4px_4px_0px_0px_#F59E0B]" : "shadow-[4px_4px_0px_0px_#10B981]",
-              popular: true,
-            };
-          });
+          const mapped: GameCard[] = res.configs
+            .filter((c: any) => c.enabled !== false)
+            .map((c) => {
+              const topReward = c.rewardTiers && c.rewardTiers.length > 0 ? c.rewardTiers[0].rewardName : "Instant Rewards";
+              
+              let color = "bg-[#FF4C29]";
+              let shadowColor = "shadow-[4px_4px_0px_0px_#FF4C29]";
+              if (c.slug === "flappy-barista") {
+                color = "bg-[#F59E0B]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#F59E0B]";
+              } else if (c.slug === "barista-catch") {
+                color = "bg-[#10B981]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#10B981]";
+              } else if (c.slug === "drop-merge") {
+                color = "bg-[#EC4899]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#EC4899]";
+              } else if (c.slug === "brick-breaker") {
+                color = "bg-[#6366F1]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#6366F1]";
+              } else if (c.slug === "helix-drop") {
+                color = "bg-[#06B6D4]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#06B6D4]";
+              } else if (c.slug === "sky-hopper") {
+                color = "bg-[#14B8A6]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#14B8A6]";
+              }
+
+              return {
+                slug: c.slug,
+                name: c.name,
+                type: `${c.difficulty.toUpperCase()} • Max ${c.maxDailyPlays > 0 ? c.maxDailyPlays + "/day" : "Unlimited"}`,
+                icon: c.icon,
+                description: `Play ${c.name} to beat boredom, unlock streaks & claim perks!`,
+                rewardHighlight: `Win ${topReward}`,
+                color,
+                shadowColor,
+                popular: true,
+              };
+            });
           setGames(mapped);
         }
       })

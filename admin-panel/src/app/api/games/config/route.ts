@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const storeObjId = new mongoose.Types.ObjectId(storeId);
     const config = await MiniGameConfig.findOne({
       storeId: storeObjId,
-      slug: slug as "coffee-tower" | "flappy-barista" | "barista-catch",
+      slug,
     });
 
     if (!config) {

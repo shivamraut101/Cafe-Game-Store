@@ -42,6 +42,13 @@ const COMBO_FREQUENCIES = [
 
 export const ArcadeAudio = {
   /**
+   * Initialize or resume audio context on user gesture
+   */
+  init() {
+    getAudioContext();
+  },
+
+  /**
    * Tap sound - crisp low-latency blip
    */
   playTap() {
@@ -170,12 +177,13 @@ export const ArcadeAudio = {
   /**
    * Score / Gate cleared - rewarding coin chime
    */
-  playScore() {
+  playScore(combo: number = 0) {
     const ctx = getAudioContext();
     if (!ctx) return;
     try {
       const now = ctx.currentTime;
-      [987.77, 1318.51].forEach((freq, i) => {
+      const pitchMultiplier = 1 + Math.min(0.6, combo * 0.08);
+      [987.77 * pitchMultiplier, 1318.51 * pitchMultiplier].forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);

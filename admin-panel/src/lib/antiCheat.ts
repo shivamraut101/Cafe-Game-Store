@@ -26,8 +26,20 @@ export function validateGameScore(
   } else if (gameSlug === "barista-catch") {
     // Falling items score limit: ~75 points/sec maximum
     maxAllowed = Math.max(100, Math.ceil(duration * 75));
+  } else if (gameSlug === "drop-merge") {
+    // Cascading fruit/gem merge combos: ~120 points/sec maximum
+    maxAllowed = Math.max(300, Math.ceil(duration * 120));
+  } else if (gameSlug === "brick-breaker") {
+    // Multi-ball ricochet streams: ~150 points/sec maximum
+    maxAllowed = Math.max(400, Math.ceil(duration * 150));
+  } else if (gameSlug === "helix-drop") {
+    // Spiral descent and destroyer mode smashes: ~80 points/sec maximum
+    maxAllowed = Math.max(250, Math.ceil(duration * 80));
+  } else if (gameSlug === "sky-hopper") {
+    // Platform hopping, altitude ascent and star bursts: ~120 points/sec maximum
+    maxAllowed = Math.max(300, Math.ceil(duration * 120));
   } else {
-    maxAllowed = Math.max(50, Math.ceil(duration * 50));
+    maxAllowed = Math.max(200, Math.ceil(duration * 100));
   }
 
   if (score > maxAllowed) {

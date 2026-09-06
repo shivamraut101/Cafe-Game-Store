@@ -47,9 +47,13 @@ export default function CustomerRewardsWallet() {
   const filteredRewards = rewards.filter((r) => r.status === activeTab);
 
   const getGameIcon = (slug: string) => {
-    if (slug === "coffee-tower") return "☕";
+    if (slug === "coffee-tower") return "🏗️";
     if (slug === "flappy-barista") return "🐦";
     if (slug === "barista-catch") return "🍽️";
+    if (slug === "drop-merge") return "🍉";
+    if (slug === "brick-breaker") return "🧱";
+    if (slug === "helix-drop") return "🌀";
+    if (slug === "sky-hopper") return "🦘";
     return "🎮";
   };
 
@@ -60,14 +64,14 @@ export default function CustomerRewardsWallet() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-2xl">🎁</span>
-            <h1 className="font-serif font-black text-xl text-white">Cafe Rewards Wallet</h1>
+            <h1 className="font-serif font-black text-xl text-white">Rewards Wallet</h1>
           </div>
           <p className="text-xs font-bold text-white/60 mt-0.5">
             Welcome back, <span className="text-emerald-400 font-bold">{user?.name || "Player"}</span>
           </p>
         </div>
         <div className="text-right">
-          <span className="text-[10px] font-bold text-white/50 uppercase block">Cafe Points</span>
+          <span className="text-[10px] font-bold text-white/50 uppercase block">Reward Points</span>
           <span className="font-mono text-emerald-400 font-black text-xl">+{user?.totalCafePoints || 0} PTS</span>
         </div>
       </header>
@@ -75,32 +79,26 @@ export default function CustomerRewardsWallet() {
       {/* Main Container */}
       <main className="w-full max-w-md flex flex-col gap-4">
         
-        {/* Game Shortcuts Banner */}
-        <div className="bg-white border-4 border-black rounded-3xl p-4 shadow-[6px_6px_0px_0px_#000] flex justify-around items-center">
-          <Link
-            href="/play/coffee-tower"
-            className="flex flex-col items-center gap-1 hover:scale-105 transition-transform"
-          >
-            <span className="text-3xl">☕</span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-black/70">Tower</span>
-          </Link>
-          <div className="w-px h-8 bg-black/10" />
-          <Link
-            href="/play/flappy-barista"
-            className="flex flex-col items-center gap-1 hover:scale-105 transition-transform"
-          >
-            <span className="text-3xl">🐦</span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-black/70">Flappy</span>
-          </Link>
-          <div className="w-px h-8 bg-black/10" />
-          <Link
-            href="/play/barista-catch"
-            className="flex flex-col items-center gap-1 hover:scale-105 transition-transform"
-          >
-            <span className="text-3xl">🍽️</span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-black/70">Catch</span>
-          </Link>
-        </div>
+        {/* Arcade Lobby Shortcut Banner */}
+        <Link
+          href="/arcade"
+          className="bg-white border-4 border-black rounded-3xl p-4 shadow-[6px_6px_0px_0px_#000] flex justify-between items-center hover:translate-x-1 hover:translate-y-1 hover:shadow-[3px_3px_0px_0px_#000] transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#FF4C29] to-[#F59E0B] flex items-center justify-center text-2xl shadow-sm">
+              🎮
+            </div>
+            <div>
+              <h3 className="font-serif font-black text-base group-hover:text-[#FF4C29] transition-colors">
+                Arcade Lobby (7 Games)
+              </h3>
+              <p className="text-xs text-black/60 font-medium">
+                Play Suika, Brick Breaker, Helix Drop & more
+              </p>
+            </div>
+          </div>
+          <span className="font-black text-lg text-black/40 group-hover:text-black transition-colors">→</span>
+        </Link>
 
         {/* Filter Tabs */}
         <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded-2xl border-3 border-black shadow-[4px_4px_0px_0px_#000]">

@@ -94,7 +94,7 @@ export interface IRewardTier {
 
 export interface IMiniGameConfig extends Document {
   storeId: mongoose.Types.ObjectId;
-  slug: "coffee-tower" | "flappy-barista" | "barista-catch";
+  slug: string;
   name: string;
   icon: string;
   enabled: boolean;
@@ -122,7 +122,7 @@ const RewardTierSchema = new Schema<IRewardTier>(
 const MiniGameConfigSchema = new Schema<IMiniGameConfig>(
   {
     storeId: { type: Schema.Types.ObjectId, ref: "Store", required: true },
-    slug: { type: String, enum: ["coffee-tower", "flappy-barista", "barista-catch"], required: true },
+    slug: { type: String, required: true },
     name: { type: String, required: true },
     icon: { type: String, required: true },
     enabled: { type: Boolean, default: true },
