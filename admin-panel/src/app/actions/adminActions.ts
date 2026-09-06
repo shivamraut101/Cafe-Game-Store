@@ -280,6 +280,30 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
           { id: "t15", pointThreshold: 45, rewardName: "High Altitude Perk", rewardDescription: "Top customer reward" },
         ],
       },
+      {
+        slug: "air-hockey",
+        name: "Neon Air Hockey 2P",
+        icon: "🏒",
+        enabled: true,
+        difficulty: "easy",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t16", pointThreshold: 5, rewardName: "Table Winner Perk", rewardDescription: "10% off for match winner" },
+          { id: "t17", pointThreshold: 10, rewardName: "Arcade Champion Perk", rewardDescription: "Special champion treat" },
+        ],
+      },
+      {
+        slug: "tap-war",
+        name: "Tap War 2P",
+        icon: "⚡",
+        enabled: true,
+        difficulty: "easy",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t18", pointThreshold: 2, rewardName: "Rapid Tap Perk", rewardDescription: "10% off for round winner" },
+          { id: "t19", pointThreshold: 5, rewardName: "Lightning Master Perk", rewardDescription: "Special table reward" },
+        ],
+      },
     ];
 
     // Auto-provision or insert missing games for this store

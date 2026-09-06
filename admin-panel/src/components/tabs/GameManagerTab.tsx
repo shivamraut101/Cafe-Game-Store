@@ -58,6 +58,18 @@ const DIFFICULTY_DETAILS: Record<string, Record<GameDifficulty, string>> = {
     hard: "Sparse platforms, moving clouds",
     insane: "Tiny breaking platforms, fast vertical scroll",
   },
+  "air-hockey": {
+    easy: "Standard puck speed, forgiving goal radius",
+    medium: "Bouncy neon puck, standard goals",
+    hard: "Fast ricochet speed, tight goal slots",
+    insane: "Lightning puck physics, laser wall bounces",
+  },
+  "tap-war": {
+    easy: "Gentle tug momentum, high tap responsiveness",
+    medium: "Balanced laser tension, rapid tap response",
+    hard: "Heavy laser tension, endurance tapping duel",
+    insane: "High-decay laser resistance, blisteringly fast clash",
+  },
   "spin-wheel": {
     easy: "Generous sectors, higher jackpot chances",
     medium: "Standard sectors, balanced chances",

@@ -54,6 +54,8 @@ export default function CustomerRewardsWallet() {
     if (slug === "brick-breaker") return "🧱";
     if (slug === "helix-drop") return "🌀";
     if (slug === "sky-hopper") return "🦘";
+    if (slug === "air-hockey") return "🏒";
+    if (slug === "tap-war") return "⚡";
     return "🎮";
   };
 

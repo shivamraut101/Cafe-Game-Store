@@ -38,6 +38,12 @@ export function validateGameScore(
   } else if (gameSlug === "sky-hopper") {
     // Platform hopping, altitude ascent and star bursts: ~120 points/sec maximum
     maxAllowed = Math.max(300, Math.ceil(duration * 120));
+  } else if (gameSlug === "air-hockey") {
+    // 2-Player tabletop air hockey goals (max 15 goals per match)
+    maxAllowed = Math.max(15, Math.ceil(duration * 0.5));
+  } else if (gameSlug === "tap-war") {
+    // 2-Player tug-of-war rounds & rapid taps (max ~20 taps/sec)
+    maxAllowed = Math.max(100, Math.ceil(duration * 25));
   } else {
     maxAllowed = Math.max(200, Math.ceil(duration * 100));
   }

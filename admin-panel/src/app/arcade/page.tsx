@@ -90,14 +90,29 @@ export default function ArcadeLandingPage() {
               } else if (c.slug === "sky-hopper") {
                 color = "bg-[#14B8A6]";
                 shadowColor = "shadow-[4px_4px_0px_0px_#14B8A6]";
+              } else if (c.slug === "air-hockey") {
+                color = "bg-[#2563EB]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#2563EB]";
+              } else if (c.slug === "tap-war") {
+                color = "bg-[#D946EF]";
+                shadowColor = "shadow-[4px_4px_0px_0px_#D946EF]";
               }
+
+              const is2Player = c.slug === "air-hockey" || c.slug === "tap-war";
+              const typeLabel = is2Player
+                ? "👥 2-PLAYER TABLETOP • 1 Phone"
+                : `${c.difficulty.toUpperCase()} • Max ${c.maxDailyPlays > 0 ? c.maxDailyPlays + "/day" : "Unlimited"}`;
+
+              const desc = is2Player
+                ? `Lay phone on the table & duel your friend, partner, or kid in real-time!`
+                : `Play ${c.name} to beat boredom, unlock streaks & claim perks!`;
 
               return {
                 slug: c.slug,
                 name: c.name,
-                type: `${c.difficulty.toUpperCase()} • Max ${c.maxDailyPlays > 0 ? c.maxDailyPlays + "/day" : "Unlimited"}`,
+                type: typeLabel,
                 icon: c.icon,
-                description: `Play ${c.name} to beat boredom, unlock streaks & claim perks!`,
+                description: desc,
                 rewardHighlight: `Win ${topReward}`,
                 color,
                 shadowColor,
