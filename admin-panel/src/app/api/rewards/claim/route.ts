@@ -36,8 +36,10 @@ export async function GET(req: NextRequest) {
         status: isExpired && claim.status === "pending" ? "expired" : claim.status,
         earnedAt: claim.earnedAt,
         claimedAt: claim.claimedAt,
+        claimedByStaffName: claim.claimedByStaffName,
         expiresAt: claim.expiresAt,
         storeName: store ? store.storeName : "Cafe Store",
+        storeSlug: store ? store.slug : "store",
         customerName: user ? user.name : "Valued Customer",
         customerEmail: user ? user.email : "",
       },
@@ -58,9 +60,11 @@ export async function GET(req: NextRequest) {
           status: "pending",
           earnedAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
+          claimedByStaffName: undefined,
           storeName: "Downtown Tacos & Tequila",
-          customerName: "Valued Player",
-          customerEmail: "player@arcade.app",
+          storeSlug: "downtown-tacos",
+          customerName: "Table #04 Guest",
+          customerEmail: "guest@table04.local",
         },
       });
     }
@@ -72,7 +76,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const body = await req.json();
-    const { code } = body;
+    const { code, staffName } = body;
 
     if (!code) {
       return NextResponse.json({ error: "Claim code is required" }, { status: 400 });
@@ -85,16 +89,19 @@ export async function POST(req: NextRequest) {
     }
 
     if (claim.status === "claimed") {
-      return NextResponse.json({ error: "Reward has already been redeemed" }, { status: 400 });
+      return NextResponse.json({
+        error: `Reward was already redeemed on ${new Date(claim.claimedAt || Date.now()).toLocaleTimeString()}${claim.claimedByStaffName ? ` by ${claim.claimedByStaffName}` : ""}`,
+      }, { status: 400 });
     }
 
     if (claim.expiresAt < new Date()) {
       return NextResponse.json({ error: "Reward voucher has expired" }, { status: 400 });
     }
 
-    // Mark as claimed
+    // Mark as claimed with staff attribution
     claim.status = "claimed";
     claim.claimedAt = new Date();
+    if (staffName) claim.claimedByStaffName = staffName;
     await claim.save();
 
     return NextResponse.json({
@@ -103,6 +110,7 @@ export async function POST(req: NextRequest) {
       claimCode: claim.claimCode,
       rewardName: claim.rewardName,
       claimedAt: claim.claimedAt,
+      claimedByStaffName: claim.claimedByStaffName || staffName,
     });
   } catch (error: any) {
     try {

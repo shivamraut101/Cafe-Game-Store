@@ -136,8 +136,8 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
       <main className="w-full max-w-md bg-white border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col items-center text-center relative overflow-hidden">
         
         {/* Top Header Badge */}
-        <div className="bg-black text-white px-4 py-1.5 rounded-full text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] mb-4">
-          CAFE REWARD VOUCHER PASS
+        <div className="bg-black text-white px-4 py-1.5 rounded-full text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] mb-4 uppercase tracking-wider">
+          {claim?.storeName ? `${claim.storeName} • REWARD PASS` : "CAFE REWARD VOUCHER PASS"}
         </div>
 
         {loading ? (
@@ -166,17 +166,29 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
             <h2 className="font-serif text-2xl font-black text-black my-0.5">{claim.rewardName}</h2>
             <p className="text-xs font-semibold text-black/60 mb-4">{claim.rewardDescription}</p>
 
-            {/* QR Code Presentation Frame */}
+            {/* QR Code Presentation Frame (Hidden or Stamped if Already Claimed) */}
             <div className="bg-[#FBF9F4] p-4 rounded-3xl border-3 border-black shadow-[5px_5px_0px_0px_#000] flex flex-col items-center mb-4 w-full">
-              <div
-                ref={qrRef}
-                className="w-[190px] h-[190px] bg-white rounded-2xl border-2 border-black/10 flex items-center justify-center p-2 shadow-inner"
-              >
-                <span className="text-2xl animate-pulse">☕</span>
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mt-2">
-                SCAN AT COUNTER TO REDEEM
-              </p>
+              {claim.status === "claimed" || redeemSuccess ? (
+                <div className="w-[190px] h-[190px] bg-emerald-50 rounded-2xl border-2 border-emerald-400 flex flex-col items-center justify-center p-4 text-center shadow-inner">
+                  <span className="text-5xl mb-2">✅</span>
+                  <span className="font-black text-xs text-emerald-900 uppercase tracking-wider">OFFER REDEEMED</span>
+                  <span className="text-[10px] font-bold text-emerald-700 mt-1">
+                    {new Date(claim.claimedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div
+                    ref={qrRef}
+                    className="w-[190px] h-[190px] bg-white rounded-2xl border-2 border-black/10 flex items-center justify-center p-2 shadow-inner"
+                  >
+                    <span className="text-2xl animate-pulse">☕</span>
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mt-2">
+                    SCAN AT COUNTER TO REDEEM
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Claim Code Card with One-Tap Copy */}
@@ -198,34 +210,65 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
               </button>
             </div>
 
-            {/* 2-Hour Strict Window Countdown Timer */}
-            <div
-              className={`w-full py-2.5 px-3 rounded-2xl border-2 border-black text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000] ${
-                isExpired
-                  ? "bg-red-100 text-red-700 border-red-500"
-                  : "bg-amber-100 text-amber-900 border-amber-400"
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                <span>⏳</span>
-                <span>2-Hour Expiry Window:</span>
+            {/* Status / Time Window Badge: Completely HIDE timer when claimed! */}
+            {claim.status === "claimed" || redeemSuccess ? (
+              <div className="w-full py-3 px-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-950 flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#059669]">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">✅</span>
+                  <div className="text-left">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-800 block">Voucher Status</span>
+                    <span className="text-xs font-black">CLAIMED AT COUNTER</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[9px] font-bold text-emerald-700 uppercase block">Redeemed At</span>
+                  <span className="font-mono text-xs font-black text-emerald-950">
+                    {new Date(claim.claimedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
-              <span className="font-mono font-black">{timeLeft || "Checking..."}</span>
-            </div>
+            ) : isExpired || claim.status === "expired" ? (
+              <div className="w-full py-2.5 px-3 rounded-2xl border-2 border-red-500 bg-red-100 text-red-700 text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000]">
+                <div className="flex items-center gap-1.5">
+                  <span>⚠️</span>
+                  <span>Voucher Expired:</span>
+                </div>
+                <span className="font-mono font-bold">2-Hour Window Passed</span>
+              </div>
+            ) : (
+              <div className="w-full py-2.5 px-3 rounded-2xl border-2 border-black text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000] bg-amber-100 text-amber-900 border-amber-400">
+                <div className="flex items-center gap-1.5">
+                  <span>⏳</span>
+                  <span>2-Hour Expiry Window:</span>
+                </div>
+                <span className="font-mono font-black">{timeLeft || "Checking..."}</span>
+              </div>
+            )}
 
             {/* Customer & Store Info Details */}
-            <div className="w-full bg-white p-2.5 rounded-xl border border-black/10 text-[11px] font-bold text-black/60 flex justify-between mb-4">
-              <span>Customer: <strong className="text-black">{claim.customerName}</strong></span>
-              <span>Issued: <strong className="text-black">{new Date(claim.earnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+            <div className="w-full bg-white p-3 rounded-xl border border-black/10 text-[11px] font-bold text-black/60 flex flex-col gap-1.5 mb-4 text-left">
+              <div className="flex justify-between">
+                <span>Customer: <strong className="text-black">{claim.customerName}</strong></span>
+                <span>Issued: <strong className="text-black">{new Date(claim.earnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+              </div>
+              {(claim.status === "claimed" || redeemSuccess) && (
+                <div className="flex justify-between pt-1.5 border-t border-black/5 text-emerald-800">
+                  <span>Store: <strong className="text-emerald-950">{claim.storeName}</strong></span>
+                  {claim.claimedByStaffName && (
+                    <span>Staff: <strong className="text-emerald-950">{claim.claimedByStaffName}</strong></span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Status / Staff Action Button */}
-            {redeemSuccess ? (
+            {redeemSuccess || claim.status === "claimed" ? (
               <div className="w-full py-4 bg-emerald-400 text-black border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#000] flex flex-col items-center">
                 <span className="text-2xl mb-1">✅</span>
                 <span>REWARD VERIFIED & REDEEMED!</span>
-                <span className="text-[10px] font-bold opacity-75 mt-0.5">
+                <span className="text-[10px] font-bold opacity-80 mt-0.5">
                   Claimed at: {new Date(claim.claimedAt || Date.now()).toLocaleTimeString()}
+                  {claim.claimedByStaffName ? ` by ${claim.claimedByStaffName}` : ""}
                 </span>
               </div>
             ) : isExpired || claim.status === "expired" ? (
@@ -254,7 +297,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
               </Link>
               <span className="text-black/20">•</span>
               <Link
-                href="/claim"
+                href={claim?.storeSlug ? `/${claim.storeSlug}/claim` : "/claim"}
                 className="text-xs font-bold text-black/50 underline hover:text-black"
               >
                 Staff Portal

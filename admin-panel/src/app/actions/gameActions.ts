@@ -254,7 +254,11 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
 /**
  * Server Action: Redeems a reward voucher by claim code (Staff verification with 2-hour window check).
  */
-export async function redeemRewardVoucherAction(claimCode: string) {
+export async function redeemRewardVoucherAction(
+  claimCode: string,
+  staffName?: string,
+  staffId?: string
+) {
   try {
     await connectDB();
     if (!claimCode) return { success: false, error: "Claim code is required" };
@@ -273,7 +277,7 @@ export async function redeemRewardVoucherAction(claimCode: string) {
     if (claim.status === "claimed") {
       return {
         success: false,
-        error: `Voucher was already redeemed on ${new Date(claim.claimedAt || Date.now()).toLocaleTimeString()}`,
+        error: `Voucher was already redeemed on ${new Date(claim.claimedAt || Date.now()).toLocaleTimeString()}${claim.claimedByStaffName ? ` by ${claim.claimedByStaffName}` : ""}`,
       };
     }
 
@@ -284,16 +288,38 @@ export async function redeemRewardVoucherAction(claimCode: string) {
       return { success: false, error: "Voucher validity expired (2-hour time limit exceeded)" };
     }
 
-    // Mark as claimed in MongoDB Atlas
+    // Mark as claimed in MongoDB Atlas with Staff Attribution
     claim.status = "claimed";
     claim.claimedAt = new Date();
+    if (staffName) claim.claimedByStaffName = staffName;
+    if (staffId) claim.claimedByStaffId = staffId;
     await claim.save();
+
+    // Create Audit Log for Store Manager tracking
+    try {
+      await AuditLog.create({
+        storeId: claim.storeId,
+        actorName: staffName || "Store Staff",
+        actorEmail: "staff@store.local",
+        actorRole: "Store Admin",
+        ipAddress: "127.0.0.1",
+        action: "REWARD_VOUCHER_REDEEMED",
+        actionCategory: "SYSTEM",
+        targetType: "RewardClaim",
+        targetName: claim.claimCode,
+        details: `Reward "${claim.rewardName}" redeemed for voucher ${claim.claimCode} by staff ${staffName || "Staff Counter"}.`,
+        timestamp: new Date(),
+      });
+    } catch {
+      // Non-blocking audit log
+    }
 
     return {
       success: true,
       claimCode: claim.claimCode,
       rewardName: claim.rewardName,
       claimedAt: claim.claimedAt.toISOString(),
+      claimedByStaffName: claim.claimedByStaffName || staffName,
     };
   } catch (error: any) {
     console.error("Error in redeemRewardVoucherAction:", error);
@@ -303,6 +329,7 @@ export async function redeemRewardVoucherAction(claimCode: string) {
         claimCode: claimCode.toUpperCase().trim(),
         rewardName: "10% Off Table Reward",
         claimedAt: new Date().toISOString(),
+        claimedByStaffName: staffName || "Counter Staff",
         isDemoFallback: true,
       };
     }

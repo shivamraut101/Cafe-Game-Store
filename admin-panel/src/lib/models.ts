@@ -197,6 +197,8 @@ export interface IRewardClaim extends Document {
   claimCode: string;
   earnedAt: Date;
   claimedAt?: Date;
+  claimedByStaffName?: string;
+  claimedByStaffId?: string;
   expiresAt: Date;
 }
 
@@ -212,6 +214,8 @@ const RewardClaimSchema = new Schema<IRewardClaim>({
   claimCode: { type: String, required: true, unique: true },
   earnedAt: { type: Date, default: Date.now },
   claimedAt: { type: Date },
+  claimedByStaffName: { type: String },
+  claimedByStaffId: { type: String },
   expiresAt: { type: Date, required: true },
 });
 
