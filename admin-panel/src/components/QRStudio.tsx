@@ -120,18 +120,25 @@ export default function QRStudio({
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrCodeInstance, setQrCodeInstance] = useState<any>(null);
 
-  // QR Code Destination URL (Includes store slug for exact DB routing on scan)
+  // QR Code Destination URL (Includes store slug and table for exact DB routing on scan)
   const storeSlug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const defaultUrl = typeof window !== "undefined" ? `${window.location.origin}/arcade?store=${storeSlug}` : `http://localhost:3001/arcade?store=${storeSlug}`;
+  const defaultUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/arcade?store=${storeSlug}${tableNumber ? `&table=${encodeURIComponent(tableNumber)}` : ""}`
+    : `http://localhost:3000/arcade?store=${storeSlug}`;
   const [targetUrl, setTargetUrl] = useState(defaultUrl);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
   useEffect(() => {
     const slug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
     if (typeof window !== "undefined") {
-      setTargetUrl(`${window.location.origin}/arcade?store=${slug}`);
+      const tableParam = tableNumber ? `&table=${encodeURIComponent(tableNumber)}` : "";
+      const newUrl = `${window.location.origin}/arcade?store=${slug}${tableParam}`;
+      setTargetUrl(newUrl);
+      if (qrCodeInstance) {
+        qrCodeInstance.update({ data: newUrl });
+      }
     }
-  }, [storeName]);
+  }, [storeName, tableNumber, qrCodeInstance]);
 
   const handleSelectPreset = (preset: ThemePreset) => {
     setActiveTheme(preset);

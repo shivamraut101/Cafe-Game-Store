@@ -125,6 +125,7 @@ export default function ArcadeLandingPage() {
   const [loading, setLoading] = useState(true);
 
   const [storeName, setStoreName] = useState("Brew & Bites Arcade");
+  const [tableNumber, setTableNumber] = useState<string>("");
 
   useEffect(() => {
     // Read store parameter from URL query string (e.g. ?store=downtown-tacos-tequila)
@@ -137,6 +138,14 @@ export default function ArcadeLandingPage() {
         storeParam = queryStore;
       } else {
         storeParam = sessionStorage.getItem("selectedStore") || "";
+      }
+
+      const queryTable = params.get("table");
+      if (queryTable) {
+        sessionStorage.setItem("selectedTable", queryTable);
+        setTableNumber(queryTable);
+      } else {
+        setTableNumber(sessionStorage.getItem("selectedTable") || "");
       }
     }
 
@@ -241,9 +250,14 @@ export default function ArcadeLandingPage() {
       {/* Header Bar */}
       <header className="w-full max-w-md bg-black text-white p-5 rounded-3xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center mb-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-2xl">✨</span>
             <h1 className="font-serif font-black text-xl text-white">{storeName}</h1>
+            {tableNumber && (
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-[#FF4C29] text-white rounded-full border border-black shadow-[2px_2px_0px_0px_#000]">
+                {tableNumber}
+              </span>
+            )}
           </div>
           <p className="text-xs font-bold text-white/60 mt-0.5">
             Welcome, <span className="text-emerald-400 font-bold">{userName}</span>
