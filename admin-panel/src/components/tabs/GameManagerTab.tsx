@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MiniGameConfig, GameDifficulty, GameRewardTier } from "../../types";
+import { getStoreAntiFarmingAction, updateStoreAntiFarmingAction } from "../../app/actions/gameActions";
 
 interface GameManagerTabProps {
   configs: MiniGameConfig[];
   onUpdateConfig: (updated: MiniGameConfig) => void;
+  currentStore?: string;
 }
 
 const DIFFICULTY_META: Record<GameDifficulty, { label: string; color: string; desc: string; emoji: string }> = {
@@ -120,9 +122,52 @@ const DIFFICULTY_DETAILS: Record<string, Record<GameDifficulty, string>> = {
   },
 };
 
-export default function GameManagerTab({ configs, onUpdateConfig }: GameManagerTabProps) {
+export default function GameManagerTab({ configs, onUpdateConfig, currentStore }: GameManagerTabProps) {
   const [expandedGame, setExpandedGame] = useState<string | null>(configs[0]?.id || null);
   const [editingTier, setEditingTier] = useState<string | null>(null);
+
+  // Anti-Farming & Dynamic Scaling State
+  const [cooldownDays, setCooldownDays] = useState<number>(7);
+  const [dynamicScaling, setDynamicScaling] = useState<boolean>(true);
+  const [savingAntiFarming, setSavingAntiFarming] = useState(false);
+  const [antiFarmingSavedMsg, setAntiFarmingSavedMsg] = useState<string | null>(null);
+  const [loadingAntiFarming, setLoadingAntiFarming] = useState(false);
+
+  useEffect(() => {
+    async function loadAntiFarmingSettings() {
+      setLoadingAntiFarming(true);
+      try {
+        const res = await getStoreAntiFarmingAction(currentStore);
+        if (res.success) {
+          if (typeof res.rewardCooldownDays === "number") setCooldownDays(res.rewardCooldownDays);
+          if (typeof res.dynamicDifficultyScaling === "boolean") setDynamicScaling(res.dynamicDifficultyScaling);
+        }
+      } catch (e) {
+        console.error("Failed to load anti-farming settings", e);
+      } finally {
+        setLoadingAntiFarming(false);
+      }
+    }
+    loadAntiFarmingSettings();
+  }, [currentStore]);
+
+  const handleSaveAntiFarming = async () => {
+    setSavingAntiFarming(true);
+    setAntiFarmingSavedMsg(null);
+    try {
+      const res = await updateStoreAntiFarmingAction(currentStore || "", cooldownDays, dynamicScaling);
+      if (res.success) {
+        setAntiFarmingSavedMsg("Anti-farming rules saved successfully! 🎉");
+        setTimeout(() => setAntiFarmingSavedMsg(null), 3500);
+      } else {
+        setAntiFarmingSavedMsg("Error: " + (res.error || "Failed to update"));
+      }
+    } catch (e: any) {
+      setAntiFarmingSavedMsg("Error: " + (e.message || "Failed to update"));
+    } finally {
+      setSavingAntiFarming(false);
+    }
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedGame(expandedGame === id ? null : id);
@@ -188,6 +233,131 @@ export default function GameManagerTab({ configs, onUpdateConfig }: GameManagerT
           <h3 className="font-serif text-2xl font-black mt-1">
             {configs.reduce((sum, c) => sum + (c.stats?.rewardsClaimed || 0), 0).toLocaleString()}
           </h3>
+        </div>
+      </div>
+
+      {/* Anti-Farming & Challenger Mode Card */}
+      <div className="bg-white border-3 border-black rounded-3xl p-6 shadow-[5px_5px_0px_0px_#000]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-black/10 pb-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400 border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_#000]">
+              🛡️
+            </div>
+            <div>
+              <h3 className="font-serif text-lg font-black text-black">
+                Customer Anti-Farming & Reward Cooldown Rules
+              </h3>
+              <p className="text-xs font-semibold text-black/60">
+                Control reward cooldown windows per customer and enable automatic game difficulty scaling to prevent repetitive reward farming.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleSaveAntiFarming}
+            disabled={savingAntiFarming}
+            className="px-5 py-2.5 bg-black text-white text-xs font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:bg-[#FF4C29] transition-all disabled:opacity-50 cursor-pointer self-start md:self-center whitespace-nowrap"
+          >
+            {savingAntiFarming ? "Saving..." : "Save Anti-Farming Rules 💾"}
+          </button>
+        </div>
+
+        {antiFarmingSavedMsg && (
+          <div className="mb-4 p-3 bg-emerald-50 border-2 border-emerald-500 rounded-xl text-xs font-bold text-emerald-800 flex items-center gap-2">
+            <span>✅</span>
+            <span>{antiFarmingSavedMsg}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Rule 1: Cooldown Window */}
+          <div className="bg-[#FBF9F4] p-4 rounded-2xl border-2 border-black/20 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase text-black tracking-wider">
+                  ⏱️ Same-Offer Cooldown Window
+                </label>
+                <span className="text-xs font-mono font-black bg-black text-white px-2 py-0.5 rounded-md">
+                  {cooldownDays} Day{cooldownDays !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <p className="text-[11px] font-semibold text-black/60 mt-1">
+                If a user wins an offer, they cannot win that same offer again for this duration. Any repeat wins award Cafe Points instead.
+              </p>
+            </div>
+
+            {/* Quick Presets */}
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              {[
+                { label: "1 Day", days: 1 },
+                { label: "3 Days", days: 3 },
+                { label: "7 Days (1 Wk)", days: 7 },
+                { label: "14 Days (2 Wks)", days: 14 },
+                { label: "30 Days (1 Mo)", days: 30 },
+              ].map((preset) => (
+                <button
+                  key={preset.days}
+                  type="button"
+                  onClick={() => setCooldownDays(preset.days)}
+                  className={`text-[11px] font-black px-2.5 py-1.5 rounded-lg border-2 border-black transition-all cursor-pointer ${
+                    cooldownDays === preset.days
+                      ? "bg-[#FF4C29] text-white shadow-[2px_2px_0px_0px_#000]"
+                      : "bg-white text-black hover:bg-neutral-100"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1 border-t border-black/10">
+              <span className="text-[10px] font-bold text-black/50">Custom Window:</span>
+              <input
+                type="number"
+                min={1}
+                max={365}
+                value={cooldownDays}
+                onChange={(e) => setCooldownDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+                className="w-20 px-2 py-1 text-xs font-mono font-bold bg-white border-2 border-black rounded-lg text-center"
+              />
+              <span className="text-[10px] font-bold text-black/50">days per user</span>
+            </div>
+          </div>
+
+          {/* Rule 2: Challenger Mode (Dynamic Difficulty Scaling) */}
+          <div className="bg-[#FBF9F4] p-4 rounded-2xl border-2 border-black/20 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase text-black tracking-wider">
+                  🔥 Challenger Mode (Dynamic Hard Mode)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setDynamicScaling(!dynamicScaling)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors border-2 border-black ${
+                    dynamicScaling ? "bg-emerald-500" : "bg-neutral-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      dynamicScaling ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-[11px] font-semibold text-black/60 mt-1">
+                When active, any customer who has earned an offer within their cooldown window faces automatically harder games (faster speeds, tighter obstacles, narrower towers).
+              </p>
+            </div>
+
+            <div className="bg-white p-3 rounded-xl border border-black/10 text-[10px] font-semibold text-black/70 flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <span>
+                {dynamicScaling
+                  ? "Active: Repeat players will see '🔥 Challenger Mode' and face higher difficulty."
+                  : "Disabled: Games remain at standard configured difficulty for all players."}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -48,6 +48,25 @@ export default function FlappyBaristaGame() {
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
+  const [isChallenger, setIsChallenger] = useState(false);
+
+  // Challenger Mode detection
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (sessionStorage.getItem("challengerMode") === "true") {
+        setIsChallenger(true);
+      }
+      const targetStore = sessionStorage.getItem("selectedStore") || "adda-99";
+      import("../../actions/gameActions").then(({ getPlayerChallengerStatusAction }) => {
+        getPlayerChallengerStatusAction(undefined, targetStore).then((res) => {
+          if (res.success && res.isChallenger) {
+            setIsChallenger(true);
+            sessionStorage.setItem("challengerMode", "true");
+          }
+        }).catch(() => {});
+      });
+    }
+  }, []);
 
   const birdRef = useRef({ y: H / 2 - 40, vy: 0, rot: 0, tRot: 0, flapFrame: 0 });
   const pipesRef = useRef<Pipe[]>([]);
@@ -58,8 +77,16 @@ export default function FlappyBaristaGame() {
   const cooldownRef = useRef(0);
   const scoreFlashRef = useRef(0);
 
-  const gap = () => Math.max(GAP_MIN, GAP_START - scoreRef.current * 2);
-  const spd = () => Math.min(SPD_MAX, SPD_START + scoreRef.current * 0.07);
+  const gap = () => {
+    const startGap = isChallenger ? 138 : GAP_START;
+    const minGap = isChallenger ? 112 : GAP_MIN;
+    return Math.max(minGap, startGap - scoreRef.current * 2.4);
+  };
+  const spd = () => {
+    const startSpd = isChallenger ? 2.1 : SPD_START;
+    const maxSpd = isChallenger ? 4.0 : SPD_MAX;
+    return Math.min(maxSpd, startSpd + scoreRef.current * (isChallenger ? 0.11 : 0.07));
+  };
 
   // ─── High-Performance Audio ────────────────────────────
   const snd = useCallback((t: "flap" | "score" | "die") => {
@@ -673,9 +700,16 @@ export default function FlappyBaristaGame() {
             <span className="text-2xl">🚀</span>
             <div>
               <h1 className="font-serif font-black text-base leading-tight">Flappy Flight</h1>
-              <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
-                Tap to Fly
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
+                  Tap to Fly
+                </p>
+                {isChallenger && (
+                  <span className="text-[9px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded border border-white/30 uppercase animate-pulse">
+                    🔥 HARD MODE
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

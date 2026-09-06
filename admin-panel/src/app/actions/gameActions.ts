@@ -156,8 +156,17 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     let expiresAt: Date | null = null;
     let cooldownNotice: string | null = null;
 
-    // ─── 3. Reward Voucher Issuance & 30-min Cooldown ────────────
+    // ─── 3. Reward Voucher Issuance & Store-Controlled Cooldown ────────────
     if (!isCheating && config && config.rewardTiers && config.rewardTiers.length > 0) {
+      // Store-controlled anti-farming window (default: 7 days / 1 week)
+      let cooldownDays = 7;
+      if (storeObjId) {
+        const storeDoc = await Store.findById(storeObjId);
+        if (storeDoc && typeof storeDoc.rewardCooldownDays === "number") {
+          cooldownDays = storeDoc.rewardCooldownDays;
+        }
+      }
+
       // Check if user already has an active pending voucher issued in last 30 minutes
       const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
       const existingPendingClaim = await RewardClaim.findOne({
@@ -177,30 +186,46 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
 
         if (qualifiedTiers.length > 0) {
           const topTier = qualifiedTiers[0];
-          rewardEarned = {
-            tierId: topTier.id,
-            rewardName: topTier.rewardName || "Cafe Reward",
-            claimed: false,
-          };
 
-          claimCode = generateCode();
-          // SECURITY REQUIREMENT: 2-Hour Strict Expiry Window
-          expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-          const sessionId = new mongoose.Types.ObjectId();
-
-          await RewardClaim.create({
+          // Check if this user already earned this same offer within the store's cooldown window (e.g. 7 days)
+          const windowStart = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);
+          const duplicateRecentClaim = await RewardClaim.findOne({
             storeId: storeObjId,
             userId: userObjId,
-            sessionId,
-            gameSlug,
-            rewardName: topTier.rewardName || "Cafe Reward",
-            rewardDescription: topTier.rewardDescription || `Earned from playing ${gameSlug}`,
-            rewardType: topTier.rewardType || "item",
-            status: "pending",
-            claimCode,
-            earnedAt: new Date(),
-            expiresAt,
+            rewardName: topTier.rewardName,
+            earnedAt: { $gte: windowStart },
           });
+
+          if (duplicateRecentClaim) {
+            const msPassed = Date.now() - new Date(duplicateRecentClaim.earnedAt).getTime();
+            const daysLeft = Math.max(1, Math.ceil((cooldownDays * 24 * 60 * 60 * 1000 - msPassed) / (24 * 60 * 60 * 1000)));
+            cooldownNotice = `You already earned "${topTier.rewardName}" this week! You can earn this offer again in ${daysLeft} day${daysLeft > 1 ? 's' : ''}. Points awarded!`;
+          } else {
+            rewardEarned = {
+              tierId: topTier.id,
+              rewardName: topTier.rewardName || "Cafe Reward",
+              claimed: false,
+            };
+
+            claimCode = generateCode();
+            // SECURITY REQUIREMENT: 2-Hour Strict Expiry Window
+            expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+            const sessionId = new mongoose.Types.ObjectId();
+
+            await RewardClaim.create({
+              storeId: storeObjId,
+              userId: userObjId,
+              sessionId,
+              gameSlug,
+              rewardName: topTier.rewardName || "Cafe Reward",
+              rewardDescription: topTier.rewardDescription || `Earned from playing ${gameSlug}`,
+              rewardType: topTier.rewardType || "item",
+              status: "pending",
+              claimCode,
+              earnedAt: new Date(),
+              expiresAt,
+            });
+          }
         }
       }
     }
@@ -500,4 +525,129 @@ export async function updateCustomerNameAction(newName: string, guestPlayerId?: 
     };
   }
 }
+
+/**
+ * Server Action: Checks if a player has recently earned an offer within the store's
+ * cooldown window (default 7 days). If yes, all games run in Challenger/Hard Mode for them!
+ */
+export async function getPlayerChallengerStatusAction(guestPlayerId?: string, storeSlug?: string) {
+  try {
+    await connectDB();
+    const cookieStore = await cookies();
+    const resolvedGuestId = guestPlayerId || cookieStore.get("forstore_player_id")?.value;
+
+    let store = null;
+    if (storeSlug) {
+      store = await Store.findOne({ slug: storeSlug });
+    }
+    if (!store) {
+      store = await Store.findOne({ status: "Active" });
+    }
+
+    const cooldownDays = store?.rewardCooldownDays || 7;
+    const dynamicScaling = store?.dynamicDifficultyScaling !== false;
+
+    if (!resolvedGuestId || !store) {
+      return { success: true, isChallenger: false, cooldownDays, dynamicScaling };
+    }
+
+    const user = await User.findOne({ guestId: resolvedGuestId });
+    if (!user) {
+      return { success: true, isChallenger: false, cooldownDays, dynamicScaling };
+    }
+
+    const windowStart = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);
+    const recentClaim = await RewardClaim.findOne({
+      storeId: store._id,
+      userId: user._id,
+      earnedAt: { $gte: windowStart },
+    }).sort({ earnedAt: -1 });
+
+    if (recentClaim && dynamicScaling) {
+      const msPassed = Date.now() - new Date(recentClaim.earnedAt).getTime();
+      const daysRemaining = Math.max(1, Math.ceil((cooldownDays * 24 * 60 * 60 * 1000 - msPassed) / (24 * 60 * 60 * 1000)));
+      return {
+        success: true,
+        isChallenger: true,
+        cooldownDays,
+        daysRemaining,
+        lastRewardName: recentClaim.rewardName,
+        earnedAt: recentClaim.earnedAt.toISOString(),
+      };
+    }
+
+    return { success: true, isChallenger: false, cooldownDays, dynamicScaling };
+  } catch (error: any) {
+    return { success: true, isChallenger: false, cooldownDays: 7, dynamicScaling: true };
+  }
+}
+
+/**
+ * Server Action: Store Manager gets the anti-farming window & difficulty scaling rules.
+ */
+export async function getStoreAntiFarmingAction(storeSlugOrName?: string) {
+  try {
+    await connectDB();
+    let store = null;
+    if (storeSlugOrName) {
+      store = await Store.findOne({
+        $or: [{ slug: storeSlugOrName }, { storeName: storeSlugOrName }],
+      });
+    }
+    if (!store) {
+      store = await Store.findOne({ status: "Active" });
+    }
+    if (!store) {
+      return { success: true, rewardCooldownDays: 7, dynamicDifficultyScaling: true };
+    }
+
+    return {
+      success: true,
+      storeName: store.storeName,
+      storeSlug: store.slug,
+      rewardCooldownDays: typeof store.rewardCooldownDays === "number" ? store.rewardCooldownDays : 7,
+      dynamicDifficultyScaling: store.dynamicDifficultyScaling !== false,
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to load store anti-farming settings" };
+  }
+}
+
+/**
+ * Server Action: Store Manager updates the anti-farming window & difficulty scaling rules.
+ */
+export async function updateStoreAntiFarmingAction(
+  storeSlugOrName: string,
+  rewardCooldownDays: number,
+  dynamicDifficultyScaling: boolean
+) {
+  try {
+    await connectDB();
+    let store = null;
+    if (storeSlugOrName) {
+      store = await Store.findOne({
+        $or: [{ slug: storeSlugOrName }, { storeName: storeSlugOrName }],
+      });
+    }
+    if (!store) {
+      store = await Store.findOne({ status: "Active" });
+    }
+    if (!store) return { success: false, error: "Store not found" };
+
+    store.rewardCooldownDays = Math.max(1, Math.min(365, Number(rewardCooldownDays) || 7));
+    store.dynamicDifficultyScaling = Boolean(dynamicDifficultyScaling);
+    await store.save();
+
+    return {
+      success: true,
+      storeName: store.storeName,
+      storeSlug: store.slug,
+      rewardCooldownDays: store.rewardCooldownDays,
+      dynamicDifficultyScaling: store.dynamicDifficultyScaling,
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to update store anti-farming settings" };
+  }
+}
+
 

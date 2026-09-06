@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getMiniGameConfigsAction, getStoreBrandingAction } from "../actions/adminActions";
+import { getPlayerChallengerStatusAction } from "../actions/gameActions";
 import CustomerNameModal from "../../components/CustomerNameModal";
-import InStorePassGate from "../../components/InStorePassGate";
 import { isDefaultPlayerName } from "../../lib/playerSession";
-import { verifyStoreKey, getClientInStoreSession, saveClientInStoreSession } from "../../lib/storeAccessPass";
 
 interface GameCard {
   slug: string;
@@ -134,7 +133,12 @@ export default function ArcadeLandingPage() {
   const [storeName, setStoreName] = useState("Brew & Bites Arcade");
   const [tableNumber, setTableNumber] = useState<string>("");
   const [storeSlug, setStoreSlug] = useState<string>("adda-99");
-  const [isInStoreUnlocked, setIsInStoreUnlocked] = useState<boolean | null>(null);
+  const [challengerStatus, setChallengerStatus] = useState<{
+    isChallenger: boolean;
+    daysRemaining?: number;
+    lastRewardName?: string;
+    cooldownDays?: number;
+  } | null>(null);
 
   useEffect(() => {
     // Read store parameter from URL query string (e.g. ?store=adda-99)
@@ -142,7 +146,6 @@ export default function ArcadeLandingPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const queryStore = params.get("store");
-      const queryKey = params.get("key") || params.get("pass");
 
       if (queryStore) {
         sessionStorage.setItem("selectedStore", queryStore);
@@ -153,23 +156,6 @@ export default function ArcadeLandingPage() {
 
       const normalizedSlug = storeParam.toLowerCase().trim();
       setStoreSlug(normalizedSlug);
-
-      // ─── 3-Hour Rolling In-Store Key Verification ───
-      if (queryKey) {
-        const { valid } = verifyStoreKey(normalizedSlug, queryKey);
-        if (valid) {
-          saveClientInStoreSession(normalizedSlug, queryKey);
-          setIsInStoreUnlocked(true);
-        } else {
-          // Key is stale/invalid. Check if existing valid session exists
-          const session = getClientInStoreSession(normalizedSlug);
-          setIsInStoreUnlocked(Boolean(session));
-        }
-      } else {
-        // Direct link visit: check if this device holds an active in-store 3-hour session
-        const session = getClientInStoreSession(normalizedSlug);
-        setIsInStoreUnlocked(Boolean(session));
-      }
 
       const queryTable = params.get("table");
       if (queryTable) {
@@ -193,8 +179,28 @@ export default function ArcadeLandingPage() {
           }
         })
         .catch(() => {});
-    });
 
+      // Anti-Farming & Challenger Check: if player won an offer recently, adapt difficulty
+      getPlayerChallengerStatusAction(playerId, storeParam)
+        .then((statusRes) => {
+          if (statusRes.success && statusRes.isChallenger) {
+            setChallengerStatus({
+              isChallenger: true,
+              daysRemaining: statusRes.daysRemaining,
+              lastRewardName: statusRes.lastRewardName,
+              cooldownDays: statusRes.cooldownDays,
+            });
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("challengerMode", "true");
+            }
+          } else {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("challengerMode", "false");
+            }
+          }
+        })
+        .catch(() => {});
+    });
 
     // Fetch store branding for header
     getStoreBrandingAction(storeParam)
@@ -278,28 +284,6 @@ export default function ArcadeLandingPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Show enticing InStorePassGate if the 3-hour in-store key is missing or expired
-  if (isInStoreUnlocked === false) {
-    return (
-      <InStorePassGate
-        storeSlug={storeSlug || "adda-99"}
-        storeName={storeName}
-        tableNumber={tableNumber}
-        onUnlocked={() => setIsInStoreUnlocked(true)}
-      />
-    );
-  }
-
-  // Hydration state
-  if (isInStoreUnlocked === null) {
-    return (
-      <div className="min-h-screen bg-[#F6F3EB] flex flex-col items-center justify-center p-4">
-        <span className="text-4xl animate-spin">☕</span>
-        <p className="text-xs font-black text-black/50 mt-3">Checking table pass...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F6F3EB] text-[#1A1A1A] flex flex-col items-center justify-between p-4 font-sans select-none">
       {/* Header Bar */}
@@ -315,10 +299,21 @@ export default function ArcadeLandingPage() {
             )}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wide">
-              Table Pass Active (5h)
-            </span>
+            {challengerStatus?.isChallenger ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <span className="text-[10px] font-black text-amber-300 uppercase tracking-wide">
+                  🔥 Challenger Mode Active ({challengerStatus.daysRemaining}d left)
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wide">
+                  Table Pass Active • Play & Win
+                </span>
+              </>
+            )}
           </div>
           <button
             onClick={() => setShowNameModal(true)}
@@ -342,6 +337,33 @@ export default function ArcadeLandingPage() {
 
       {/* Main Arcade Menu */}
       <main className="w-full max-w-md flex flex-col gap-4 flex-1">
+        {/* Challenger Mode Active Banner (Anti-Farming Cooldown) */}
+        {challengerStatus?.isChallenger && (
+          <div className="bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 text-white p-4 rounded-3xl border-4 border-black shadow-[5px_5px_0px_0px_#000] text-left">
+            <div className="flex items-start gap-3">
+              <span className="text-3xl animate-bounce">🔥</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-[10px] uppercase tracking-wider bg-black/50 px-2.5 py-0.5 rounded-full border border-white/30">
+                    CHALLENGER HARD MODE
+                  </span>
+                  <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full border border-white/20">
+                    {challengerStatus.daysRemaining}d Cooldown
+                  </span>
+                </div>
+                <p className="text-xs font-bold mt-1 text-white leading-snug">
+                  You recently won <strong>{challengerStatus.lastRewardName || "a table offer"}</strong>! While in cooldown, all mini-games are tuned to <strong>Hard Mode</strong>.
+                </p>
+                <div className="mt-2 flex items-center gap-2 bg-black/30 p-2 rounded-xl border border-white/10">
+                  <span className="text-sm">⭐</span>
+                  <p className="text-[10px] font-bold text-white/90">
+                    High scores still award full Cafe Points for table bragging rights!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Optional Name Personalization Banner (Dismissible) */}
         {isDefaultPlayerName(userName) && !dismissedNamePrompt && (
           <div className="bg-amber-50 border-3 border-amber-400 rounded-2xl p-3.5 shadow-[3px_3px_0px_0px_#000] flex items-center justify-between gap-3 text-left">
@@ -437,9 +459,16 @@ export default function ArcadeLandingPage() {
                 </div>
                 <div className="flex-1 pr-12">
                   <h4 className="font-serif text-lg font-black text-black">{game.name}</h4>
-                  <span className="text-[10px] font-black text-black/40 uppercase tracking-wider block">
-                    {game.type}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-black text-black/40 uppercase tracking-wider block">
+                      {game.type}
+                    </span>
+                    {challengerStatus?.isChallenger && (
+                      <span className="text-[9px] font-black text-red-600 bg-red-100 px-1.5 py-0.2 rounded border border-red-300 uppercase">
+                        ⚡ HARD MODE
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs font-semibold text-black/60 mt-1 leading-snug">
                     {game.description}
                   </p>

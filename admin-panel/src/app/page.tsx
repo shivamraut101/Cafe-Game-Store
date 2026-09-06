@@ -528,6 +528,7 @@ export default function AdminPortal() {
                 <GameManagerTab
                   configs={miniGameConfigs}
                   onUpdateConfig={handleUpdateMiniGameConfig}
+                  currentStore={currentStore}
                 />
               )}
               {activeTab === "audit-logs" && <AuditLogsTab />}

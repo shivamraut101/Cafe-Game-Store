@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { generateStoreKey, getNextRotationMs } from "../lib/storeAccessPass";
 interface QRStudioProps {
   storeName?: string;
   gameTitle?: string;
@@ -121,10 +120,8 @@ export default function QRStudio({
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrCodeInstance, setQrCodeInstance] = useState<any>(null);
 
-  // QR Code Destination URL (Includes store slug, 3-hour rotating key, and table for exact DB routing)
+  // QR Code Destination URL (Permanent clean URL with store slug and table)
   const storeSlug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const [activeKey, setActiveKey] = useState("");
-  const [rotationCountdown, setRotationCountdown] = useState("");
   const defaultUrl = typeof window !== "undefined"
     ? `${window.location.origin}/arcade?store=${storeSlug}${tableNumber ? `&table=${encodeURIComponent(tableNumber)}` : ""}`
     : `http://localhost:3000/arcade?store=${storeSlug}`;
@@ -133,30 +130,14 @@ export default function QRStudio({
 
   useEffect(() => {
     const slug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    const key = generateStoreKey(slug, 0);
-    setActiveKey(key);
-
     if (typeof window !== "undefined") {
       const tableParam = tableNumber ? `&table=${encodeURIComponent(tableNumber)}` : "";
-      const newUrl = `${window.location.origin}/arcade?store=${slug}&key=${key}${tableParam}`;
+      const newUrl = `${window.location.origin}/arcade?store=${slug}${tableParam}`;
       setTargetUrl(newUrl);
       if (qrCodeInstance) {
         qrCodeInstance.update({ data: newUrl });
       }
     }
-
-    const updateTimer = () => {
-      const ms = getNextRotationMs();
-      const totalSec = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSec / 3600);
-      const mins = Math.floor((totalSec % 3600) / 60);
-      const secs = totalSec % 60;
-      setRotationCountdown(`${hours}h ${mins}m ${secs}s`);
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
   }, [storeName, tableNumber, qrCodeInstance]);
 
   const handleSelectPreset = (preset: ThemePreset) => {
@@ -307,18 +288,18 @@ export default function QRStudio({
             <span className="text-xs font-semibold text-black/50">Strict Character Limits</span>
           </h3>
 
-          {/* 3-Hour Rolling In-Store Pass Info Card */}
+          {/* Permanent Table QR Pass Info Card */}
           <div className="bg-emerald-50 border-2 border-emerald-500/60 rounded-xl p-3.5 flex flex-col gap-2 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black uppercase text-emerald-950 flex items-center gap-1.5">
-                <span>🔒</span> 3-Hour Rolling In-Store Pass
+                <span>✨</span> Permanent Table QR Code
               </span>
-              <span className="text-[10px] font-mono font-black bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded border border-emerald-400">
-                {activeKey || "CAFE-ACTIVE"}
+              <span className="text-[10px] font-bold bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded border border-emerald-400 uppercase">
+                Anti-Farming Protected
               </span>
             </div>
             <p className="text-[11px] text-emerald-950/80 leading-relaxed font-medium">
-              Protects games from out-of-store sharing. Only customers who scan this table QR get unlocked for 3 hours. Next key rotation in <strong className="font-mono text-emerald-950">{rotationCountdown}</strong>.
+              Customers scan this table QR with any phone camera to instantly launch the arcade. Repeat claims are protected by the store's anti-farming cooldown & adaptive difficulty rules.
             </p>
             <div className="flex items-center gap-2 mt-1">
               <input

@@ -33,6 +33,25 @@ export default function CoffeeTowerGame() {
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
   const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
+  const [isChallenger, setIsChallenger] = useState(false);
+
+  // Challenger Mode detection
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (sessionStorage.getItem("challengerMode") === "true") {
+        setIsChallenger(true);
+      }
+      const targetStore = sessionStorage.getItem("selectedStore") || "adda-99";
+      import("../../actions/gameActions").then(({ getPlayerChallengerStatusAction }) => {
+        getPlayerChallengerStatusAction(undefined, targetStore).then((res) => {
+          if (res.success && res.isChallenger) {
+            setIsChallenger(true);
+            sessionStorage.setItem("challengerMode", "true");
+          }
+        }).catch(() => {});
+      });
+    }
+  }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
@@ -195,10 +214,11 @@ export default function CoffeeTowerGame() {
   const startGame = useCallback(() => {
     if (!engineRef.current) return;
     clearDynamicBodies();
-    stackRef.current = [];
+    const startW = isChallenger ? 130 : INITIAL_WIDTH;
+    const startSpeed = isChallenger ? 3.0 : 2.2;
 
     // Base table block
-    const base = Matter.Bodies.rectangle(CANVAS_W / 2, BASE_Y, INITIAL_WIDTH, BLOCK_H, {
+    const base = Matter.Bodies.rectangle(CANVAS_W / 2, BASE_Y, startW, BLOCK_H, {
       isStatic: true,
       chamfer: { radius: 6 },
       render: { fillStyle: "#1A1A1A", strokeStyle: "#000", lineWidth: 2.5 },
@@ -206,11 +226,11 @@ export default function CoffeeTowerGame() {
     Matter.Composite.add(engineRef.current.world, base);
     stackRef.current.push(base);
 
-    sliderRef.current = { x: 80, width: INITIAL_WIDTH, dir: 1, speed: 2.2 };
+    sliderRef.current = { x: 80, width: startW, dir: 1, speed: startSpeed };
     setScore(0); setCombo(0); setGameState("playing");
     // Start grace period: prevent the tap that started the game from dropping block 1
     lastTapTimeRef.current = performance.now() + 350;
-  }, [clearDynamicBodies]);
+  }, [clearDynamicBodies, isChallenger]);
 
   const handleTap = useCallback(() => {
     const now = performance.now();
@@ -382,8 +402,9 @@ export default function CoffeeTowerGame() {
     // Update slider for next round
     s.width = overlapWidth;
     s.x = 0; s.dir = 1;
-    s.speed = Math.min(7, s.speed + 0.18);
-  }, [gameState, startGame, playSound, highScore, combo]);
+    const accel = isChallenger ? 0.25 : 0.18;
+    s.speed = Math.min(8, s.speed + accel);
+  }, [gameState, startGame, playSound, highScore, combo, isChallenger]);
 
   // Keyboard spacebar controls
   useEffect(() => {
@@ -418,9 +439,16 @@ export default function CoffeeTowerGame() {
             <span className="text-xl">🏗️</span>
             <div>
               <h1 className="font-serif font-black text-lg leading-tight">Tower Stack</h1>
-              <p className="text-[10px] font-bold text-[#FF4C29] tracking-widest uppercase">
-                Arcade Challenge
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-[10px] font-bold text-[#FF4C29] tracking-widest uppercase">
+                  Arcade Challenge
+                </p>
+                {isChallenger && (
+                  <span className="text-[9px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded border border-white/30 uppercase animate-pulse">
+                    🔥 HARD MODE
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

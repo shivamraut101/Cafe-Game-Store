@@ -14,6 +14,8 @@ export interface IStore extends Document {
   aiCreditsUsed: number;
   whiteLabelOverride: boolean;
   watermarkRemoved: boolean;
+  rewardCooldownDays?: number;
+  dynamicDifficultyScaling?: boolean;
   joinedDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -33,6 +35,8 @@ const StoreSchema = new Schema<IStore>(
     aiCreditsUsed: { type: Number, default: 0 },
     whiteLabelOverride: { type: Boolean, default: false },
     watermarkRemoved: { type: Boolean, default: false },
+    rewardCooldownDays: { type: Number, default: 7 },
+    dynamicDifficultyScaling: { type: Boolean, default: true },
     joinedDate: { type: Date, default: Date.now },
   },
   { timestamps: true }
