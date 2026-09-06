@@ -350,10 +350,29 @@ export default function CoffeeTowerGame() {
     s.speed = Math.min(7, s.speed + 0.18);
   }, [gameState, startGame, playSound, highScore, combo]);
 
+  // Keyboard spacebar controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === " " || e.key === "Enter" || e.key === "ArrowDown") {
+        e.preventDefault();
+        handleTap();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleTap]);
+
   const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   return (
-    <div onClick={handleTap} className="min-h-screen bg-[#F6F3EB] flex flex-col items-center justify-between p-4 select-none touch-none">
+    <div
+      onClick={handleTap}
+      onPointerDown={(e) => {
+        // Prevent double triggers with onClick while ensuring instant mobile response
+        if (e.pointerType === "touch") handleTap();
+      }}
+      className="min-h-screen bg-[#F6F3EB] flex flex-col items-center justify-between p-4 select-none touch-none cursor-pointer"
+    >
       {/* Header */}
       <header className="w-full max-w-md bg-black text-white p-4 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center">
         <div>

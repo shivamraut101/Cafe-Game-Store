@@ -386,7 +386,7 @@ export default function DropMergeGame() {
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (isDraggingRef.current) updateAimX(e);
+    if (isDraggingRef.current || e.pointerType === "mouse") updateAimX(e);
   };
 
   const handlePointerUp = () => {
@@ -395,6 +395,38 @@ export default function DropMergeGame() {
       dropCurrentBall();
     }
   };
+
+  // Global release listener so releasing outside canvas always drops properly
+  useEffect(() => {
+    const handleGlobalUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        dropCurrentBall();
+      }
+    };
+    window.addEventListener("pointerup", handleGlobalUp);
+    window.addEventListener("touchend", handleGlobalUp);
+    return () => {
+      window.removeEventListener("pointerup", handleGlobalUp);
+      window.removeEventListener("touchend", handleGlobalUp);
+    };
+  }, [dropCurrentBall]);
+
+  // Keyboard controls for desktop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== "playing") return;
+      if (e.key === "ArrowLeft" || e.key === "a") {
+        aimXRef.current = Math.max(30, aimXRef.current - 18);
+      } else if (e.key === "ArrowRight" || e.key === "d") {
+        aimXRef.current = Math.min(W - 30, aimXRef.current + 18);
+      } else if (e.key === " " || e.key === "Enter" || e.key === "ArrowDown" || e.key === "s") {
+        dropCurrentBall();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameState, dropCurrentBall]);
 
   const updateAimX = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -409,6 +441,8 @@ export default function DropMergeGame() {
     particlesRef.current = [];
     scoreRef.current = 0;
     dangerTimerRef.current = 0;
+    canDropRef.current = true;
+    isDraggingRef.current = false;
     setScore(0);
     setEarnedReward(null);
     setLimitNotice(null);

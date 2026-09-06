@@ -165,12 +165,22 @@ export default function BaristaCatchGame() {
 
     const onMove = (e: PointerEvent) => {
       e.preventDefault();
-      if (isDraggingRef.current && stateRef.current === "playing") {
+      if ((isDraggingRef.current || e.pointerType === "mouse") && stateRef.current === "playing") {
         trayRef.current.targetX = Math.max(TRAY_W / 2, Math.min(W - TRAY_W / 2, getX(e)));
       }
     };
 
     const onUp = () => { isDraggingRef.current = false; };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (stateRef.current !== "playing") return;
+      if (e.key === "ArrowLeft" || e.key === "a") {
+        trayRef.current.targetX = Math.max(TRAY_W / 2, trayRef.current.targetX - 24);
+      } else if (e.key === "ArrowRight" || e.key === "d") {
+        trayRef.current.targetX = Math.min(W - TRAY_W / 2, trayRef.current.targetX + 24);
+      }
+    };
+    window.addEventListener("keydown", onKey);
 
     el.addEventListener("pointerdown", onDown, { passive: false });
     el.addEventListener("pointermove", onMove, { passive: false });
@@ -179,6 +189,7 @@ export default function BaristaCatchGame() {
     el.addEventListener("contextmenu", (e) => e.preventDefault());
 
     return () => {
+      window.removeEventListener("keydown", onKey);
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);

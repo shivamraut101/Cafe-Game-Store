@@ -131,7 +131,19 @@ export default function FlappyBaristaGame() {
     const h = (e: Event) => handleInput(e);
     el.addEventListener("pointerdown", h, { passive: false });
     el.addEventListener("contextmenu", (e) => e.preventDefault());
-    return () => { el.removeEventListener("pointerdown", h); };
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === " " || e.key === "ArrowUp" || e.key === "Enter") {
+        e.preventDefault();
+        handleInput(e);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+
+    return () => {
+      el.removeEventListener("pointerdown", h);
+      window.removeEventListener("keydown", handleKey);
+    };
   }, [handleInput]);
 
   // ─── Drawing ────────────────────────────────────────────

@@ -222,6 +222,11 @@ export default function AirHockeyGame() {
           puck.vy = (puck.vy / speed) * MAX_PUCK_SPEED;
         }
 
+        // Prevent dead puck stranded on center line unreachable by paddles
+        if (Math.abs(puck.y - H / 2) < 35 && speed < 0.6) {
+          puck.vy = puck.y <= H / 2 ? 2.2 : -2.2;
+        }
+
         // Left & Right Wall Collision
         if (puck.x - PUCK_R <= 15) {
           puck.x = 15 + PUCK_R;

@@ -602,23 +602,38 @@ export default function SkyHopperGame() {
     return () => cancelAnimationFrame(animId);
   }, [gameState]);
 
-  // Keyboard controls for desktop
+  // Continuous Keyboard controls for desktop
+  const keysRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" || e.key === "a") {
-        playerVxRef.current = -6.5;
+        keysRef.current.left = true;
         facingRightRef.current = false;
         ArcadeAudio.init();
         if (gameState === "idle") initGame();
       } else if (e.key === "ArrowRight" || e.key === "d") {
-        playerVxRef.current = 6.5;
+        keysRef.current.right = true;
         facingRightRef.current = true;
         ArcadeAudio.init();
         if (gameState === "idle") initGame();
       }
     };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" || e.key === "a") {
+        keysRef.current.left = false;
+      } else if (e.key === "ArrowRight" || e.key === "d") {
+        keysRef.current.right = false;
+      }
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [gameState, initGame]);
 
   return (
