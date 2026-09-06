@@ -4,6 +4,7 @@
  */
 
 export const PLAYER_COOKIE_NAME = "forstore_player_id";
+export const PLAYER_NAME_KEY = "forstore_player_name";
 
 export function getOrCreateClientPlayerId(): string {
   if (typeof window === "undefined") return "";
@@ -30,3 +31,45 @@ export function getOrCreateClientPlayerId(): string {
     return "ply_guest";
   }
 }
+
+export function getClientPlayerName(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const local = localStorage.getItem(PLAYER_NAME_KEY);
+    if (local) return local;
+    const match = document.cookie.match(new RegExp(`(^|;\\s*)${PLAYER_NAME_KEY}=([^;]+)`));
+    if (match && match[2]) {
+      return decodeURIComponent(match[2]);
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+export function setClientPlayerName(name: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const trimmed = name.trim();
+    if (trimmed) {
+      localStorage.setItem(PLAYER_NAME_KEY, trimmed);
+      document.cookie = `${PLAYER_NAME_KEY}=${encodeURIComponent(trimmed)}; path=/; max-age=31536000; SameSite=Lax`;
+    } else {
+      localStorage.removeItem(PLAYER_NAME_KEY);
+      document.cookie = `${PLAYER_NAME_KEY}=; path=/; max-age=0`;
+    }
+  } catch {}
+}
+
+export function isDefaultPlayerName(name?: string): boolean {
+  if (!name || !name.trim()) return true;
+  const n = name.trim();
+  return (
+    n.startsWith("Player #") ||
+    n === "Player" ||
+    n === "Arcade Player" ||
+    n === "Valued Customer" ||
+    n === "Guest"
+  );
+}
+

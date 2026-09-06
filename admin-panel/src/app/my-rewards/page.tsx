@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getUserRewardsAction } from "../actions/gameActions";
+import CustomerNameModal from "../../components/CustomerNameModal";
+import { isDefaultPlayerName } from "../../lib/playerSession";
 
 interface RewardVoucher {
   id: string;
@@ -20,7 +22,10 @@ interface RewardVoucher {
 
 export default function CustomerRewardsWallet() {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ name: string; totalCafePoints: number } | null>(null);
+  const [user, setUser] = useState<{ id?: string; guestId?: string; name: string; totalCafePoints: number } | null>(null);
+  const [guestId, setGuestId] = useState<string>("");
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [dismissedNameBanner, setDismissedNameBanner] = useState(false);
   const [rewards, setRewards] = useState<RewardVoucher[]>([]);
   const [activeTab, setActiveTab] = useState<"pending" | "claimed" | "expired">("pending");
 
@@ -33,6 +38,7 @@ export default function CustomerRewardsWallet() {
       setLoading(true);
       const { getOrCreateClientPlayerId } = await import("../../lib/playerSession");
       const playerId = getOrCreateClientPlayerId();
+      setGuestId(playerId);
       const res = await getUserRewardsAction(playerId);
 
       if (res.success && res.user && res.rewards) {
@@ -47,6 +53,7 @@ export default function CustomerRewardsWallet() {
   };
 
   const filteredRewards = rewards.filter((r) => r.status === activeTab);
+  const hasDefaultName = isDefaultPlayerName(user?.name);
 
   const getGameIcon = (slug: string) => {
     if (slug === "coffee-tower") return "🏗️";
@@ -64,15 +71,25 @@ export default function CustomerRewardsWallet() {
   return (
     <div className="min-h-screen bg-[#F6F3EB] text-[#1A1A1A] flex flex-col items-center p-4 font-sans select-none">
       {/* Header Bar */}
-      <header className="w-full max-w-md bg-black text-white p-5 rounded-3xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center mb-6">
+      <header className="w-full max-w-md bg-black text-white p-5 rounded-3xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center mb-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-2xl">🎁</span>
             <h1 className="font-serif font-black text-xl text-white">Rewards Wallet</h1>
           </div>
-          <p className="text-xs font-bold text-white/60 mt-0.5">
-            Welcome back, <span className="text-emerald-400 font-bold">{user?.name || "Player"}</span>
-          </p>
+          <button
+            onClick={() => setShowNameModal(true)}
+            className="text-xs font-bold text-white/70 mt-1 flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer group text-left"
+            title="Tap to personalize customer name"
+          >
+            <span>Welcome back,</span>
+            <span className="text-emerald-400 font-bold underline decoration-dotted underline-offset-2 group-hover:text-emerald-300">
+              {user?.name || "Player"}
+            </span>
+            <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20 group-hover:bg-white/20 transition-all">
+              ✏️
+            </span>
+          </button>
         </div>
         <div className="text-right">
           <span className="text-[10px] font-bold text-white/50 uppercase block">Reward Points</span>
@@ -82,6 +99,36 @@ export default function CustomerRewardsWallet() {
 
       {/* Main Container */}
       <main className="w-full max-w-md flex flex-col gap-4">
+        {/* Optional Name Personalization Banner (Dismissible) */}
+        {hasDefaultName && !dismissedNameBanner && (
+          <div className="bg-amber-50 border-3 border-amber-400 rounded-2xl p-3.5 shadow-[3px_3px_0px_0px_#000] flex items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">🏷️</span>
+              <div>
+                <p className="text-xs font-black text-black">Want to personalize your vouchers?</p>
+                <p className="text-[10px] text-black/60 font-semibold">
+                  Add an optional name so cafe staff know who to call at the counter.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setShowNameModal(true)}
+                className="text-[11px] font-black bg-black text-white px-2.5 py-1.5 rounded-xl border border-black shadow-[2px_2px_0px_0px_#FF4C29] hover:translate-x-[1px] hover:translate-y-[1px] cursor-pointer"
+              >
+                Add Name ✏️
+              </button>
+              <button
+                onClick={() => setDismissedNameBanner(true)}
+                className="text-black/40 hover:text-black p-1 text-xs font-bold"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         
         {/* Arcade Lobby Shortcut Banner */}
         <Link
@@ -226,6 +273,17 @@ export default function CustomerRewardsWallet() {
       <footer className="text-center text-xs font-bold text-black/40 mt-8">
         Show active voucher code to cafe staff at register to redeem!
       </footer>
+
+      {/* Customer Name Customization Modal */}
+      <CustomerNameModal
+        isOpen={showNameModal}
+        onClose={() => setShowNameModal(false)}
+        currentName={user?.name || ""}
+        guestId={guestId}
+        onNameSaved={(newName) => {
+          setUser((prev) => (prev ? { ...prev, name: newName } : null));
+        }}
+      />
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getMiniGameConfigsAction, getStoreBrandingAction } from "../actions/adminActions";
+import CustomerNameModal from "../../components/CustomerNameModal";
+import { isDefaultPlayerName } from "../../lib/playerSession";
 
 interface GameCard {
   slug: string;
@@ -121,6 +123,9 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
 export default function ArcadeLandingPage() {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [userName, setUserName] = useState<string>("Player");
+  const [guestPlayerId, setGuestPlayerId] = useState<string>("");
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [dismissedNamePrompt, setDismissedNamePrompt] = useState(false);
   const [games, setGames] = useState<GameCard[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -152,6 +157,7 @@ export default function ArcadeLandingPage() {
     // Ensure unique device-isolated guest player ID
     import("../../lib/playerSession").then(({ getOrCreateClientPlayerId }) => {
       const playerId = getOrCreateClientPlayerId();
+      setGuestPlayerId(playerId);
       fetch(`/api/rewards/user?guestId=${encodeURIComponent(playerId)}&store=${encodeURIComponent(storeParam)}`)
         .then((res) => res.json())
         .then((data) => {
@@ -162,6 +168,7 @@ export default function ArcadeLandingPage() {
         })
         .catch(() => {});
     });
+
 
     // Fetch store branding for header
     getStoreBrandingAction(storeParam)
@@ -259,9 +266,19 @@ export default function ArcadeLandingPage() {
               </span>
             )}
           </div>
-          <p className="text-xs font-bold text-white/60 mt-0.5">
-            Welcome, <span className="text-emerald-400 font-bold">{userName}</span>
-          </p>
+          <button
+            onClick={() => setShowNameModal(true)}
+            className="text-xs font-bold text-white/70 mt-1 flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer group text-left"
+            title="Tap to personalize customer name"
+          >
+            <span>Welcome,</span>
+            <span className="text-emerald-400 font-bold underline decoration-dotted underline-offset-2 group-hover:text-emerald-300">
+              {userName}
+            </span>
+            <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded-full border border-white/20 group-hover:bg-white/20 transition-all">
+              ✏️
+            </span>
+          </button>
         </div>
         <div className="text-right">
           <span className="text-[10px] font-bold text-white/50 uppercase block">Reward Points</span>
@@ -271,6 +288,35 @@ export default function ArcadeLandingPage() {
 
       {/* Main Arcade Menu */}
       <main className="w-full max-w-md flex flex-col gap-4 flex-1">
+        {/* Optional Name Personalization Banner (Dismissible) */}
+        {isDefaultPlayerName(userName) && !dismissedNamePrompt && (
+          <div className="bg-amber-50 border-3 border-amber-400 rounded-2xl p-3.5 shadow-[3px_3px_0px_0px_#000] flex items-center justify-between gap-3 text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">🏷️</span>
+              <div>
+                <p className="text-xs font-black text-black">Playing as {userName}?</p>
+                <p className="text-[10px] text-black/60 font-semibold">
+                  Add an optional name for leaderboards & vouchers. ID protects your points.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => setShowNameModal(true)}
+                className="text-[11px] font-black bg-black text-white px-2.5 py-1.5 rounded-xl border border-black shadow-[2px_2px_0px_0px_#FF4C29] hover:translate-x-[1px] hover:translate-y-[1px] cursor-pointer"
+              >
+                Set Name ✏️
+              </button>
+              <button
+                onClick={() => setDismissedNamePrompt(true)}
+                className="text-black/40 hover:text-black p-1 text-xs font-bold"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
         
         {/* Banner */}
         <div className="bg-gradient-to-r from-[#FF4C29] to-[#F59E0B] text-white p-4 rounded-3xl border-4 border-black shadow-[6px_6px_0px_0px_#000] relative overflow-hidden">
@@ -369,6 +415,17 @@ export default function ArcadeLandingPage() {
       <footer className="text-center text-xs font-bold text-black/40 py-2">
         Scan QR at your spot • Play mini-games to win exclusive rewards
       </footer>
+
+      {/* Customer Name Customization Modal */}
+      <CustomerNameModal
+        isOpen={showNameModal}
+        onClose={() => setShowNameModal(false)}
+        currentName={userName}
+        guestId={guestPlayerId}
+        onNameSaved={(newName) => {
+          setUserName(newName);
+        }}
+      />
     </div>
   );
 }

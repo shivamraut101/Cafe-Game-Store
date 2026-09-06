@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
       if (defaultStore) storeObjId = defaultStore._id as mongoose.Types.ObjectId;
     }
 
+    const nameCookie = req.cookies.get("forstore_player_name")?.value;
+    const cookiePlayerName = nameCookie ? decodeURIComponent(nameCookie).trim() : "";
+
     let user = null;
     if (userId) {
       user = await User.findById(userId);
@@ -31,12 +34,15 @@ export async function GET(req: NextRequest) {
         user = await User.create({
           storeId: storeObjId,
           guestId,
-          name: `Player #${suffix}`,
+          name: cookiePlayerName || `Player #${suffix}`,
           email: `guest-${guestId}@arcade.app`,
           passwordHash: "guest_no_auth_required",
           role: "customer",
           totalCafePoints: 0,
         });
+      } else if (cookiePlayerName && user.name.startsWith("Player #")) {
+        user.name = cookiePlayerName;
+        await user.save();
       }
     }
 
@@ -47,7 +53,7 @@ export async function GET(req: NextRequest) {
       user = await User.create({
         storeId: storeObjId,
         guestId: newGuestId,
-        name: `Player #${suffix}`,
+        name: cookiePlayerName || `Player #${suffix}`,
         email: `guest-${newGuestId}@arcade.app`,
         passwordHash: "guest_no_auth_required",
         role: "customer",
@@ -106,3 +112,69 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    await connectDB();
+    const body = await req.json();
+    let guestId = body.guestId || req.cookies.get("forstore_player_id")?.value;
+    const rawName = (body.name || "").trim().slice(0, 30);
+
+    if (!guestId) {
+      guestId = "ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
+    }
+
+    const suffix = guestId.slice(-4).toUpperCase();
+    const displayName = rawName || `Player #${suffix}`;
+
+    let user = await User.findOne({ guestId });
+    if (!user) {
+      user = await User.create({
+        guestId,
+        name: displayName,
+        email: `guest-${guestId}@arcade.app`,
+        passwordHash: "guest_no_auth_required",
+        role: "customer",
+        totalCafePoints: 0,
+      });
+    } else {
+      user.name = displayName;
+      await user.save();
+    }
+
+    const res = NextResponse.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        guestId: user.guestId,
+        name: user.name,
+        totalCafePoints: user.totalCafePoints || 0,
+      },
+    });
+
+    res.cookies.set({
+      name: "forstore_player_id",
+      value: guestId,
+      path: "/",
+      maxAge: 365 * 24 * 60 * 60,
+      sameSite: "lax",
+    });
+
+    if (rawName) {
+      res.cookies.set({
+        name: "forstore_player_name",
+        value: encodeURIComponent(rawName),
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
+    } else {
+      res.cookies.delete("forstore_player_name");
+    }
+
+    return res;
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to update profile" }, { status: 500 });
+  }
+}
+

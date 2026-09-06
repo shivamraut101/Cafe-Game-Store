@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
 import { redeemRewardVoucherAction } from "../../actions/gameActions";
+import CustomerNameModal from "../../../components/CustomerNameModal";
 
 interface ClaimPageProps {
   params: Promise<{ code: string }>;
@@ -20,6 +21,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isExpired, setIsExpired] = useState(false);
+  const [showNameModal, setShowNameModal] = useState(false);
 
   const qrRef = useRef<HTMLDivElement>(null);
 
@@ -247,8 +249,19 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
 
             {/* Customer & Store Info Details */}
             <div className="w-full bg-white p-3 rounded-xl border border-black/10 text-[11px] font-bold text-black/60 flex flex-col gap-1.5 mb-4 text-left">
-              <div className="flex justify-between">
-                <span>Customer: <strong className="text-black">{claim.customerName}</strong></span>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  Customer: <strong className="text-black">{claim.customerName}</strong>
+                  {claim.status === "pending" && !redeemSuccess && (
+                    <button
+                      onClick={() => setShowNameModal(true)}
+                      className="text-[10px] text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-1.5 py-0.5 rounded font-bold transition-colors cursor-pointer"
+                      title="Customize customer name"
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
+                </span>
                 <span>Issued: <strong className="text-black">{new Date(claim.earnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
               </div>
               {(claim.status === "claimed" || redeemSuccess) && (
@@ -306,6 +319,17 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
           </div>
         )}
       </main>
+
+      {/* Customer Name Customization Modal */}
+      <CustomerNameModal
+        isOpen={showNameModal}
+        onClose={() => setShowNameModal(false)}
+        currentName={claim?.customerName || ""}
+        guestId={claim?.userId || ""}
+        onNameSaved={(newName) => {
+          setClaim((prev: any) => (prev ? { ...prev, customerName: newName } : null));
+        }}
+      />
     </div>
   );
 }

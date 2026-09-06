@@ -74,17 +74,23 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     if (!customer && guestPlayerId) {
       customer = await User.findOne({ guestId: guestPlayerId });
     }
+    const customPlayerCookie = cookieStore.get("forstore_player_name")?.value;
+    const customPlayerName = customPlayerCookie ? decodeURIComponent(customPlayerCookie).trim() : "";
+
     if (!customer) {
       const suffix = guestPlayerId.slice(-4).toUpperCase();
       customer = await User.create({
         storeId: storeObjId,
         guestId: guestPlayerId,
-        name: `Player #${suffix}`,
+        name: customPlayerName || `Player #${suffix}`,
         email: `guest-${guestPlayerId}@arcade.app`,
         passwordHash: "guest_no_auth_required",
         role: "customer",
         totalCafePoints: 0,
       });
+    } else if (customPlayerName && customer.name.startsWith("Player #")) {
+      customer.name = customPlayerName;
+      await customer.save();
     }
 
     userId = customer._id.toString();
@@ -352,11 +358,19 @@ export async function getUserRewardsAction(guestPlayerId?: string) {
     }
 
     if (!user) {
+      const customNameCookie = cookieStore.get("forstore_player_name")?.value;
+      const initialName = customNameCookie
+        ? decodeURIComponent(customNameCookie).trim()
+        : resolvedGuestId
+        ? `Player #${resolvedGuestId.slice(-4).toUpperCase()}`
+        : "Arcade Player";
+
       return {
         success: true,
         user: {
           id: resolvedGuestId || "new-guest",
-          name: resolvedGuestId ? `Player #${resolvedGuestId.slice(-4).toUpperCase()}` : "Arcade Player",
+          guestId: resolvedGuestId,
+          name: initialName,
           email: "",
           totalCafePoints: 0,
         },
@@ -397,6 +411,7 @@ export async function getUserRewardsAction(guestPlayerId?: string) {
       success: true,
       user: {
         id: user._id.toString(),
+        guestId: user.guestId || resolvedGuestId,
         name: user.name || "Player",
         email: user.email || "",
         totalCafePoints: user.totalCafePoints || 0,
@@ -417,3 +432,72 @@ export async function getUserRewardsAction(guestPlayerId?: string) {
     };
   }
 }
+
+/**
+ * Server Action: Updates or sets the customer's optional display name.
+ * Regulated strictly by the unique guestId behind the scenes.
+ */
+export async function updateCustomerNameAction(newName: string, guestPlayerId?: string) {
+  try {
+    await connectDB();
+    const cookieStore = await cookies();
+    let resolvedGuestId = guestPlayerId || cookieStore.get("forstore_player_id")?.value;
+
+    if (!resolvedGuestId) {
+      resolvedGuestId = "ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
+      cookieStore.set({
+        name: "forstore_player_id",
+        value: resolvedGuestId,
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
+    }
+
+    const trimmed = (newName || "").trim().slice(0, 30);
+    const suffix = resolvedGuestId.slice(-4).toUpperCase();
+    const displayName = trimmed || `Player #${suffix}`;
+
+    let user = await User.findOne({ guestId: resolvedGuestId });
+    if (!user) {
+      user = await User.create({
+        guestId: resolvedGuestId,
+        name: displayName,
+        email: `guest-${resolvedGuestId}@arcade.app`,
+        passwordHash: "guest_no_auth_required",
+        role: "customer",
+        totalCafePoints: 0,
+      });
+    } else {
+      user.name = displayName;
+      await user.save();
+    }
+
+    // Update cookie cache
+    if (trimmed) {
+      cookieStore.set({
+        name: "forstore_player_name",
+        value: encodeURIComponent(trimmed),
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
+    } else {
+      cookieStore.delete("forstore_player_name");
+    }
+
+    return {
+      success: true,
+      name: user.name,
+      guestId: resolvedGuestId,
+      isCustom: Boolean(trimmed),
+    };
+  } catch (error: any) {
+    console.error("Error updating customer name:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to update player name",
+    };
+  }
+}
+
