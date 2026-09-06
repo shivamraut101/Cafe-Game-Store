@@ -148,11 +148,20 @@ export default function HelixDropGame() {
 
     // Seed first 15 floors
     const initialPlatforms: Platform[] = [];
-    // Floor 0 is a full starter pad so the player doesn't instantly die
+    // Floor 0: Safe starter pad with a generous 100-degree gap at the side/back!
+    // Front angle is PI/2 (1.57). Gap is from 2.2 to 3.9 rad so front starts safe.
+    const starterGapStart = Math.PI * 0.72;
+    const starterGapSize = 1.75; // ~100 degrees wide
     initialPlatforms.push({
       id: 0,
       worldY: 0,
-      segments: [{ startAngle: 0, endAngle: Math.PI * 2, type: "safe" }],
+      segments: [
+        {
+          startAngle: (starterGapStart + starterGapSize) % (Math.PI * 2),
+          endAngle: starterGapStart,
+          type: "safe",
+        },
+      ],
       shattered: false,
       splatters: [],
     });
@@ -232,14 +241,29 @@ export default function HelixDropGame() {
     if (!isDraggingRef.current) return;
     const deltaX = clientX - lastMouseXRef.current;
     lastMouseXRef.current = clientX;
-    // Rotate cylinder
-    rotationRef.current += deltaX * 0.015;
-    rotationVelRef.current = deltaX * 0.012;
+    // Rotate cylinder with snappy responsiveness
+    rotationRef.current += deltaX * 0.022;
+    rotationVelRef.current = deltaX * 0.018;
   };
 
   const handlePointerUp = () => {
     isDraggingRef.current = false;
   };
+
+  // Global release listener so drag never gets stuck if mouse/finger leaves canvas
+  useEffect(() => {
+    const handleGlobalUp = () => {
+      isDraggingRef.current = false;
+    };
+    window.addEventListener("pointerup", handleGlobalUp);
+    window.addEventListener("mouseup", handleGlobalUp);
+    window.addEventListener("touchend", handleGlobalUp);
+    return () => {
+      window.removeEventListener("pointerup", handleGlobalUp);
+      window.removeEventListener("mouseup", handleGlobalUp);
+      window.removeEventListener("touchend", handleGlobalUp);
+    };
+  }, []);
 
   // Game Loop
   useEffect(() => {
@@ -505,14 +529,14 @@ export default function HelixDropGame() {
         }
       }
 
-      // Draw Ball at (W/2, BALL_SCREEN_Y)
+      // Draw Ball at (W/2, BALL_SCREEN_Y + 12) - sitting visibly on front platform rim
       const bx = W / 2;
-      const by = BALL_SCREEN_Y;
+      const by = BALL_SCREEN_Y + 12;
 
-      // Ball shadow on pole
+      // Ball shadow on front platform rim
       ctx.beginPath();
-      ctx.ellipse(bx, by + 16, 8, 3, 0, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.ellipse(bx, by + 12, 10, 3.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
       ctx.fill();
 
       // Ball Destroyer Fire Aura
@@ -692,6 +716,17 @@ export default function HelixDropGame() {
           onTouchEnd={handlePointerUp}
           className="cursor-grab active:cursor-grabbing block touch-none"
         />
+
+        {/* Dynamic Start Swipe Guidance */}
+        {gameState === "playing" && floorsPassed === 0 && (
+          <div className="absolute top-20 left-0 right-0 pointer-events-none flex justify-center animate-bounce">
+            <div className="bg-black/90 backdrop-blur-md border border-cyan-500/50 text-cyan-300 text-xs font-bold px-3.5 py-1.5 rounded-full shadow-lg shadow-cyan-500/25 flex items-center gap-1.5">
+              <span>👈</span>
+              <span>Swipe left / right to align gap</span>
+              <span>👉</span>
+            </div>
+          </div>
+        )}
 
         {/* Game Over Modal */}
         {gameState === "gameover" && (
