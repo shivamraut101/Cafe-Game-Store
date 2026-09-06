@@ -36,14 +36,21 @@ export default function CustomerRewardsWallet() {
   const fetchRewards = async () => {
     try {
       setLoading(true);
-      const { getOrCreateClientPlayerId } = await import("../../lib/playerSession");
+      const { getOrCreateClientPlayerId, getClientDeviceFingerprint } = await import("../../lib/playerSession");
       const playerId = getOrCreateClientPlayerId();
+      const fp = getClientDeviceFingerprint();
       setGuestId(playerId);
-      const res = await getUserRewardsAction(playerId);
+      const res = await getUserRewardsAction(playerId, fp);
 
       if (res.success && res.user && res.rewards) {
         setUser(res.user);
         setRewards(res.rewards as any);
+        if (res.user.guestId && res.user.guestId !== playerId) {
+          setGuestId(res.user.guestId);
+          try {
+            localStorage.setItem("forstore_guest_player_id", res.user.guestId);
+          } catch {}
+        }
       }
     } catch (e) {
       console.error("Failed to load rewards", e);
@@ -282,6 +289,14 @@ export default function CustomerRewardsWallet() {
         guestId={guestId}
         onNameSaved={(newName) => {
           setUser((prev) => (prev ? { ...prev, name: newName } : null));
+        }}
+        onProfileSynced={(syncedUser) => {
+          setUser(syncedUser);
+          setGuestId(syncedUser.guestId);
+          try {
+            localStorage.setItem("forstore_guest_player_id", syncedUser.guestId);
+          } catch {}
+          fetchRewards();
         }}
       />
     </div>

@@ -21,44 +21,79 @@ export async function GET(req: NextRequest) {
       if (defaultStore) storeObjId = defaultStore._id as mongoose.Types.ObjectId;
     }
 
+    const fp = searchParams.get("fp") || req.headers.get("x-device-fingerprint") || "";
+    const syncCode = (searchParams.get("syncCode") || "").trim().toUpperCase();
+
     const nameCookie = req.cookies.get("forstore_player_name")?.value;
     const cookiePlayerName = nameCookie ? decodeURIComponent(nameCookie).trim() : "";
 
     let user = null;
-    if (userId) {
-      user = await User.findById(userId);
-    } else if (guestId) {
-      user = await User.findOne({ guestId });
-      if (!user) {
-        const suffix = guestId.slice(-4).toUpperCase();
-        user = await User.create({
-          storeId: storeObjId,
-          guestId,
-          name: cookiePlayerName || `Player #${suffix}`,
-          email: `guest-${guestId}@arcade.app`,
-          passwordHash: "guest_no_auth_required",
-          role: "customer",
-          totalCafePoints: 0,
-        });
-      } else if (cookiePlayerName && user.name.startsWith("Player #")) {
-        user.name = cookiePlayerName;
-        await user.save();
+
+    // 1. Explicit Sync Code lookup (e.g. 4-letter suffix 9L9X)
+    if (syncCode && syncCode.length >= 3) {
+      user = await User.findOne({
+        storeId: storeObjId,
+        guestId: { $regex: new RegExp(`${syncCode}$`, "i") },
+      });
+      if (user) {
+        guestId = user.guestId;
       }
     }
 
+    // 2. Direct ID or Cookie / GuestId Lookup
     if (!user) {
-      const newGuestId = "ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
+      if (userId) {
+        user = await User.findById(userId);
+      } else if (guestId) {
+        user = await User.findOne({ guestId });
+      }
+    }
+
+    // 3. Hardware Device Fingerprint Auto-Linking
+    // If current profile is fresh/empty (0 points) or unlinked, check if this same device
+    // already has an active player profile in this store!
+    if (fp && (!user || (user.totalCafePoints === 0))) {
+      const existingDeviceUser = await User.findOne({
+        storeId: storeObjId,
+        deviceFingerprint: fp,
+        totalCafePoints: { $gt: 0 },
+      }).sort({ totalCafePoints: -1, updatedAt: -1 });
+
+      if (existingDeviceUser) {
+        user = existingDeviceUser;
+        guestId = existingDeviceUser.guestId;
+      }
+    }
+
+    // 4. Create new user if still none exists
+    if (!user) {
+      const newGuestId = guestId || ("ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4));
       guestId = newGuestId;
       const suffix = newGuestId.slice(-4).toUpperCase();
       user = await User.create({
         storeId: storeObjId,
         guestId: newGuestId,
+        deviceFingerprint: fp || undefined,
         name: cookiePlayerName || `Player #${suffix}`,
         email: `guest-${newGuestId}@arcade.app`,
         passwordHash: "guest_no_auth_required",
         role: "customer",
         totalCafePoints: 0,
       });
+    } else {
+      // Keep device fingerprint and custom name synced
+      let needsSave = false;
+      if (fp && !user.deviceFingerprint) {
+        user.deviceFingerprint = fp;
+        needsSave = true;
+      }
+      if (cookiePlayerName && user.name.startsWith("Player #")) {
+        user.name = cookiePlayerName;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
     }
 
     const userObjId = user._id;
@@ -101,6 +136,16 @@ export async function GET(req: NextRequest) {
       response.cookies.set({
         name: "forstore_player_id",
         value: guestId,
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
+    }
+
+    if (fp) {
+      response.cookies.set({
+        name: "forstore_device_fp",
+        value: fp,
         path: "/",
         maxAge: 365 * 24 * 60 * 60,
         sameSite: "lax",

@@ -176,22 +176,34 @@ export default function ArcadeLandingPage() {
       }
     }
 
-    // Ensure unique device-isolated guest player ID
-    import("../../lib/playerSession").then(({ getOrCreateClientPlayerId }) => {
+    // Ensure unique device-isolated guest player ID & hardware device fingerprint
+    import("../../lib/playerSession").then(({ getOrCreateClientPlayerId, getClientDeviceFingerprint }) => {
       const playerId = getOrCreateClientPlayerId();
+      const fp = getClientDeviceFingerprint();
       setGuestPlayerId(playerId);
-      fetch(`/api/rewards/user?guestId=${encodeURIComponent(playerId)}&store=${encodeURIComponent(storeParam)}`)
+
+      fetch(
+        `/api/rewards/user?guestId=${encodeURIComponent(playerId)}&store=${encodeURIComponent(storeParam)}&fp=${encodeURIComponent(fp)}`
+      )
         .then((res) => res.json())
         .then((data) => {
           if (data.success && data.user) {
             setUserPoints(data.user.totalCafePoints || 0);
             setUserName(data.user.name || "Player");
+
+            // Auto-link to existing profile with points on the same physical device!
+            if (data.user.guestId && data.user.guestId !== playerId) {
+              setGuestPlayerId(data.user.guestId);
+              try {
+                localStorage.setItem("forstore_guest_player_id", data.user.guestId);
+              } catch {}
+            }
           }
         })
         .catch(() => {});
 
-      // Anti-Farming stealth difficulty & claimed offer check (silent behind the scenes)
-      getPlayerChallengerStatusAction(playerId, storeParam)
+      // Anti-Farming stealth difficulty & claimed offer check (silent behind the scenes across user & device)
+      getPlayerChallengerStatusAction(playerId, storeParam, fp)
         .then((statusRes) => {
           if (typeof window !== "undefined") {
             sessionStorage.setItem("challengerMode", statusRes.success && statusRes.isChallenger ? "true" : "false");
@@ -513,6 +525,14 @@ export default function ArcadeLandingPage() {
         guestId={guestPlayerId}
         onNameSaved={(newName) => {
           setUserName(newName);
+        }}
+        onProfileSynced={(syncedUser) => {
+          setUserName(syncedUser.name);
+          setGuestPlayerId(syncedUser.guestId);
+          setUserPoints(syncedUser.totalCafePoints);
+          try {
+            localStorage.setItem("forstore_guest_player_id", syncedUser.guestId);
+          } catch {}
         }}
       />
     </div>

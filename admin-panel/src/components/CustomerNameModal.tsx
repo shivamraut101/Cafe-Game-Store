@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { updateCustomerNameAction } from "../app/actions/gameActions";
-import { setClientPlayerName } from "../lib/playerSession";
+import { updateCustomerNameAction, syncPlayerProfileByIdAction } from "../app/actions/gameActions";
+import { setClientPlayerName, getClientDeviceFingerprint } from "../lib/playerSession";
 
 interface CustomerNameModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface CustomerNameModalProps {
   currentName?: string;
   guestId?: string;
   onNameSaved?: (newName: string) => void;
+  onProfileSynced?: (user: { id: string; guestId: string; name: string; totalCafePoints: number }) => void;
 }
 
 export default function CustomerNameModal({
@@ -18,11 +19,19 @@ export default function CustomerNameModal({
   currentName = "",
   guestId = "",
   onNameSaved,
+  onProfileSynced,
 }: CustomerNameModalProps) {
   const [nameInput, setNameInput] = useState(currentName);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Cross-profile & cross-browser profile sync state
+  const [showSyncSection, setShowSyncSection] = useState(false);
+  const [syncCodeInput, setSyncCodeInput] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const [syncSuccess, setSyncSuccess] = useState(false);
 
   const suffix = guestId ? guestId.slice(-4).toUpperCase() : "GUEST";
   const isDefault =
@@ -33,10 +42,13 @@ export default function CustomerNameModal({
 
   useEffect(() => {
     if (isOpen) {
-      // If currentName is default (e.g. Player #9L9X), leave input blank for friendly prompt
       setNameInput(isDefault ? "" : currentName);
       setSavedSuccess(false);
       setErrorMsg("");
+      setShowSyncSection(false);
+      setSyncCodeInput("");
+      setSyncError("");
+      setSyncSuccess(false);
     }
   }, [isOpen, currentName, isDefault]);
 
@@ -70,14 +82,45 @@ export default function CustomerNameModal({
     }
   };
 
+  const handleSyncProfile = async () => {
+    const clean = syncCodeInput.trim().toUpperCase().replace(/^#/, "");
+    if (!clean || clean.length < 3) {
+      setSyncError("Please enter your 4-letter Player Code (e.g. 9L9X)");
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      setSyncError("");
+      const fp = getClientDeviceFingerprint();
+      const res = await syncPlayerProfileByIdAction(clean, undefined, fp);
+
+      if (res.success && res.user) {
+        setSyncSuccess(true);
+        if (onProfileSynced) {
+          onProfileSynced(res.user);
+        }
+        setTimeout(() => {
+          onClose();
+        }, 800);
+      } else {
+        setSyncError(res.error || "Profile not found");
+      }
+    } catch (e: any) {
+      setSyncError(e.message || "Failed to sync profile");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleResetToAnonymous = () => {
     handleSave(""); // clears custom name, reverting to Player #XXXX
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
       <div
-        className="w-full max-w-sm bg-[#FFFDF9] border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_#000] relative flex flex-col gap-4 text-left"
+        className="w-full max-w-sm bg-[#FFFDF9] border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_#000] relative flex flex-col gap-4 text-left my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -106,7 +149,7 @@ export default function CustomerNameModal({
         <div className="bg-[#F3F4F6] border-2 border-black/20 rounded-2xl p-3 text-[11px] font-medium text-black/70 flex flex-col gap-1">
           <div className="flex items-center justify-between font-mono font-black text-black text-xs">
             <span className="flex items-center gap-1">
-              <span>🔒</span> Regulated Device ID:
+              <span>🔒</span> Active Player ID:
             </span>
             <span className="bg-white px-2 py-0.5 rounded border border-black/20 text-[#FF4C29]">
               #{suffix}
@@ -189,6 +232,56 @@ export default function CustomerNameModal({
             >
               Skip / Keep Anonymous
             </button>
+          )}
+        </div>
+
+        {/* Cross-Browser / Incognito Profile Sync Accordion */}
+        <div className="border-t-2 border-black/10 pt-3 mt-1">
+          <button
+            type="button"
+            onClick={() => setShowSyncSection(!showSyncSection)}
+            className="w-full flex items-center justify-between text-xs font-black text-black/70 hover:text-black cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5">
+              <span>🔄</span> Switch / Restore Profile by ID
+            </span>
+            <span className="text-xs">{showSyncSection ? "▲" : "▼"}</span>
+          </button>
+
+          {showSyncSection && (
+            <div className="mt-2.5 p-3 bg-amber-50 border-2 border-amber-400/60 rounded-2xl flex flex-col gap-2 animate-fade-in">
+              <p className="text-[11px] text-amber-950 font-medium leading-tight">
+                Already have points on Incognito or another browser profile? Enter your 4-letter Player Code (e.g. <strong>9L9X</strong>) to sync your wallet!
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  maxLength={10}
+                  value={syncCodeInput}
+                  onChange={(e) => setSyncCodeInput(e.target.value.toUpperCase())}
+                  placeholder="e.g. 9L9X"
+                  className="w-full px-3 py-2 bg-white text-black font-mono font-bold text-xs uppercase border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleSyncProfile}
+                  disabled={syncing}
+                  className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                >
+                  {syncing ? "..." : "Sync"}
+                </button>
+              </div>
+              {syncError && (
+                <p className="text-[10px] font-bold text-red-600">
+                  ⚠️ {syncError}
+                </p>
+              )}
+              {syncSuccess && (
+                <p className="text-[10px] font-black text-emerald-700">
+                  ✅ Profile synced successfully!
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>

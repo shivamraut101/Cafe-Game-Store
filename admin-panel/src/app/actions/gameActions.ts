@@ -23,6 +23,7 @@ export interface SubmitSessionInput {
   storeName?: string;
   userId?: string;
   playerId?: string;
+  deviceFingerprint?: string;
   gameSlug: string;
   score: number;
   duration?: number;
@@ -55,6 +56,8 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     // Resolve device-isolated guestPlayerId from cookie or input
     const cookieStore = await cookies();
     let guestPlayerId = normalized.playerId || cookieStore.get("forstore_player_id")?.value;
+    const deviceFingerprint = normalized.deviceFingerprint || cookieStore.get("forstore_device_fp")?.value || "";
+
     if (!guestPlayerId) {
       guestPlayerId = "ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
       cookieStore.set({
@@ -74,23 +77,49 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     if (!customer && guestPlayerId) {
       customer = await User.findOne({ guestId: guestPlayerId });
     }
+    // Auto-link by hardware device fingerprint if customer not found or has 0 points
+    if ((!customer || customer.totalCafePoints === 0) && deviceFingerprint) {
+      const existingDeviceCustomer = await User.findOne({
+        storeId: storeObjId,
+        deviceFingerprint,
+        totalCafePoints: { $gt: 0 },
+      }).sort({ totalCafePoints: -1 });
+
+      if (existingDeviceCustomer) {
+        customer = existingDeviceCustomer;
+        guestPlayerId = existingDeviceCustomer.guestId;
+      }
+    }
+
     const customPlayerCookie = cookieStore.get("forstore_player_name")?.value;
     const customPlayerName = customPlayerCookie ? decodeURIComponent(customPlayerCookie).trim() : "";
 
     if (!customer) {
-      const suffix = guestPlayerId.slice(-4).toUpperCase();
+      const resolvedId = guestPlayerId || ("ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4));
+      const suffix = resolvedId.slice(-4).toUpperCase();
       customer = await User.create({
         storeId: storeObjId,
-        guestId: guestPlayerId,
+        guestId: resolvedId,
+        deviceFingerprint: deviceFingerprint || undefined,
         name: customPlayerName || `Player #${suffix}`,
-        email: `guest-${guestPlayerId}@arcade.app`,
+        email: `guest-${resolvedId}@arcade.app`,
         passwordHash: "guest_no_auth_required",
         role: "customer",
         totalCafePoints: 0,
       });
-    } else if (customPlayerName && customer.name.startsWith("Player #")) {
-      customer.name = customPlayerName;
-      await customer.save();
+    } else {
+      let needsSave = false;
+      if (deviceFingerprint && !customer.deviceFingerprint) {
+        customer.deviceFingerprint = deviceFingerprint;
+        needsSave = true;
+      }
+      if (customPlayerName && customer.name.startsWith("Player #")) {
+        customer.name = customPlayerName;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await customer.save();
+      }
     }
 
     userId = customer._id.toString();
@@ -109,7 +138,10 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
 
       const playsToday = await GameSession.countDocuments({
         storeId: storeObjId,
-        userId: userObjId,
+        $or: [
+          { userId: userObjId },
+          ...(deviceFingerprint ? [{ deviceFingerprint }] : []),
+        ],
         gameSlug,
         playedAt: { $gte: startOfDay },
       });
@@ -185,11 +217,14 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
         if (qualifiedTiers.length > 0) {
           const topTier = qualifiedTiers[0];
 
-          // Check if this user already earned this same offer within the store's cooldown window (e.g. 7 days)
+          // Check if this user or device already earned this same offer within the store's cooldown window (e.g. 7 days)
           const windowStart = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);
           const duplicateRecentClaim = await RewardClaim.findOne({
             storeId: storeObjId,
-            userId: userObjId,
+            $or: [
+              { userId: userObjId },
+              ...(deviceFingerprint ? [{ deviceFingerprint }] : []),
+            ],
             rewardName: topTier.rewardName,
             earnedAt: { $gte: windowStart },
           });
@@ -209,6 +244,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
             await RewardClaim.create({
               storeId: storeObjId,
               userId: userObjId,
+              deviceFingerprint: deviceFingerprint || customer?.deviceFingerprint || undefined,
               sessionId,
               gameSlug,
               rewardName: topTier.rewardName || "Cafe Reward",
@@ -228,6 +264,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     const session = await GameSession.create({
       storeId: storeObjId,
       userId: userObjId,
+      deviceFingerprint: deviceFingerprint || customer?.deviceFingerprint || undefined,
       gameSlug,
       difficulty: config?.difficulty || "medium",
       score,
@@ -365,15 +402,28 @@ export async function redeemRewardVoucherAction(
 /**
  * Server Action: Fetches customer's active rewards and Cafe Points.
  */
-export async function getUserRewardsAction(guestPlayerId?: string) {
+export async function getUserRewardsAction(guestPlayerId?: string, deviceFingerprintArg?: string) {
   try {
     await connectDB();
     const cookieStore = await cookies();
     const resolvedGuestId = guestPlayerId || cookieStore.get("forstore_player_id")?.value;
+    const deviceFingerprint = deviceFingerprintArg || cookieStore.get("forstore_device_fp")?.value || "";
 
     let user = null;
     if (resolvedGuestId) {
       user = await User.findOne({ guestId: resolvedGuestId });
+    }
+
+    // Auto-link by hardware device fingerprint if user has 0 points or doesn't exist
+    if ((!user || user.totalCafePoints === 0) && deviceFingerprint) {
+      const existingDeviceUser = await User.findOne({
+        deviceFingerprint,
+        totalCafePoints: { $gt: 0 },
+      }).sort({ totalCafePoints: -1, updatedAt: -1 });
+
+      if (existingDeviceUser) {
+        user = existingDeviceUser;
+      }
     }
 
     if (!user) {
@@ -397,7 +447,12 @@ export async function getUserRewardsAction(guestPlayerId?: string) {
       };
     }
 
-    const claims = await RewardClaim.find({ userId: user._id }).sort({ earnedAt: -1 });
+    const orConditions: any[] = [{ userId: user._id }];
+    if (deviceFingerprint) {
+      orConditions.push({ deviceFingerprint });
+    }
+
+    const claims = await RewardClaim.find({ $or: orConditions }).sort({ earnedAt: -1 });
 
     const formattedClaims = await Promise.all(
       claims.map(async (c) => {
@@ -523,12 +578,18 @@ export async function updateCustomerNameAction(newName: string, guestPlayerId?: 
 /**
  * Server Action: Checks if a player has recently earned an offer within the store's
  * cooldown window (default 7 days). If yes, all games run in Challenger/Hard Mode for them!
+ * Matches by guest ID and/or hardware device fingerprint to prevent incognito evasion.
  */
-export async function getPlayerChallengerStatusAction(guestPlayerId?: string, storeSlug?: string) {
+export async function getPlayerChallengerStatusAction(
+  guestPlayerId?: string,
+  storeSlug?: string,
+  deviceFingerprintArg?: string
+) {
   try {
     await connectDB();
     const cookieStore = await cookies();
     const resolvedGuestId = guestPlayerId || cookieStore.get("forstore_player_id")?.value;
+    const deviceFingerprint = deviceFingerprintArg || cookieStore.get("forstore_device_fp")?.value || "";
 
     let store = null;
     if (storeSlug) {
@@ -541,7 +602,7 @@ export async function getPlayerChallengerStatusAction(guestPlayerId?: string, st
     const cooldownDays = store?.rewardCooldownDays || 7;
     const dynamicScaling = store?.dynamicDifficultyScaling !== false;
 
-    if (!resolvedGuestId || !store) {
+    if ((!resolvedGuestId && !deviceFingerprint) || !store) {
       return {
         success: true,
         isChallenger: false,
@@ -553,23 +614,37 @@ export async function getPlayerChallengerStatusAction(guestPlayerId?: string, st
       };
     }
 
-    const user = await User.findOne({ guestId: resolvedGuestId });
-    if (!user) {
-      return {
-        success: true,
-        isChallenger: false,
-        cooldownDays,
-        dynamicScaling,
-        claimedRewardNames: [] as string[],
-        claimedGameSlugs: [] as string[],
-        hasPendingVoucher: false,
-      };
+    let user = resolvedGuestId ? await User.findOne({ guestId: resolvedGuestId }) : null;
+    if (!user && deviceFingerprint) {
+      user = await User.findOne({ deviceFingerprint });
     }
 
     const windowStart = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);
+
+    // Build claim search condition across both user account and hardware device fingerprint
+    const orConditions: any[] = [];
+    if (user) {
+      orConditions.push({ userId: user._id });
+    }
+    if (deviceFingerprint) {
+      orConditions.push({ deviceFingerprint });
+    }
+
+    if (orConditions.length === 0) {
+      return {
+        success: true,
+        isChallenger: false,
+        cooldownDays,
+        dynamicScaling,
+        claimedRewardNames: [] as string[],
+        claimedGameSlugs: [] as string[],
+        hasPendingVoucher: false,
+      };
+    }
+
     const recentClaims = await RewardClaim.find({
       storeId: store._id,
-      userId: user._id,
+      $or: orConditions,
       earnedAt: { $gte: windowStart },
     }).sort({ earnedAt: -1 });
 
@@ -580,7 +655,7 @@ export async function getPlayerChallengerStatusAction(guestPlayerId?: string, st
     const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
     const activePendingClaim = await RewardClaim.findOne({
       storeId: store._id,
-      userId: user._id,
+      $or: orConditions,
       status: "pending",
       earnedAt: { $gte: thirtyMinsAgo },
     });
@@ -624,6 +699,76 @@ export async function getPlayerChallengerStatusAction(guestPlayerId?: string, st
       claimedGameSlugs: [],
       hasPendingVoucher: false,
     };
+  }
+}
+
+/**
+ * Server Action: Syncs or restores a player profile across devices/browsers/profiles
+ * using their 4-character ID suffix (e.g. "9L9X") or full guestId.
+ */
+export async function syncPlayerProfileByIdAction(
+  syncCode: string,
+  storeSlug?: string,
+  deviceFingerprintArg?: string
+) {
+  try {
+    await connectDB();
+    const cookieStore = await cookies();
+    const deviceFingerprint = deviceFingerprintArg || cookieStore.get("forstore_device_fp")?.value || "";
+    const cleanCode = (syncCode || "").trim().toUpperCase().replace(/^#/, "");
+    if (!cleanCode || cleanCode.length < 3) {
+      return { success: false, error: "Please enter at least the 4-character Player ID (e.g. 9L9X)" };
+    }
+
+    const query: any = {
+      $or: [
+        { guestId: { $regex: new RegExp(`${cleanCode}$`, "i") } },
+        { guestId: cleanCode.toLowerCase() },
+        { name: { $regex: new RegExp(`Player #${cleanCode}$`, "i") } },
+      ],
+    };
+
+    const targetUser = await User.findOne(query).sort({ totalCafePoints: -1, updatedAt: -1 });
+    if (!targetUser) {
+      return { success: false, error: `No player profile found with ID #${cleanCode}. Please check your code!` };
+    }
+
+    // Associate current device fingerprint with the target user for automatic future linking
+    if (deviceFingerprint) {
+      targetUser.deviceFingerprint = deviceFingerprint;
+      await targetUser.save();
+
+      cookieStore.set({
+        name: "forstore_device_fp",
+        value: deviceFingerprint,
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
+    }
+
+    const targetGuestId = targetUser.guestId || targetUser._id.toString();
+
+    // Set browser cookie
+    cookieStore.set({
+      name: "forstore_player_id",
+      value: targetGuestId,
+      path: "/",
+      maxAge: 365 * 24 * 60 * 60,
+      sameSite: "lax",
+    });
+
+    return {
+      success: true,
+      user: {
+        id: targetUser._id.toString(),
+        guestId: targetGuestId,
+        name: targetUser.name,
+        totalCafePoints: targetUser.totalCafePoints || 0,
+      },
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to sync player profile" };
   }
 }
 

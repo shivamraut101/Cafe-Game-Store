@@ -52,6 +52,7 @@ export const Store: Model<IStore> =
 export interface IUser extends Document {
   storeId: mongoose.Types.ObjectId | null;
   guestId?: string;
+  deviceFingerprint?: string;
   email: string;
   name: string;
   role: "super_admin" | "store_admin" | "customer";
@@ -69,6 +70,7 @@ const UserSchema = new Schema<IUser>(
   {
     storeId: { type: Schema.Types.ObjectId, ref: "Store", default: null },
     guestId: { type: String, index: true },
+    deviceFingerprint: { type: String, index: true },
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     role: { type: String, enum: ["super_admin", "store_admin", "customer"], required: true },
@@ -83,6 +85,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 UserSchema.index({ storeId: 1, role: 1 });
+UserSchema.index({ storeId: 1, deviceFingerprint: 1 });
 
 export const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
@@ -150,6 +153,7 @@ export const MiniGameConfig: Model<IMiniGameConfig> =
 export interface IGameSession extends Document {
   storeId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  deviceFingerprint?: string;
   gameSlug: string;
   difficulty: string;
   score: number;
@@ -167,6 +171,7 @@ export interface IGameSession extends Document {
 const GameSessionSchema = new Schema<IGameSession>({
   storeId: { type: Schema.Types.ObjectId, ref: "Store", required: true },
   userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  deviceFingerprint: { type: String, index: true },
   gameSlug: { type: String, required: true },
   difficulty: { type: String, required: true },
   score: { type: Number, required: true },
@@ -183,6 +188,7 @@ const GameSessionSchema = new Schema<IGameSession>({
 
 GameSessionSchema.index({ storeId: 1, playedAt: -1 });
 GameSessionSchema.index({ userId: 1, playedAt: -1 });
+GameSessionSchema.index({ storeId: 1, deviceFingerprint: 1 });
 GameSessionSchema.index({ gameSlug: 1, storeId: 1, playedAt: -1 });
 
 export const GameSession: Model<IGameSession> =
@@ -192,6 +198,7 @@ export const GameSession: Model<IGameSession> =
 export interface IRewardClaim extends Document {
   storeId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
+  deviceFingerprint?: string;
   sessionId: mongoose.Types.ObjectId;
   gameSlug: string;
   rewardName: string;
@@ -209,6 +216,7 @@ export interface IRewardClaim extends Document {
 const RewardClaimSchema = new Schema<IRewardClaim>({
   storeId: { type: Schema.Types.ObjectId, ref: "Store", required: true },
   userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  deviceFingerprint: { type: String, index: true },
   sessionId: { type: Schema.Types.ObjectId, ref: "GameSession", required: true },
   gameSlug: { type: String, required: true },
   rewardName: { type: String, required: true },
@@ -225,6 +233,7 @@ const RewardClaimSchema = new Schema<IRewardClaim>({
 
 RewardClaimSchema.index({ storeId: 1, status: 1 });
 RewardClaimSchema.index({ userId: 1, status: 1 });
+RewardClaimSchema.index({ storeId: 1, deviceFingerprint: 1 });
 RewardClaimSchema.index({ expiresAt: 1 });
 
 export const RewardClaim: Model<IRewardClaim> =
