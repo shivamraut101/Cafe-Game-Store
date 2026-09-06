@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from "react";
+import Link from "next/link";
 import { submitGameSessionAction } from "../../actions/gameActions";
 import { ArcadeAudio } from "@/lib/audioEngine";
 
@@ -515,9 +516,17 @@ export default function DropMergeGame() {
                 <p className="font-mono font-black text-xs bg-black text-white px-2 py-0.5 rounded-md inline-block my-1">
                   Code: {earnedReward.claimCode}
                 </p>
-                <a href={`/claim/${earnedReward.claimCode}`} className="block text-[10px] font-black underline">
+                <Link
+                  href={`/claim/${earnedReward.claimCode}`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/claim/${earnedReward.claimCode}`;
+                  }}
+                  className="mt-2 block w-full py-2 px-3 bg-black text-white rounded-xl text-[11px] font-black uppercase tracking-wider text-center border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:bg-neutral-800 active:scale-95 transition-transform cursor-pointer"
+                >
                   SHOW TO STAFF AT COUNTER 📱
-                </a>
+                </Link>
               </div>
             )}
 

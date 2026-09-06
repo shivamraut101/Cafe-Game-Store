@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback, useState } from "react";
+import Link from "next/link";
 import { submitGameSessionAction } from "../../actions/gameActions";
 import { ArcadeAudio } from "@/lib/audioEngine";
 
@@ -128,7 +129,11 @@ export default function FlappyBaristaGame() {
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
-    const h = (e: Event) => handleInput(e);
+    const h = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("a, button, input, [role='button']")) return;
+      handleInput(e);
+    };
     el.addEventListener("pointerdown", h, { passive: false });
     el.addEventListener("contextmenu", (e) => e.preventDefault());
 
@@ -725,12 +730,17 @@ export default function FlappyBaristaGame() {
                 <p className="font-mono font-black text-xs bg-black text-white px-3 py-1 rounded-lg inline-block my-1">
                   Code: {earnedReward.claimCode}
                 </p>
-                <a
+                <Link
                   href={`/claim/${earnedReward.claimCode}`}
-                  className="block mt-2 text-[11px] font-black text-black underline hover:opacity-80"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/claim/${earnedReward.claimCode}`;
+                  }}
+                  className="mt-3 block w-full py-3 px-4 bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider text-center border-2 border-black shadow-[3px_3px_0px_0px_#000] hover:bg-neutral-800 active:scale-95 transition-transform cursor-pointer"
                 >
                   SHOW TO STAFF AT COUNTER 📱
-                </a>
+                </Link>
               </div>
             )}
 

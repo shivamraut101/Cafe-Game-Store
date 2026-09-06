@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import Matter from "matter-js";
 import { submitGameSessionAction } from "../../actions/gameActions";
 import { ArcadeAudio } from "@/lib/audioEngine";
@@ -219,7 +220,7 @@ export default function CoffeeTowerGame() {
     }
     lastTapTimeRef.current = now;
 
-    if (gameState === "start" || gameState === "gameover") { startGame(); return; }
+    // Only drop block during active gameplay
     if (gameState !== "playing" || !engineRef.current) return;
 
     const engine = engineRef.current;
@@ -401,9 +402,9 @@ export default function CoffeeTowerGame() {
   return (
     <div
       onPointerDown={(e) => {
-        // Only react to primary touch/click
+        // Only react during active gameplay! Never react on start or gameover screens
+        if (gameStateRef.current !== "playing") return;
         if (!e.isPrimary) return;
-        // Ignore taps on interactive links or buttons
         const target = e.target as HTMLElement | null;
         if (target?.closest("a, button, input, [role='button']")) return;
         handleTap();
@@ -461,9 +462,17 @@ export default function CoffeeTowerGame() {
             <p className="text-xs text-white/70 max-w-xs mb-6">
               Stack blocks as high as possible! Overhang slices tumble with <strong>real Matter.js physics</strong>. Miss completely and the whole tower collapses!
             </p>
-            <div className="w-full py-4 bg-[#FF4C29] text-white rounded-2xl font-black text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] text-center cursor-pointer">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                startGame();
+              }}
+              className="w-full py-4 bg-[#FF4C29] text-white rounded-2xl font-black text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] text-center cursor-pointer active:scale-95 transition-transform"
+            >
               TAP ANYWHERE TO PLAY 🚀
-            </div>
+            </button>
           </div>
         )}
 
@@ -500,20 +509,31 @@ export default function CoffeeTowerGame() {
                 <p className="font-mono font-black text-xs bg-black text-white px-3 py-1 rounded-lg inline-block my-1">
                   Code: {earnedReward.claimCode}
                 </p>
-                <a
+                <Link
                   href={`/claim/${earnedReward.claimCode}`}
                   onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                  className="block mt-2 text-[11px] font-black text-black underline hover:opacity-80"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/claim/${earnedReward.claimCode}`;
+                  }}
+                  className="mt-3 block w-full py-3 px-4 bg-black text-white rounded-xl text-xs font-black uppercase tracking-wider text-center border-2 border-black shadow-[3px_3px_0px_0px_#000] hover:bg-neutral-800 active:scale-95 transition-transform cursor-pointer"
                 >
                   SHOW TO STAFF AT COUNTER 📱
-                </a>
+                </Link>
               </div>
             )}
 
-            <div className="w-full py-4 bg-emerald-400 text-black rounded-2xl font-black text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] text-center cursor-pointer">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                startGame();
+              }}
+              className="w-full py-4 bg-emerald-400 text-black rounded-2xl font-black text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] text-center cursor-pointer active:scale-95 transition-transform"
+            >
               TAP TO PLAY AGAIN 🔄
-            </div>
+            </button>
           </div>
         )}
       </main>
