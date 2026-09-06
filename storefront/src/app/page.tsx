@@ -61,7 +61,7 @@ export default function Home() {
             </span>
 
             <h1 className="font-serif text-5xl md:text-6xl font-black tracking-tight leading-[1.05] text-[#111111]">
-              Turn every customer wait into revenue under <span className="underline decoration-[#FF4C29] decoration-wavy">your brand</span>.
+              Turn every customer visit into repeat revenue under <span className="underline decoration-[#FF4C29] decoration-wavy">your brand</span>.
             </h1>
 
             <p className="text-lg text-[#4A4A4A] leading-relaxed max-w-xl">

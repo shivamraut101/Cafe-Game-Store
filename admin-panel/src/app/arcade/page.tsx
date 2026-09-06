@@ -188,7 +188,7 @@ export default function ArcadeLandingPage() {
         {loading ? (
           <div className="p-8 text-center bg-white border-4 border-black rounded-3xl shadow-[4px_4px_0px_0px_#000]">
             <span className="text-4xl animate-spin block mb-2">☕</span>
-            <p className="text-xs font-black text-black/50">Fetching games from MongoDB Atlas...</p>
+            <p className="text-xs font-black text-black/50">Loading arcade games...</p>
           </div>
         ) : games.length === 0 ? (
           <div className="p-8 text-center bg-white border-4 border-black rounded-3xl shadow-[4px_4px_0px_0px_#000]">
@@ -229,7 +229,7 @@ export default function ArcadeLandingPage() {
                   <span className="text-xs font-bold text-emerald-700">{game.rewardHighlight}</span>
                 </div>
                 <Link
-                  href={["coffee-tower", "flappy-barista", "barista-catch"].includes(game.slug) ? `/play/${game.slug}` : `/play/${game.slug}`}
+                  href={`/play/${game.slug}`}
                   className="py-2.5 px-4 bg-black text-white font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] hover:bg-[#FF4C29] transition-all whitespace-nowrap"
                 >
                   PLAY NOW 🚀

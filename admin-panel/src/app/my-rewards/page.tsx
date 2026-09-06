@@ -92,10 +92,10 @@ export default function CustomerRewardsWallet() {
             </div>
             <div>
               <h3 className="font-serif font-black text-base group-hover:text-[#FF4C29] transition-colors">
-                Arcade Lobby (7 Games)
+                Arcade Lobby (9 Games)
               </h3>
               <p className="text-xs text-black/60 font-medium">
-                Play Suika, Brick Breaker, Helix Drop & more
+                Play Air Hockey, Tap War, Drop & Merge & more
               </p>
             </div>
           </div>
