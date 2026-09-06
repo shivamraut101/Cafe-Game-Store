@@ -11,6 +11,7 @@ import {
   SessionPayload,
 } from "../../lib/auth";
 import { getMiniGameConfigsAction } from "./adminActions";
+import { sendPinRecoveryEmail, maskEmail } from "../../lib/emailService";
 
 const SESSION_COOKIE_NAME = "forstore_session";
 
@@ -434,8 +435,8 @@ export async function lockAdminAction() {
 }
 
 /**
- * Server Action: Recovers Store Admin PIN using registered store owner email.
- * Also unlocks the current browser session directly upon successful email recovery.
+ * Server Action: Recovers Store Admin PIN by dispatching a secure recovery email
+ * directly to the registered store owner's inbox.
  */
 export async function recoverStorePinAction(ownerEmail: string) {
   try {
@@ -447,74 +448,61 @@ export async function recoverStorePinAction(ownerEmail: string) {
     }
 
     // Search store by owner email or fallback to store owner account
-    const store = await Store.findOne({ ownerEmail: cleanEmail });
+    let targetStore = await Store.findOne({ ownerEmail: cleanEmail });
 
-    if (!store) {
+    if (!targetStore) {
       // Check if user exists with store_admin role
       const user = await User.findOne({ email: cleanEmail, role: { $in: ["store_admin", "super_admin"] } });
       if (user && user.storeId) {
-        const userStore = await Store.findById(user.storeId);
-        if (userStore) {
-          const pin = userStore.adminPin || "9900";
-          // Unlock session
-          const cookieStore = await cookies();
-          cookieStore.set({
-            name: "forstore_admin_pin_verified",
-            value: "true",
-            httpOnly: true,
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
-            path: "/",
-            maxAge: 30 * 24 * 60 * 60,
-          });
-          return {
-            success: true,
-            storeName: userStore.storeName,
-            pin,
-            recoveryUrl: `/?pin=${pin}`,
-          };
-        }
+        targetStore = await Store.findById(user.storeId);
       }
+    }
+
+    if (!targetStore) {
       return {
         success: false,
-        error: `No cafe or store registered under "${cleanEmail}". Please check your email or contact support.`,
+        error: `No store registered under "${cleanEmail}". Please check your email or contact support.`,
       };
     }
 
-    const pin = store.adminPin || "9900";
+    const pin = targetStore.adminPin || "9900";
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://cafe-game-store-admin-panel.vercel.app";
+    const accessUrl = `${appBaseUrl}/?pin=${pin}`;
 
-    // Unlock session on this browser
-    const cookieStore = await cookies();
-    cookieStore.set({
-      name: "forstore_admin_pin_verified",
-      value: "true",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60,
+    // Dispatch secure email with the PIN and direct unlock link
+    const emailRes = await sendPinRecoveryEmail({
+      to: cleanEmail,
+      storeName: targetStore.storeName,
+      pin,
+      accessUrl,
     });
 
-    // Audit Log
+    if (!emailRes.success) {
+      return { success: false, error: emailRes.error || "Failed to dispatch recovery email." };
+    }
+
+    // Security Audit Log
     await AuditLog.create({
-      storeId: store._id,
-      actorName: store.ownerName || "Store Owner",
+      storeId: targetStore._id,
+      actorName: targetStore.ownerName || "Store Owner",
       actorEmail: cleanEmail,
       actorRole: "Store Admin",
       ipAddress: "127.0.0.1",
-      action: "PIN_RECOVERY_SUCCESS",
+      action: "PIN_RECOVERY_EMAIL_SENT",
       actionCategory: "SECURITY",
       targetType: "Store Security",
-      targetName: store.storeName,
-      details: `PIN recovery verified for ${store.storeName}.`,
+      targetName: targetStore.storeName,
+      details: `Recovery PIN email dispatched to ${cleanEmail} for ${targetStore.storeName}.`,
       timestamp: new Date(),
     });
 
     return {
       success: true,
-      storeName: store.storeName,
-      pin,
-      recoveryUrl: `/?pin=${pin}`,
+      storeName: targetStore.storeName,
+      maskedEmail: maskEmail(cleanEmail),
+      simulated: emailRes.simulated,
+      devPreviewUrl: emailRes.simulated ? accessUrl : undefined,
+      devPreviewPin: emailRes.simulated ? pin : undefined,
     };
   } catch (error: any) {
     console.error("Error in recoverStorePinAction:", error);

@@ -8,13 +8,13 @@ export default function RecoverPinPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [recoveryData, setRecoveryData] = useState<{
+  const [emailDispatchedData, setEmailDispatchedData] = useState<{
     storeName: string;
-    pin: string;
-    recoveryUrl: string;
+    maskedEmail: string;
+    simulated?: boolean;
+    devPreviewUrl?: string;
+    devPreviewPin?: string;
   } | null>(null);
-
-  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,31 +23,25 @@ export default function RecoverPinPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
-      setRecoveryData(null);
+      setEmailDispatchedData(null);
 
       const res = await recoverStorePinAction(email);
-      if (res.success && res.pin) {
-        setRecoveryData({
+      if (res.success && res.maskedEmail) {
+        setEmailDispatchedData({
           storeName: res.storeName || "Your Store",
-          pin: res.pin,
-          recoveryUrl: res.recoveryUrl || `/?pin=${res.pin}`,
+          maskedEmail: res.maskedEmail,
+          simulated: res.simulated,
+          devPreviewUrl: res.devPreviewUrl,
+          devPreviewPin: res.devPreviewPin,
         });
       } else {
         setErrorMsg(res.error || "No store found registered with this email address.");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to recover PIN. Please try again.");
+      setErrorMsg(err.message || "Failed to dispatch recovery email. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCopy = () => {
-    if (!recoveryData) return;
-    const fullUrl = `${window.location.origin}${recoveryData.recoveryUrl}`;
-    navigator.clipboard.writeText(fullUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -55,17 +49,17 @@ export default function RecoverPinPage() {
       <main className="w-full max-w-md bg-white border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col items-center text-center relative">
         {/* Header Icon */}
         <div className="w-14 h-14 bg-amber-400 border-3 border-black rounded-2xl flex items-center justify-center text-2xl shadow-[3px_3px_0px_0px_#000] mb-3">
-          🔑
+          📧
         </div>
 
         <h1 className="font-serif text-2xl font-black text-black mb-1">
           Store PIN Recovery
         </h1>
         <p className="text-xs font-semibold text-black/60 mb-5">
-          Forgot your store&apos;s secret access PIN? Enter your registered store owner email address to verify your account.
+          Forgot your store&apos;s secret access PIN? Enter your registered store owner email address. We&apos;ll email your PIN and 1-click unlock link directly to your inbox.
         </p>
 
-        {!recoveryData ? (
+        {!emailDispatchedData ? (
           <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 text-left">
             <div>
               <label className="block text-[11px] font-black uppercase tracking-wider text-black/70 mb-1">
@@ -92,53 +86,70 @@ export default function RecoverPinPage() {
               disabled={loading}
               className="w-full py-3.5 bg-black text-white border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50"
             >
-              {loading ? "VERIFYING STORE WITH MONGO DB..." : "RECOVER ACCESS PIN 🚀"}
+              {loading ? "DISPATCHING SECURE EMAIL..." : "SEND RECOVERY EMAIL ✉️"}
             </button>
           </form>
         ) : (
           <div className="w-full flex flex-col gap-4 text-left">
-            <div className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-4 shadow-[2px_2px_0px_0px_#000]">
+            <div className="bg-emerald-50 border-2 border-emerald-500 rounded-2xl p-5 shadow-[2px_2px_0px_0px_#000]">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">🎉</span>
-                <span className="font-serif font-black text-emerald-950 text-sm">
-                  Store Verified: {recoveryData.storeName}
-                </span>
+                <span className="text-2xl">📬</span>
+                <div>
+                  <h2 className="font-serif font-black text-emerald-950 text-base leading-tight">
+                    Recovery Email Dispatched!
+                  </h2>
+                  <p className="text-[11px] text-emerald-800 font-bold uppercase">
+                    Store: {emailDispatchedData.storeName}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-emerald-800 font-semibold mb-3">
-                Your browser has been granted a 30-day verified session! Here is your secret PIN:
+
+              <p className="text-xs text-emerald-900 font-semibold mb-3 leading-relaxed">
+                We have sent an email with your secret store PIN and a 1-click access button to:
+                <br />
+                <span className="font-mono font-black text-sm bg-white px-2 py-0.5 rounded border border-emerald-300 inline-block mt-1">
+                  {emailDispatchedData.maskedEmail}
+                </span>
               </p>
 
-              <div className="bg-white border-2 border-black rounded-xl p-3 flex items-center justify-between mb-3">
-                <div>
-                  <span className="text-[10px] font-mono uppercase text-black/50 block font-bold">Your Store PIN</span>
-                  <span className="font-mono text-xl font-black tracking-widest text-[#FF4C29]">{recoveryData.pin}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-neutral-800 cursor-pointer shadow-[1px_1px_0px_0px_#FF4C29]"
-                >
-                  {copied ? "COPIED! ✓" : "COPY SECRET LINK 📋"}
-                </button>
+              <div className="bg-white/80 border border-emerald-300 rounded-xl p-3 text-[11px] text-emerald-800 font-medium mb-2">
+                💡 <strong>Next steps:</strong> Open your email inbox, check the email from <em>ForStore Security</em>, and click <strong>&quot;OPEN STORE ADMIN DASHBOARD&quot;</strong>. Don&apos;t forget to check your spam/promotions folder if it doesn&apos;t arrive in 1 minute.
               </div>
 
-              <a
-                href={recoveryData.recoveryUrl}
-                className="w-full py-3 bg-[#FF4C29] text-white border-2 border-black rounded-xl font-black text-xs shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] transition-all block text-center cursor-pointer"
-              >
-                OPEN STORE ADMIN PORTAL NOW 🔓
-              </a>
+              {/* Dev mode preview helper when testing locally without external email provider */}
+              {emailDispatchedData.simulated && (
+                <div className="mt-3 p-3 bg-amber-50 border-2 border-amber-400 rounded-xl text-xs text-amber-950">
+                  <div className="font-black text-[11px] uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <span>⚡</span> Dev Simulation Mode (No SMTP API Key Configured)
+                  </div>
+                  <p className="text-[11px] mb-2 font-semibold">
+                    In production, this email is dispatched via Resend/SendGrid. For testing right now:
+                  </p>
+                  <div className="bg-white p-2 rounded border border-amber-300 font-mono text-xs font-black flex justify-between items-center mb-2">
+                    <span>Your Store PIN:</span>
+                    <span className="text-[#FF4C29] text-sm">{emailDispatchedData.devPreviewPin}</span>
+                  </div>
+                  {emailDispatchedData.devPreviewUrl && (
+                    <a
+                      href={emailDispatchedData.devPreviewUrl}
+                      className="block w-full py-2 bg-black text-white rounded-lg text-center font-bold text-xs shadow-[2px_2px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all"
+                    >
+                      TEST 1-CLICK UNLOCK LINK 🚀
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
 
             <button
               type="button"
               onClick={() => {
-                setRecoveryData(null);
+                setEmailDispatchedData(null);
                 setEmail("");
               }}
               className="text-xs font-bold text-black/60 hover:text-black text-center cursor-pointer"
             >
-              ← Search another email
+              ← Send to a different email
             </button>
           </div>
         )}
@@ -147,7 +158,7 @@ export default function RecoverPinPage() {
           <Link href="/arcade?store=adda-99" className="hover:text-black">
             ← Back to Customer Arcade
           </Link>
-          <span>ForStore HQ Multi-Tenant Security</span>
+          <span>ForStore HQ Email Security</span>
         </div>
       </main>
     </div>
