@@ -137,7 +137,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput) {
       });
 
       if (existingPendingClaim) {
-        cooldownNotice = `You already have an active voucher (${existingPendingClaim.claimCode}) waiting to be redeemed at the counter!`;
+        cooldownNotice = `You already have an active voucher (${existingPendingClaim.claimCode}) ready to be redeemed at the counter!`;
       } else {
         // Find highest qualified tier
         const qualifiedTiers = config.rewardTiers

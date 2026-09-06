@@ -72,7 +72,7 @@ export default function ArcadeLandingPage() {
               name: c.name,
               type: `${c.difficulty.toUpperCase()} • Max ${c.maxDailyPlays > 0 ? c.maxDailyPlays + "/day" : "Unlimited"}`,
               icon: c.icon,
-              description: `Play ${c.name} while you wait to earn Reward Points & instant perks!`,
+              description: `Play ${c.name} to earn Reward Points & instant perks!`,
               rewardHighlight: `Win ${topReward}`,
               color: c.slug === "coffee-tower" ? "bg-[#FF4C29]" : c.slug === "flappy-barista" ? "bg-[#F59E0B]" : "bg-[#10B981]",
               shadowColor: c.slug === "coffee-tower" ? "shadow-[4px_4px_0px_0px_#FF4C29]" : c.slug === "flappy-barista" ? "shadow-[4px_4px_0px_0px_#F59E0B]" : "shadow-[4px_4px_0px_0px_#10B981]",
@@ -113,11 +113,11 @@ export default function ArcadeLandingPage() {
           <div className="flex items-center justify-between">
             <div>
               <span className="bg-black/40 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-full border border-white/20 tracking-wider">
-                PLAY WHILE YOU WAIT
+                PLAY & WIN REWARDS
               </span>
               <h2 className="font-serif text-2xl font-black mt-1">Pick a Game & Win!</h2>
               <p className="text-xs font-bold text-white/90 mt-0.5">
-                Play mini-games while you wait to win exclusive discounts & instant perks!
+                Play mini-games to win exclusive discounts & instant perks!
               </p>
             </div>
             <span className="text-5xl animate-bounce">🎮</span>
@@ -203,7 +203,7 @@ export default function ArcadeLandingPage() {
 
       {/* Footer */}
       <footer className="text-center text-xs font-bold text-black/40 py-2">
-        Scan QR at your spot • Play mini-games while you wait to win perks
+        Scan QR at your spot • Play mini-games to win exclusive rewards
       </footer>
     </div>
   );

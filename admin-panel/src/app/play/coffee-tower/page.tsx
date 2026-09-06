@@ -375,11 +375,13 @@ export default function CoffeeTowerGame() {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xl">🏗️</span>
-            <h1 className="font-serif font-black text-lg">Tower Stack</h1>
+            <div>
+              <h1 className="font-serif font-black text-lg leading-tight">Tower Stack</h1>
+              <p className="text-[10px] font-bold text-[#FF4C29] tracking-widest uppercase">
+                Arcade Challenge
+              </p>
+            </div>
           </div>
-          <p className="text-[10px] font-bold text-[#FF4C29] tracking-widest uppercase">
-            Waiting: <span className="font-mono text-white">{fmt(waitTime)}</span>
-          </p>
         </div>
         <div className="text-right">
           <span className="text-[10px] font-bold text-white/50 uppercase block">Points</span>

@@ -148,7 +148,7 @@ export default function CustomerRewardsWallet() {
             <h3 className="font-serif text-xl font-black text-black mb-1">No Vouchers Found</h3>
             <p className="text-xs font-bold text-black/50 mb-4">
               {activeTab === "pending"
-                ? "Play games while waiting for your order to win free coffee & discounts!"
+                ? "Play arcade games to win exclusive vouchers & discounts!"
                 : `No ${activeTab} reward vouchers.`}
             </p>
             <Link

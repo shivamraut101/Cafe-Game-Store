@@ -680,7 +680,7 @@ export default function FlappyBaristaGame() {
             <div>
               <h1 className="font-serif font-black text-base leading-tight">Flappy Flight</h1>
               <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
-                Wait: <span className="font-mono text-white/90">{fmt(waitRef.current)}</span>
+                Tap to Fly
               </p>
             </div>
           </div>

@@ -689,7 +689,7 @@ export default function BaristaCatchGame() {
             <div>
               <h1 className="font-serif font-black text-base leading-tight">Prize Catcher</h1>
               <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
-                Wait: <span className="font-mono text-white/90">{fmt(waitRef.current)}</span>
+                Catch & Win
               </p>
             </div>
           </div>
