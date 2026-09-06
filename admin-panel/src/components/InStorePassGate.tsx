@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { verifyStoreKey, saveClientInStoreSession, getNextRotationMs } from "../lib/storeAccessPass";
+import { getNextRotationMs } from "../lib/storeAccessPass";
 
 interface InStorePassGateProps {
   storeSlug: string;
@@ -17,9 +17,6 @@ export default function InStorePassGate({
   tableNumber = "",
   onUnlocked,
 }: InStorePassGateProps) {
-  const [manualCode, setManualCode] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [showCodeInput, setShowCodeInput] = useState(false);
   const [timeLeftStr, setTimeLeftStr] = useState("");
   const [showScanHelp, setShowScanHelp] = useState(false);
 
@@ -38,26 +35,6 @@ export default function InStorePassGate({
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleManualUnlock = () => {
-    setErrorMsg("");
-    if (!manualCode.trim()) {
-      setErrorMsg("Please enter the code from your table or counter receipt.");
-      return;
-    }
-
-    const formatted = manualCode.trim().toUpperCase().startsWith("CAFE-")
-      ? manualCode.trim().toUpperCase()
-      : `CAFE-${manualCode.trim().toUpperCase()}`;
-
-    const { valid } = verifyStoreKey(storeSlug, formatted);
-    if (valid) {
-      saveClientInStoreSession(storeSlug, formatted);
-      onUnlocked();
-    } else {
-      setErrorMsg("That code has expired or is invalid. Please scan the live QR code on your table stand!");
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#F6F3EB] text-[#1A1A1A] flex flex-col items-center justify-center p-4 font-sans select-none">
@@ -121,47 +98,8 @@ export default function InStorePassGate({
                 <span>📍</span> Seated at {storeName}?
               </p>
               <p className="text-[11px] leading-relaxed">
-                Simply open your phone's camera and point it at the <strong>QR code stand on your table</strong> or at the order counter. It will instantly unlock all games and table discounts!
+                Simply open your phone's camera and point it at the <strong>QR code stand on your table</strong> or at the order counter. It will instantly unlock your 5-hour game pass and table discounts!
               </p>
-            </div>
-          )}
-        </div>
-
-        {/* Optional Manual Code Entry Fallback */}
-        <div className="w-full pt-1">
-          {!showCodeInput ? (
-            <button
-              onClick={() => setShowCodeInput(true)}
-              className="text-xs text-black/60 hover:text-black font-bold underline cursor-pointer"
-            >
-              Have a table code from staff or receipt? Enter here 🔑
-            </button>
-          ) : (
-            <div className="bg-[#F8F6F0] p-3 rounded-2xl border-2 border-black flex flex-col gap-2 animate-fade-in">
-              <label className="text-[10px] font-black uppercase text-black/70 text-left">
-                Enter In-Store / Table Code:
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={manualCode}
-                  onChange={(e) => setManualCode(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleManualUnlock();
-                  }}
-                  placeholder="e.g. CAFE-XXXXXX or code"
-                  className="flex-1 px-3 py-2 bg-white text-black font-mono font-bold text-xs border-2 border-black rounded-xl uppercase"
-                />
-                <button
-                  onClick={handleManualUnlock}
-                  className="px-4 py-2 bg-black text-white font-black text-xs uppercase rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] cursor-pointer"
-                >
-                  Unlock
-                </button>
-              </div>
-              {errorMsg && (
-                <p className="text-[10px] font-bold text-red-600 text-left">⚠️ {errorMsg}</p>
-              )}
             </div>
           )}
         </div>
