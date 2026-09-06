@@ -323,12 +323,12 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
             </div>
           </div>
 
-          {/* Rule 2: Challenger Mode (Dynamic Difficulty Scaling) */}
+          {/* Rule 2: Dynamic Difficulty Scaling (Stealth Behind the Scenes) */}
           <div className="bg-[#FBF9F4] p-4 rounded-2xl border-2 border-black/20 flex flex-col justify-between gap-3">
             <div>
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black uppercase text-black tracking-wider">
-                  🔥 Challenger Mode (Dynamic Hard Mode)
+                  🔥 Adaptive Difficulty Scaling (Stealth Hard Mode)
                 </label>
                 <button
                   type="button"
@@ -345,7 +345,7 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
                 </button>
               </div>
               <p className="text-[11px] font-semibold text-black/60 mt-1">
-                When active, any customer who has earned an offer within their cooldown window faces automatically harder games (faster speeds, tighter obstacles, narrower towers).
+                When active, any customer who has earned an offer within their cooldown window faces automatically harder games (faster speeds, tighter obstacles, narrower towers) completely behind the scenes without alerting the user.
               </p>
             </div>
 
@@ -353,7 +353,7 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
               <span className="text-base">⚡</span>
               <span>
                 {dynamicScaling
-                  ? "Active: Repeat players will see '🔥 Challenger Mode' and face higher difficulty."
+                  ? "Active: Repeat winners face higher game difficulty behind the scenes (hidden from customer)."
                   : "Disabled: Games remain at standard configured difficulty for all players."}
               </span>
             </div>

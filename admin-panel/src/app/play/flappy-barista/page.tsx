@@ -700,16 +700,9 @@ export default function FlappyBaristaGame() {
             <span className="text-2xl">🚀</span>
             <div>
               <h1 className="font-serif font-black text-base leading-tight">Flappy Flight</h1>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
-                  Tap to Fly
-                </p>
-                {isChallenger && (
-                  <span className="text-[9px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded border border-white/30 uppercase animate-pulse">
-                    🔥 HARD MODE
-                  </span>
-                )}
-              </div>
+              <p className="text-[9px] font-bold text-[#F59E0B] tracking-widest uppercase">
+                Tap to Fly
+              </p>
             </div>
           </div>
         </div>
