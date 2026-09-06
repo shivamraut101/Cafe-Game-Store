@@ -29,7 +29,13 @@ export default function ArcadeLandingPage() {
     let storeParam = "";
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      storeParam = params.get("store") || sessionStorage.getItem("selectedStore") || "";
+      const queryStore = params.get("store");
+      if (queryStore) {
+        sessionStorage.setItem("selectedStore", queryStore);
+        storeParam = queryStore;
+      } else {
+        storeParam = sessionStorage.getItem("selectedStore") || "";
+      }
     }
 
     // Fetch customer profile & points from API
@@ -48,6 +54,9 @@ export default function ArcadeLandingPage() {
       .then((res) => {
         if (res.success && res.branding && res.branding.storeName) {
           setStoreName(res.branding.storeName);
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("selectedStore", res.branding.storeName);
+          }
         }
       })
       .catch(() => {});
