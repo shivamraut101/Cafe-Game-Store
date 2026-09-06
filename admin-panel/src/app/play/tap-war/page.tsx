@@ -107,6 +107,7 @@ export default function TapWarGame() {
 
   // Touch Handler for simultaneous taps
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
     ArcadeAudio.init();
     if (gameState === "idle") {
       initGame(false);

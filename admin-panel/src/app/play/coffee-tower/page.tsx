@@ -45,6 +45,7 @@ export default function CoffeeTowerGame() {
   const scoreRef = useRef(0);
   const comboRef = useRef(0);
   const gameStateRef = useRef<"start" | "playing" | "gameover">("start");
+  const lastTapTimeRef = useRef<number>(0);
 
   // Keep ref in sync
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
@@ -117,11 +118,34 @@ export default function CoffeeTowerGame() {
       ctx.fill();
       ctx.stroke();
 
-      // Text label
+      // Text label with smart sizing and clipping so text NEVER overflows or hangs outside
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(s.x, 30, s.width, BLOCK_H, 8);
+      ctx.clip();
+
       ctx.fillStyle = "#FFFFFF";
-      ctx.font = "bold 11px sans-serif";
+      ctx.font = "900 11px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(item.name, s.x + s.width / 2, 30 + BLOCK_H / 2 + 4);
+      ctx.textBaseline = "middle";
+
+      let label = item.name;
+      if (s.width < 55) {
+        // Narrow block: show only the emoji icon
+        const emojiMatch = item.name.match(/\p{Extended_Pictographic}/u);
+        label = emojiMatch ? emojiMatch[0] : "";
+      } else if (s.width < 95) {
+        // Medium block: show compact name, e.g. "Lucky 🍀"
+        const parts = item.name.split(" ");
+        label = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : item.name;
+      }
+
+      if (label) {
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(label, s.x + s.width / 2, 30 + BLOCK_H / 2);
+      }
+      ctx.restore();
     });
 
     const runner = Matter.Runner.create();
@@ -183,9 +207,18 @@ export default function CoffeeTowerGame() {
 
     sliderRef.current = { x: 80, width: INITIAL_WIDTH, dir: 1, speed: 2.2 };
     setScore(0); setCombo(0); setGameState("playing");
+    // Start grace period: prevent the tap that started the game from dropping block 1
+    lastTapTimeRef.current = performance.now() + 350;
   }, [clearDynamicBodies]);
 
   const handleTap = useCallback(() => {
+    const now = performance.now();
+    // Strict debounce: reject any duplicate/synthetic mobile events within 260ms
+    if (now < lastTapTimeRef.current || now - lastTapTimeRef.current < 260) {
+      return;
+    }
+    lastTapTimeRef.current = now;
+
     if (gameState === "start" || gameState === "gameover") { startGame(); return; }
     if (gameState !== "playing" || !engineRef.current) return;
 
@@ -241,6 +274,7 @@ export default function CoffeeTowerGame() {
       if (fs > highScore) setHighScore(fs);
       setEarnedPoints((p) => p + fs * 10);
       setGameState("gameover");
+      lastTapTimeRef.current = performance.now() + 650; // Buffer to prevent accidental dismissal of Game Over screen
 
       // Submit session & check for reward vouchers via Server Action
       const targetStoreName = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
@@ -366,15 +400,18 @@ export default function CoffeeTowerGame() {
 
   return (
     <div
-      onClick={handleTap}
       onPointerDown={(e) => {
-        // Prevent double triggers with onClick while ensuring instant mobile response
-        if (e.pointerType === "touch") handleTap();
+        // Only react to primary touch/click
+        if (!e.isPrimary) return;
+        // Ignore taps on interactive links or buttons
+        const target = e.target as HTMLElement | null;
+        if (target?.closest("a, button, input, [role='button']")) return;
+        handleTap();
       }}
       className="min-h-screen bg-[#F6F3EB] flex flex-col items-center justify-between p-4 select-none touch-none cursor-pointer"
     >
       {/* Header */}
-      <header className="w-full max-w-md bg-black text-white p-4 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center">
+      <header className="w-full max-w-[360px] bg-black text-white p-4 rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_#FF4C29] flex justify-between items-center">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xl">🏗️</span>
@@ -393,7 +430,7 @@ export default function CoffeeTowerGame() {
       </header>
 
       {/* Game Card */}
-      <main className="w-full max-w-md bg-white border-4 border-black rounded-3xl shadow-[8px_8px_0px_0px_#000] flex flex-col items-center my-4 relative overflow-hidden">
+      <main className="w-full max-w-[360px] bg-white border-4 border-black rounded-3xl shadow-[8px_8px_0px_0px_#000] flex flex-col items-center my-4 relative overflow-hidden">
         {/* HUD */}
         <div className="w-full flex justify-between items-center p-3 z-10">
           <div className="bg-black text-white px-3 py-1 rounded-full text-xs font-black shadow-[2px_2px_0px_0px_#FF4C29]">
@@ -412,8 +449,8 @@ export default function CoffeeTowerGame() {
           ref={canvasRef}
           width={CANVAS_W}
           height={CANVAS_H}
-          className="block rounded-b-2xl"
-          style={{ width: "100%", maxWidth: CANVAS_W, height: "auto", aspectRatio: `${CANVAS_W}/${CANVAS_H}` }}
+          className="w-full block rounded-b-2xl"
+          style={{ width: "100%", height: "auto", aspectRatio: `${CANVAS_W}/${CANVAS_H}` }}
         />
 
         {/* Start Overlay */}
@@ -465,6 +502,8 @@ export default function CoffeeTowerGame() {
                 </p>
                 <a
                   href={`/claim/${earnedReward.claimCode}`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                   className="block mt-2 text-[11px] font-black text-black underline hover:opacity-80"
                 >
                   SHOW TO STAFF AT COUNTER 📱

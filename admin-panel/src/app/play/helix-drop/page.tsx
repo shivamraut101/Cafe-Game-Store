@@ -708,9 +708,11 @@ export default function HelixDropGame() {
           onMouseUp={handlePointerUp}
           onMouseLeave={handlePointerUp}
           onTouchStart={(e) => {
+            e.preventDefault();
             if (e.touches[0]) handlePointerDown(e.touches[0].clientX);
           }}
           onTouchMove={(e) => {
+            e.preventDefault();
             if (e.touches[0]) handlePointerMove(e.touches[0].clientX);
           }}
           onTouchEnd={handlePointerUp}

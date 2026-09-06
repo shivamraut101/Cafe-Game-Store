@@ -566,9 +566,11 @@ export default function BrickBreakerGame() {
           onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
           onMouseUp={handlePointerUp}
           onTouchStart={(e) => {
+            e.preventDefault();
             if (e.touches[0]) handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
           }}
           onTouchMove={(e) => {
+            e.preventDefault();
             if (e.touches[0]) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
           }}
           onTouchEnd={handlePointerUp}
