@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useCallback, useState } from "react";
 import { submitGameSessionAction } from "../../actions/gameActions";
+import { ArcadeAudio } from "@/lib/audioEngine";
 
 // ─── Constants ───────────────────────────────────────────
 const W = 340;
@@ -88,48 +89,18 @@ export default function BaristaCatchGame() {
   const getSpawnInterval = () => Math.max(MIN_SPAWN_INTERVAL, INITIAL_SPAWN_INTERVAL - scoreRef.current * 0.3);
   const getFallSpeed = () => Math.min(MAX_FALL_SPEED, INITIAL_FALL_SPEED + scoreRef.current * 0.008);
 
-  // ─── Audio ──────────────────────────────────────────────
+  // ─── High-Performance Audio ────────────────────────────
   const snd = useCallback((t: "catch" | "bonus" | "miss" | "bomb" | "die") => {
-    try {
-      const C = window.AudioContext || (window as any).webkitAudioContext;
-      if (!C) return;
-      const c = new C(), o = c.createOscillator(), g = c.createGain();
-      o.connect(g); g.connect(c.destination);
-      if (t === "catch") {
-        o.type = "sine"; o.frequency.setValueAtTime(520, c.currentTime);
-        o.frequency.exponentialRampToValueAtTime(780, c.currentTime + 0.08);
-        g.gain.setValueAtTime(0.15, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.08);
-        o.start(); o.stop(c.currentTime + 0.08);
-      } else if (t === "bonus") {
-        o.type = "sine"; o.frequency.setValueAtTime(660, c.currentTime);
-        o.frequency.exponentialRampToValueAtTime(1320, c.currentTime + 0.15);
-        g.gain.setValueAtTime(0.25, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.15);
-        o.start(); o.stop(c.currentTime + 0.15);
-      } else if (t === "miss") {
-        o.type = "triangle"; o.frequency.setValueAtTime(250, c.currentTime);
-        o.frequency.linearRampToValueAtTime(120, c.currentTime + 0.15);
-        g.gain.setValueAtTime(0.2, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.15);
-        o.start(); o.stop(c.currentTime + 0.15);
-      } else if (t === "bomb") {
-        o.type = "sawtooth"; o.frequency.setValueAtTime(150, c.currentTime);
-        o.frequency.linearRampToValueAtTime(50, c.currentTime + 0.3);
-        g.gain.setValueAtTime(0.35, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.3);
-        o.start(); o.stop(c.currentTime + 0.3);
-      } else {
-        o.type = "square"; o.frequency.setValueAtTime(200, c.currentTime);
-        o.frequency.linearRampToValueAtTime(30, c.currentTime + 0.5);
-        g.gain.setValueAtTime(0.4, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.5);
-        o.start(); o.stop(c.currentTime + 0.5);
-      }
-    } catch { /* */ }
+    if (t === "catch") ArcadeAudio.playCatch();
+    else if (t === "bonus") ArcadeAudio.playBonus();
+    else if (t === "miss") ArcadeAudio.playMiss();
+    else ArcadeAudio.playCrash();
   }, []);
 
   const burst = useCallback((x: number, y: number, color: string, n: number, emoji?: string) => {
+    if (particlesRef.current.length > 35) {
+      particlesRef.current.splice(0, particlesRef.current.length - 20);
+    }
     for (let i = 0; i < n; i++) {
       const a = (Math.PI * 2 * i) / n + Math.random() * 0.5;
       const s = 2 + Math.random() * 4;

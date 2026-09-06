@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Matter from "matter-js";
 import { submitGameSessionAction } from "../../actions/gameActions";
+import { ArcadeAudio } from "@/lib/audioEngine";
 
 const ITEMS = [
   { name: "Bonus Block ⭐", color: "#FF4C29" },
@@ -56,36 +57,11 @@ export default function CoffeeTowerGame() {
     return () => clearInterval(t);
   }, []);
 
-  // Audio synth
-  const playSound = useCallback((type: "drop" | "perfect" | "crash") => {
-    try {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!Ctx) return;
-      const ctx = new Ctx();
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.connect(g); g.connect(ctx.destination);
-      if (type === "drop") {
-        osc.frequency.setValueAtTime(300, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.12);
-        g.gain.setValueAtTime(0.25, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
-        osc.start(); osc.stop(ctx.currentTime + 0.12);
-      } else if (type === "perfect") {
-        osc.frequency.setValueAtTime(523, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1047, ctx.currentTime + 0.18);
-        g.gain.setValueAtTime(0.35, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.18);
-        osc.start(); osc.stop(ctx.currentTime + 0.18);
-      } else {
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(160, ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(30, ctx.currentTime + 0.5);
-        g.gain.setValueAtTime(0.5, ctx.currentTime);
-        g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
-        osc.start(); osc.stop(ctx.currentTime + 0.5);
-      }
-    } catch { /* ignore autoplay restriction */ }
+  // High-performance audio synth with combo scaling
+  const playSound = useCallback((type: "drop" | "perfect" | "crash", comboCount: number = 0) => {
+    if (type === "drop") ArcadeAudio.playDrop();
+    else if (type === "perfect") ArcadeAudio.playPerfect(comboCount);
+    else ArcadeAudio.playCrash();
   }, []);
 
   // Boot Matter.js once
@@ -296,8 +272,9 @@ export default function CoffeeTowerGame() {
     // Perfect check
     const isPerfect = Math.abs(overlapWidth - s.width) < 5;
     if (isPerfect) {
-      setCombo((c) => c + 1);
-      playSound("perfect");
+      const nextCombo = combo + 1;
+      setCombo(nextCombo);
+      playSound("perfect", nextCombo);
       setShowPerfect(true);
       setTimeout(() => setShowPerfect(false), 700);
       if (window.navigator?.vibrate) window.navigator.vibrate([30, 40, 30]);
@@ -360,11 +337,18 @@ export default function CoffeeTowerGame() {
       });
     }
 
+    // Prune off-screen fallen debris to maintain 60 FPS physics
+    Matter.Composite.allBodies(engine.world).forEach((b) => {
+      if (!b.isStatic && b.position.y > CANVAS_H + 80) {
+        Matter.Composite.remove(engine.world, b);
+      }
+    });
+
     // Update slider for next round
     s.width = overlapWidth;
     s.x = 0; s.dir = 1;
     s.speed = Math.min(7, s.speed + 0.18);
-  }, [gameState, startGame, playSound, highScore]);
+  }, [gameState, startGame, playSound, highScore, combo]);
 
   const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 

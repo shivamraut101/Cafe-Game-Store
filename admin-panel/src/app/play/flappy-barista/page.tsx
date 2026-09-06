@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useCallback, useState } from "react";
 import { submitGameSessionAction } from "../../actions/gameActions";
+import { ArcadeAudio } from "@/lib/audioEngine";
 
 // ─── Tuned Constants ─────────────────────────────────────
 const W = 340;
@@ -59,41 +60,17 @@ export default function FlappyBaristaGame() {
   const gap = () => Math.max(GAP_MIN, GAP_START - scoreRef.current * 2);
   const spd = () => Math.min(SPD_MAX, SPD_START + scoreRef.current * 0.07);
 
-  // ─── Audio ──────────────────────────────────────────────
+  // ─── High-Performance Audio ────────────────────────────
   const snd = useCallback((t: "flap" | "score" | "die") => {
-    try {
-      const C = window.AudioContext || (window as any).webkitAudioContext;
-      if (!C) return;
-      const c = new C(), o = c.createOscillator(), g = c.createGain();
-      o.connect(g); g.connect(c.destination);
-      if (t === "flap") {
-        o.type = "sine"; o.frequency.setValueAtTime(420, c.currentTime);
-        o.frequency.exponentialRampToValueAtTime(620, c.currentTime + 0.06);
-        g.gain.setValueAtTime(0.12, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.06);
-        o.start(); o.stop(c.currentTime + 0.06);
-      } else if (t === "score") {
-        o.type = "sine"; o.frequency.setValueAtTime(660, c.currentTime);
-        g.gain.setValueAtTime(0.2, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.1);
-        o.start(); o.stop(c.currentTime + 0.12);
-        const o2 = c.createOscillator(), g2 = c.createGain();
-        o2.connect(g2); g2.connect(c.destination); o2.type = "sine";
-        o2.frequency.setValueAtTime(880, c.currentTime + 0.05);
-        g2.gain.setValueAtTime(0.15, c.currentTime + 0.05);
-        g2.gain.linearRampToValueAtTime(0, c.currentTime + 0.14);
-        o2.start(c.currentTime + 0.05); o2.stop(c.currentTime + 0.14);
-      } else {
-        o.type = "square"; o.frequency.setValueAtTime(180, c.currentTime);
-        o.frequency.linearRampToValueAtTime(40, c.currentTime + 0.35);
-        g.gain.setValueAtTime(0.3, c.currentTime);
-        g.gain.linearRampToValueAtTime(0, c.currentTime + 0.35);
-        o.start(); o.stop(c.currentTime + 0.35);
-      }
-    } catch { /* */ }
+    if (t === "flap") ArcadeAudio.playJump();
+    else if (t === "score") ArcadeAudio.playScore();
+    else ArcadeAudio.playCrash();
   }, []);
 
   const burst = useCallback((x: number, y: number, color: string, n: number) => {
+    if (particlesRef.current.length > 35) {
+      particlesRef.current.splice(0, particlesRef.current.length - 20);
+    }
     for (let i = 0; i < n; i++) {
       const a = (Math.PI * 2 * i) / n + Math.random() * 0.4;
       const s = 1.5 + Math.random() * 3.5;
