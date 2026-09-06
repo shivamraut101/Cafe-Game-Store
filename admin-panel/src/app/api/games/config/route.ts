@@ -19,7 +19,19 @@ export async function GET(req: NextRequest) {
     }
 
     if (!storeId) {
-      return NextResponse.json({ error: "No store found" }, { status: 404 });
+      return NextResponse.json({
+        success: true,
+        storeId: "default",
+        slug,
+        name: slug.replace("-", " ").toUpperCase(),
+        enabled: true,
+        difficulty: "medium",
+        maxDailyPlays: 0,
+        rewardTiers: [
+          { id: "t1", pointThreshold: 5, rewardName: "10% Off Table Reward", rewardDescription: "10% off bill or service" },
+          { id: "t2", pointThreshold: 15, rewardName: "VIP Treat Upgrade", rewardDescription: "Complimentary upgrade" },
+        ],
+      });
     }
 
     const storeObjId = new mongoose.Types.ObjectId(storeId);
@@ -38,7 +50,10 @@ export async function GET(req: NextRequest) {
         enabled: true,
         difficulty: "medium",
         maxDailyPlays: 0,
-        rewardTiers: [],
+        rewardTiers: [
+          { id: "t1", pointThreshold: 5, rewardName: "10% Off Table Reward", rewardDescription: "10% off bill or service" },
+          { id: "t2", pointThreshold: 15, rewardName: "VIP Treat Upgrade", rewardDescription: "Complimentary upgrade" },
+        ],
       });
     }
 
@@ -47,6 +62,20 @@ export async function GET(req: NextRequest) {
       config,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    const { searchParams } = new URL(req.url);
+    const slug = searchParams.get("slug") || "air-hockey";
+    return NextResponse.json({
+      success: true,
+      storeId: "default",
+      slug,
+      name: slug.replace("-", " ").toUpperCase(),
+      enabled: true,
+      difficulty: "medium",
+      maxDailyPlays: 0,
+      rewardTiers: [
+        { id: "t1", pointThreshold: 5, rewardName: "10% Off Table Reward", rewardDescription: "10% off bill or service" },
+      ],
+      warning: error.message,
+    });
   }
 }

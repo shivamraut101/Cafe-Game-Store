@@ -16,6 +16,108 @@ interface GameCard {
   popular?: boolean;
 }
 
+const DEFAULT_ARCADE_GAMES: GameCard[] = [
+  {
+    slug: "air-hockey",
+    name: "Neon Air Hockey 2P",
+    type: "👥 2-PLAYER TABLETOP • 1 Phone",
+    icon: "🏒",
+    description: "Lay phone on the table & duel your friend, partner, or kid in real-time!",
+    rewardHighlight: "Win Table Winner Perk",
+    color: "bg-[#2563EB]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#2563EB]",
+    popular: true,
+  },
+  {
+    slug: "tap-war",
+    name: "Tap War 2P",
+    type: "👥 2-PLAYER TABLETOP • 1 Phone",
+    icon: "⚡",
+    description: "Rapid-fire finger tap duel! Lay phone flat and battle for table supremacy!",
+    rewardHighlight: "Win Rapid Tap Perk",
+    color: "bg-[#D946EF]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#D946EF]",
+    popular: true,
+  },
+  {
+    slug: "brick-breaker",
+    name: "Swipe Brick Breaker",
+    type: "HARD • Unlimited",
+    icon: "🧱",
+    description: "Angle your shots, break neon blocks, collect multiballs & trigger cafe combos!",
+    rewardHighlight: "Win 15% Off Voucher",
+    color: "bg-[#6366F1]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#6366F1]",
+    popular: true,
+  },
+  {
+    slug: "coffee-tower",
+    name: "Tower Stack",
+    type: "MEDIUM • Unlimited",
+    icon: "🏗️",
+    description: "Stack moving cafe tiers with precision! Perfectly aligned blocks trigger score combos.",
+    rewardHighlight: "Win 10% Off Voucher",
+    color: "bg-[#FF4C29]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#FF4C29]",
+    popular: true,
+  },
+  {
+    slug: "flappy-barista",
+    name: "Flappy Flight",
+    type: "MEDIUM • Max 5/day",
+    icon: "🚀",
+    description: "Navigate past steaming pipes and espresso machines in this retro flyer!",
+    rewardHighlight: "Win Instant 5% Off",
+    color: "bg-[#F59E0B]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#F59E0B]",
+    popular: true,
+  },
+  {
+    slug: "barista-catch",
+    name: "Prize Catcher",
+    type: "EASY • Unlimited",
+    icon: "🎁",
+    description: "Catch falling coffee beans, donuts, and cups while avoiding spoiled milk!",
+    rewardHighlight: "Win 15% Off Voucher",
+    color: "bg-[#10B981]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#10B981]",
+    popular: true,
+  },
+  {
+    slug: "drop-merge",
+    name: "Drop & Merge",
+    type: "EASY • Unlimited",
+    icon: "🍉",
+    description: "Drop delicious cafe items, merge matching treats, and build the giant treat!",
+    rewardHighlight: "Win 10% Off Reward",
+    color: "bg-[#EC4899]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#EC4899]",
+    popular: true,
+  },
+  {
+    slug: "helix-drop",
+    name: "Helix Drop 3D",
+    type: "MEDIUM • Unlimited",
+    icon: "🌀",
+    description: "Rotate the 3D spiral tower to drop through openings while avoiding red zones!",
+    rewardHighlight: "Win 10% Off Voucher",
+    color: "bg-[#06B6D4]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#06B6D4]",
+    popular: true,
+  },
+  {
+    slug: "sky-hopper",
+    name: "Sky Hopper 3D",
+    type: "MEDIUM • Unlimited",
+    icon: "🦘",
+    description: "Bounce across endless floating cafe tiles without falling into the void!",
+    rewardHighlight: "Win 10% Off Voucher",
+    color: "bg-[#14B8A6]",
+    shadowColor: "shadow-[4px_4px_0px_0px_#14B8A6]",
+    popular: true,
+  },
+];
+
 export default function ArcadeLandingPage() {
   const [userPoints, setUserPoints] = useState<number>(0);
   const [userName, setUserName] = useState<string>("Player");
@@ -64,7 +166,7 @@ export default function ArcadeLandingPage() {
     // Fetch live game configs from active MongoDB database for target store
     getMiniGameConfigsAction(undefined, storeParam)
       .then((res) => {
-        if (res.success && res.configs) {
+        if (res.success && res.configs && res.configs.length > 0) {
           const mapped: GameCard[] = res.configs
             .filter((c: any) => c.enabled !== false)
             .map((c) => {
@@ -119,10 +221,15 @@ export default function ArcadeLandingPage() {
                 popular: true,
               };
             });
-          setGames(mapped);
+          setGames(mapped.length > 0 ? mapped : DEFAULT_ARCADE_GAMES);
+        } else {
+          setGames(DEFAULT_ARCADE_GAMES);
         }
       })
-      .catch((e) => console.error("Failed to load games from DB", e))
+      .catch((e) => {
+        console.error("Failed to load games from DB, using fallback", e);
+        setGames(DEFAULT_ARCADE_GAMES);
+      })
       .finally(() => setLoading(false));
   }, []);
 
