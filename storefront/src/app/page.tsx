@@ -133,7 +133,7 @@ export default function Home() {
                   </div>
                 </div>
                 <a
-                  href="/admin-panel"
+                  href={ADMIN_URL}
                   className="bg-[#111111] text-white text-[11px] font-bold px-3 py-2 rounded-lg border border-black"
                 >
                   Test Admin Panel
