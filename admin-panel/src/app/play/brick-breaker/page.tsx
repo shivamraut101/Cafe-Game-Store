@@ -31,41 +31,52 @@ interface PowerUp {
   collected: boolean;
 }
 
+interface HitParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  color: string;
+  alpha: number;
+  size: number;
+}
+
 const W = 340;
 const H = 520;
 const COLS = 7;
 const BRICK_H = 26;
 const BRICK_PAD = 4;
 const BRICK_W = (W - (COLS + 1) * BRICK_PAD) / COLS;
-const BALL_SPEED = 9.8;
+const BASE_BALL_SPEED = 14.2; // Turbocharged base velocity (was 9.8)
 const FLOOR_Y = H - 55;
 
 export default function BrickBreakerGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [level, setLevel] = useState(1);
-  const [totalBalls, setTotalBalls] = useState(25);
+  const [totalBalls, setTotalBalls] = useState(20);
   const [score, setScore] = useState(0);
   const [gameState, setGameState] = useState<"aiming" | "shooting" | "gameover">("aiming");
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
-  const [speedMultiplier, setSpeedMultiplier] = useState(1);
 
   const bricksRef = useRef<Brick[]>([]);
   const powerUpsRef = useRef<PowerUp[]>([]);
   const ballsRef = useRef<Ball[]>([]);
+  const particlesRef = useRef<HitParticle[]>([]);
   const aimAngleRef = useRef<number>(-Math.PI / 2);
   const isAimingRef = useRef<boolean>(false);
   const startXRef = useRef<number>(W / 2);
-  const startYRef = useRef<number>(FLOOR_Y - 6);
+  const startYRef = useRef<number>(FLOOR_Y - 8);
   const nextStartXRef = useRef<number>(W / 2);
   const hasFirstBallLandedRef = useRef<boolean>(false);
+  const landedCountRef = useRef<number>(0);
   const ballsSpawnedRef = useRef<number>(0);
   const shootTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const shootStartTimeRef = useRef<number>(0);
 
   const scoreRef = useRef<number>(0);
   const levelRef = useRef<number>(1);
-  const totalBallsRef = useRef<number>(25);
+  const totalBallsRef = useRef<number>(20);
 
   const getBrickColor = (hp: number, max: number) => {
     const ratio = hp / (max || 1);
@@ -74,7 +85,23 @@ export default function BrickBreakerGame() {
     return "#10B981";
   };
 
-  // Spawn new row of bricks at row 1
+  const spawnParticles = (x: number, y: number, color: string, count = 6) => {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = 1.5 + Math.random() * 3.5;
+      particlesRef.current.push({
+        x,
+        y,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        color,
+        alpha: 1.0,
+        size: 2 + Math.random() * 2.5,
+      });
+    }
+  };
+
+  // Spawn new row of bricks at top
   const spawnRow = useCallback((lvl: number) => {
     const newBricks: Brick[] = [];
     const newPowerUps: PowerUp[] = [];
@@ -84,8 +111,8 @@ export default function BrickBreakerGame() {
       const x = BRICK_PAD + c * (BRICK_W + BRICK_PAD);
       const y = 58;
 
-      if (rand < 0.52) {
-        const hp = lvl + Math.floor(Math.random() * 2);
+      if (rand < 0.55) {
+        const hp = Math.max(1, lvl + Math.floor(Math.random() * 2));
         newBricks.push({
           id: Math.random(),
           r: 1,
@@ -98,7 +125,7 @@ export default function BrickBreakerGame() {
           maxHp: hp,
           color: getBrickColor(hp, hp),
         });
-      } else if (rand < 0.68) {
+      } else if (rand < 0.70) {
         newPowerUps.push({
           x: x + BRICK_W / 2,
           y: y + BRICK_H / 2,
@@ -107,7 +134,7 @@ export default function BrickBreakerGame() {
       }
     }
 
-    // Shift existing bricks down
+    // Shift existing rows down
     bricksRef.current.forEach((b) => {
       b.y += BRICK_H + BRICK_PAD;
       b.r++;
@@ -129,33 +156,44 @@ export default function BrickBreakerGame() {
     spawnRow(2);
   }, [spawnRow]);
 
-  // Recall all balls immediately (Failsafe & Fast Forward)
+  // Instant Recall all flying balls (Fast-forward to next turn immediately)
   const recallAllBalls = useCallback(() => {
     shootTimeoutsRef.current.forEach(clearTimeout);
     shootTimeoutsRef.current = [];
+
+    if (!hasFirstBallLandedRef.current) {
+      hasFirstBallLandedRef.current = true;
+      nextStartXRef.current = startXRef.current;
+    }
+
     ballsRef.current.forEach((b) => {
       b.active = false;
     });
+    ballsSpawnedRef.current = totalBallsRef.current;
+    landedCountRef.current = totalBallsRef.current;
   }, []);
 
-  // Shoot balls in sequence
+  // Turbocharged stream launch
   const shoot = useCallback(() => {
     if (gameState !== "aiming") return;
     ArcadeAudio.init();
     setGameState("shooting");
-    setSpeedMultiplier(1);
     hasFirstBallLandedRef.current = false;
+    landedCountRef.current = 0;
     ballsSpawnedRef.current = 0;
     ballsRef.current = [];
     shootStartTimeRef.current = Date.now();
 
     const angle = aimAngleRef.current;
-    const baseVx = Math.cos(angle) * BALL_SPEED;
-    const baseVy = Math.sin(angle) * BALL_SPEED;
+    const baseVx = Math.cos(angle) * BASE_BALL_SPEED;
+    const baseVy = Math.sin(angle) * BASE_BALL_SPEED;
 
     const count = totalBallsRef.current;
     shootTimeoutsRef.current.forEach(clearTimeout);
     shootTimeoutsRef.current = [];
+
+    // Rapid stream interval: all balls launched within ~200-260ms max
+    const intervalMs = Math.max(7, Math.min(15, Math.floor(220 / Math.max(1, count))));
 
     for (let i = 0; i < count; i++) {
       const t = setTimeout(() => {
@@ -167,8 +205,8 @@ export default function BrickBreakerGame() {
           active: true,
         });
         ballsSpawnedRef.current++;
-        if (i % 4 === 0) ArcadeAudio.playTap();
-      }, i * 36);
+        if (i % 5 === 0) ArcadeAudio.playTap();
+      }, i * intervalMs);
       shootTimeoutsRef.current.push(t);
     }
   }, [gameState]);
@@ -186,103 +224,133 @@ export default function BrickBreakerGame() {
       const balls = ballsRef.current;
       const bricks = bricksRef.current;
       const powerUps = powerUpsRef.current;
+      const particles = particlesRef.current;
+
+      // Update active particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.035;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        }
+      }
 
       // Update active balls physics
       if (gameState === "shooting") {
         const elapsed = (Date.now() - shootStartTimeRef.current) / 1000;
-        // Auto speed-up after 8s, auto recall after 13s to prevent any freeze
-        const speedFactor = elapsed > 8 ? 2.5 : 1.0;
 
-        for (let i = 0; i < balls.length; i++) {
-          const b = balls[i];
-          if (!b.active) continue;
+        // Auto speed-up curve: fast right away, hyper speed after 2s, auto-recall at 4.5s
+        let speedFactor = 1.1;
+        if (elapsed > 1.0) speedFactor = 1.9;
+        if (elapsed > 2.0) speedFactor = 3.0;
+        if (elapsed > 3.2) speedFactor = 4.2;
+        if (elapsed > 4.5) {
+          recallAllBalls();
+        }
 
-          b.x += b.vx * speedFactor;
-          b.y += b.vy * speedFactor;
+        // Sub-step physics to guarantee NO tunneling through bricks at high speeds
+        const subSteps = Math.ceil(speedFactor);
+        const stepMultiplier = speedFactor / subSteps;
 
-          // Prevent infinite horizontal trap
-          if (Math.abs(b.vy) < 0.6) {
-            b.vy = b.vy < 0 ? -0.9 : 0.9;
-          }
+        for (let step = 0; step < subSteps; step++) {
+          for (let i = 0; i < balls.length; i++) {
+            const b = balls[i];
+            if (!b.active) continue;
 
-          // Left / Right wall collisions
-          if (b.x - 4 <= 8) {
-            b.x = 12;
-            b.vx = Math.abs(b.vx);
-          } else if (b.x + 4 >= W - 8) {
-            b.x = W - 12;
-            b.vx = -Math.abs(b.vx);
-          }
+            b.x += b.vx * stepMultiplier;
+            b.y += b.vy * stepMultiplier;
 
-          // Ceiling collision
-          if (b.y - 4 <= 45) {
-            b.y = 49;
-            b.vy = Math.abs(b.vy);
-          }
-
-          // Floor line collision
-          if (b.y + 4 >= FLOOR_Y) {
-            b.active = false;
-            b.y = FLOOR_Y - 6;
-
-            if (!hasFirstBallLandedRef.current) {
-              hasFirstBallLandedRef.current = true;
-              nextStartXRef.current = Math.max(18, Math.min(W - 18, b.x));
+            // Prevent horizontal trapping
+            if (Math.abs(b.vy) < 0.8) {
+              b.vy = b.vy < 0 ? -1.2 : 1.2;
             }
-          }
 
-          // Brick collisions
-          for (let j = bricks.length - 1; j >= 0; j--) {
-            const br = bricks[j];
-            if (
-              b.x + 4 >= br.x &&
-              b.x - 4 <= br.x + br.w &&
-              b.y + 4 >= br.y &&
-              b.y - 4 <= br.y + br.h
-            ) {
-              const prevX = b.x - b.vx * speedFactor;
-              const prevY = b.y - b.vy * speedFactor;
+            // Left / Right wall collisions
+            if (b.x - 4 <= 8) {
+              b.x = 12;
+              b.vx = Math.abs(b.vx);
+            } else if (b.x + 4 >= W - 8) {
+              b.x = W - 12;
+              b.vx = -Math.abs(b.vx);
+            }
 
-              if (prevX < br.x || prevX > br.x + br.w) b.vx = -b.vx;
-              else b.vy = -b.vy;
+            // Ceiling collision
+            if (b.y - 4 <= 45) {
+              b.y = 49;
+              b.vy = Math.abs(b.vy);
+            }
 
-              br.hp--;
-              br.color = getBrickColor(br.hp, br.maxHp);
-              scoreRef.current += 1;
-              setScore(scoreRef.current);
-              ArcadeAudio.playCatch();
+            // Floor baseline collision
+            if (b.y + 4 >= FLOOR_Y) {
+              b.active = false;
+              b.y = FLOOR_Y - 8;
+              landedCountRef.current++;
 
-              if (br.hp <= 0) {
-                bricks.splice(j, 1);
-                ArcadeAudio.playBonus();
+              if (!hasFirstBallLandedRef.current) {
+                hasFirstBallLandedRef.current = true;
+                nextStartXRef.current = Math.max(20, Math.min(W - 20, b.x));
               }
-              break;
             }
-          }
 
-          // Power-up collisions (+1 balls)
-          for (let k = 0; k < powerUps.length; k++) {
-            const p = powerUps[k];
-            if (!p.collected && Math.hypot(b.x - p.x, b.y - p.y) < 13) {
-              p.collected = true;
-              totalBallsRef.current += 1;
-              setTotalBalls(totalBallsRef.current);
-              ArcadeAudio.playScore();
+            // Brick collisions
+            for (let j = bricks.length - 1; j >= 0; j--) {
+              const br = bricks[j];
+              if (
+                b.x + 4 >= br.x &&
+                b.x - 4 <= br.x + br.w &&
+                b.y + 4 >= br.y &&
+                b.y - 4 <= br.y + br.h
+              ) {
+                const prevX = b.x - b.vx * stepMultiplier;
+                const prevY = b.y - b.vy * stepMultiplier;
+
+                if (prevX < br.x || prevX > br.x + br.w) b.vx = -b.vx;
+                else b.vy = -b.vy;
+
+                br.hp--;
+                br.color = getBrickColor(br.hp, br.maxHp);
+                scoreRef.current += 1;
+                setScore(scoreRef.current);
+
+                spawnParticles(b.x, b.y, br.color, 4);
+                ArcadeAudio.playCatch();
+
+                if (br.hp <= 0) {
+                  spawnParticles(br.x + br.w / 2, br.y + br.h / 2, br.color, 12);
+                  bricks.splice(j, 1);
+                  ArcadeAudio.playBonus();
+                }
+                break;
+              }
+            }
+
+            // Power-up collisions (+1 balls)
+            for (let k = 0; k < powerUps.length; k++) {
+              const p = powerUps[k];
+              if (!p.collected && Math.hypot(b.x - p.x, b.y - p.y) < 13) {
+                p.collected = true;
+                totalBallsRef.current += 1;
+                setTotalBalls(totalBallsRef.current);
+                spawnParticles(p.x, p.y, "#10B981", 8);
+                ArcadeAudio.playScore();
+              }
             }
           }
         }
 
-        // Check if turn finished (clean robust condition)
+        // Check if turn finished (clean transition)
         const allSpawned = ballsSpawnedRef.current >= totalBallsRef.current;
         const activeCount = balls.filter((b) => b.active).length;
-        const timedOut = elapsed > 13;
+        const timedOut = elapsed > 4.8;
 
         if ((allSpawned && activeCount === 0) || timedOut) {
           startXRef.current = nextStartXRef.current;
-          startYRef.current = FLOOR_Y - 6;
+          startYRef.current = FLOOR_Y - 8;
           ballsRef.current = [];
 
-          // Check gameover condition (any brick touches/passes floor line)
+          // Check gameover condition (any brick touches floor line)
           let lost = false;
           for (const br of bricks) {
             if (br.y + br.h >= FLOOR_Y) {
@@ -304,7 +372,7 @@ export default function BrickBreakerGame() {
               gameSlug: "brick-breaker",
               score: scoreRef.current,
               storeName: targetStore,
-              duration: levelRef.current * 15,
+              duration: levelRef.current * 10,
             }).then((res) => {
               if (res?.limitReached) setLimitNotice(res.error || "Daily limit reached.");
               if (res?.success && res.rewardEarned && res.claimCode) {
@@ -323,18 +391,18 @@ export default function BrickBreakerGame() {
       // --- RENDERING ---
       ctx.clearRect(0, 0, W, H);
 
-      // Background
+      // Deep arcade background
       ctx.fillStyle = "#0A0A0A";
       ctx.fillRect(0, 0, W, H);
 
       // Outer Arena Border
-      ctx.strokeStyle = "#262626";
+      ctx.strokeStyle = "#222222";
       ctx.lineWidth = 4;
       ctx.strokeRect(8, 45, W - 16, H - 55);
 
-      // Floor Baseline
+      // Floor Baseline (Danger boundary)
       ctx.strokeStyle = "#EF4444";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.moveTo(8, FLOOR_Y);
       ctx.lineTo(W - 8, FLOOR_Y);
@@ -345,7 +413,7 @@ export default function BrickBreakerGame() {
         if (p.collected) continue;
         ctx.fillStyle = "#10B981";
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 8.5, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = "#FFFFFF";
         ctx.lineWidth = 2;
@@ -375,44 +443,125 @@ export default function BrickBreakerGame() {
         ctx.fillText(String(br.hp), br.x + br.w / 2, br.y + br.h / 2);
       }
 
-      // Draw Aiming Guide & Launcher
+      // Draw Hit Particles
+      for (const pt of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.alpha);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Draw Reflective Aim Trajectory when in aiming state
       if (gameState === "aiming") {
         const sx = startXRef.current;
         const sy = startYRef.current;
         const angle = aimAngleRef.current;
 
-        // Dotted Aim Trajectory Line (10 dots)
-        ctx.save();
-        for (let d = 1; d <= 10; d++) {
-          const dist = d * 22;
-          const dotX = sx + Math.cos(angle) * dist;
-          const dotY = sy + Math.sin(angle) * dist;
-          if (dotY < 50 || dotX < 14 || dotX > W - 14) break;
+        let currX = sx;
+        let currY = sy;
+        let dirX = Math.cos(angle);
+        let dirY = Math.sin(angle);
+        let distTraveled = 0;
+        const maxDist = 480;
+        const step = 14;
 
-          ctx.fillStyle = `rgba(255, 76, 41, ${1 - d * 0.08})`;
+        ctx.save();
+        while (distTraveled < maxDist) {
+          currX += dirX * step;
+          currY += dirY * step;
+          distTraveled += step;
+
+          // Wall bounce reflection
+          if (currX <= 14) {
+            currX = 14;
+            dirX = -dirX;
+          } else if (currX >= W - 14) {
+            currX = W - 14;
+            dirX = -dirX;
+          }
+
+          if (currY <= 48) break;
+
+          // Brick collision stop
+          let hitBrick = false;
+          for (const br of bricks) {
+            if (
+              currX >= br.x - 2 &&
+              currX <= br.x + br.w + 2 &&
+              currY >= br.y - 2 &&
+              currY <= br.y + br.h + 2
+            ) {
+              hitBrick = true;
+              break;
+            }
+          }
+          if (hitBrick) break;
+
+          const alpha = Math.max(0.2, 1 - distTraveled / maxDist);
+          ctx.fillStyle = `rgba(255, 76, 41, ${alpha})`;
           ctx.beginPath();
-          ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+          ctx.arc(currX, currY, 3, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.restore();
+      }
 
-        // Launcher Base Ball
+      // --- ALWAYS-VISIBLE BALL LAUNCHER & RETURN ANCHORS ---
+      const sx = startXRef.current;
+      const sy = startYRef.current;
+
+      if (gameState === "aiming") {
+        // Bright Pulsing Launcher Ball at bottom
+        const pulse = Math.sin(Date.now() / 180) * 1.5;
+        ctx.strokeStyle = "#FF4C29";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 8.5 + pulse, 0, Math.PI * 2);
+        ctx.stroke();
+
         ctx.fillStyle = "#FFFFFF";
         ctx.beginPath();
         ctx.arc(sx, sy, 6.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = "#FF4C29";
-        ctx.lineWidth = 2;
-        ctx.stroke();
 
         // Ball Count Badge above launcher
-        ctx.fillStyle = "#94A3B8";
-        ctx.font = "bold 10px sans-serif";
+        ctx.fillStyle = "#F59E0B";
+        ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`x${totalBallsRef.current}`, sx, sy - 12);
+        ctx.fillText(`x${totalBallsRef.current}`, sx, sy - 14);
+      } else if (gameState === "shooting") {
+        // Active Launcher Base Indicator (Always Visible so user knows origin)
+        ctx.fillStyle = "rgba(255, 76, 41, 0.4)";
+        ctx.beginPath();
+        ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Catch / Landing Base (Visible as soon as first ball lands)
+        if (hasFirstBallLandedRef.current) {
+          const nx = nextStartXRef.current;
+          ctx.strokeStyle = "#10B981";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(nx, FLOOR_Y - 8, 8, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.beginPath();
+          ctx.arc(nx, FLOOR_Y - 8, 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Count of returned balls
+          ctx.fillStyle = "#10B981";
+          ctx.font = "bold 10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`x${landedCountRef.current}`, nx, FLOOR_Y - 20);
+        }
       }
 
-      // Draw Active Flying Balls
+      // Draw Active Flying Balls with Neon Glow
       for (const b of balls) {
         if (!b.active) continue;
         ctx.fillStyle = "#FFFFFF";
@@ -426,9 +575,9 @@ export default function BrickBreakerGame() {
 
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [gameState, spawnRow]);
+  }, [gameState, spawnRow, recallAllBalls]);
 
-  // Update Aim Angle from pointer event
+  // Update Aim Angle from pointer
   const updateAimAngle = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -442,21 +591,25 @@ export default function BrickBreakerGame() {
     const dx = px - startXRef.current;
     const dy = py - startYRef.current;
 
-    // Both direct upward pointing and slingshot drag supported naturally
     let angle = Math.atan2(dy, dx);
     if (dy > 0) {
-      // User dragged downwards (slingshot): flip to upward angle
+      // Slingshot inverted drag
       angle = Math.atan2(-dy, -dx);
     }
 
-    // Lock aiming upward only (avoid shooting completely sideways/flat)
-    if (angle > -0.12) angle = -0.12;
-    if (angle < -Math.PI + 0.12) angle = -Math.PI + 0.12;
+    // Restrict aim to upward half-plane
+    if (angle > -0.15) angle = -0.15;
+    if (angle < -Math.PI + 0.15) angle = -Math.PI + 0.15;
     aimAngleRef.current = angle;
   };
 
   // Pointer Handlers
   const handlePointerDown = (clientX: number, clientY: number) => {
+    if (gameState === "shooting") {
+      // Tapping during flight instantly recalls all remaining balls!
+      recallAllBalls();
+      return;
+    }
     if (gameState !== "aiming") return;
     isAimingRef.current = true;
     updateAimAngle(clientX, clientY);
@@ -475,14 +628,18 @@ export default function BrickBreakerGame() {
     }
   };
 
-  // Keyboard controls for desktop
+  // Keyboard controls for desktop testing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameState === "aiming") {
+      if (gameState === "shooting") {
+        if (e.key === " " || e.key === "Enter" || e.key === "r") {
+          recallAllBalls();
+        }
+      } else if (gameState === "aiming") {
         if (e.key === "ArrowLeft" || e.key === "a") {
-          aimAngleRef.current = Math.max(-Math.PI + 0.12, aimAngleRef.current - 0.08);
+          aimAngleRef.current = Math.max(-Math.PI + 0.15, aimAngleRef.current - 0.08);
         } else if (e.key === "ArrowRight" || e.key === "d") {
-          aimAngleRef.current = Math.min(-0.12, aimAngleRef.current + 0.08);
+          aimAngleRef.current = Math.min(-0.15, aimAngleRef.current + 0.08);
         } else if (e.key === " " || e.key === "Enter") {
           shoot();
         }
@@ -490,7 +647,7 @@ export default function BrickBreakerGame() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [gameState, shoot]);
+  }, [gameState, shoot, recallAllBalls]);
 
   // Global pointer up listener
   useEffect(() => {
@@ -510,14 +667,15 @@ export default function BrickBreakerGame() {
     bricksRef.current = [];
     powerUpsRef.current = [];
     ballsRef.current = [];
+    particlesRef.current = [];
     scoreRef.current = 0;
     levelRef.current = 1;
-    totalBallsRef.current = 25;
+    totalBallsRef.current = 20;
     startXRef.current = W / 2;
-    startYRef.current = FLOOR_Y - 6;
+    startYRef.current = FLOOR_Y - 8;
     setLevel(1);
     setScore(0);
-    setTotalBalls(25);
+    setTotalBalls(20);
     setEarnedReward(null);
     setLimitNotice(null);
     setGameState("aiming");
@@ -526,8 +684,8 @@ export default function BrickBreakerGame() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col items-center justify-between p-3 select-none">
-      {/* Header */}
+    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col items-center justify-between p-3 select-none font-sans">
+      {/* Header Bar */}
       <header className="w-full max-w-md bg-[#171717] p-3.5 rounded-2xl border border-neutral-800 shadow-md flex justify-between items-center">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🧱</span>
@@ -539,25 +697,26 @@ export default function BrickBreakerGame() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {gameState === "shooting" && (
+        <div className="flex items-center gap-2.5">
+          {gameState === "shooting" ? (
             <button
               onClick={recallAllBalls}
-              className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-amber-400 text-xs font-bold border border-amber-500/30 active:scale-95 transition"
+              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black border border-amber-300 shadow-[2px_2px_0px_0px_#000] active:scale-95 transition-all cursor-pointer animate-pulse"
+              title="Instantly recall all balls"
             >
-              ⚡ Recall (x2)
+              ⚡ Fast Recall
             </button>
+          ) : (
+            <div className="text-right">
+              <span className="text-[10px] font-bold text-neutral-400 uppercase block">Score</span>
+              <span className="font-mono text-emerald-400 font-black text-lg">+{score}</span>
+            </div>
           )}
-
-          <div className="text-right">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase block">Score</span>
-            <span className="font-mono text-emerald-400 font-black text-lg">{score}</span>
-          </div>
         </div>
       </header>
 
-      {/* Canvas Area */}
-      <main className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-3xl shadow-2xl flex flex-col items-center my-2 relative overflow-hidden">
+      {/* Main Game Arena */}
+      <main className="w-full max-w-md bg-neutral-950 border-2 border-neutral-800 rounded-3xl shadow-2xl flex flex-col items-center my-2 relative overflow-hidden">
         <canvas
           ref={canvasRef}
           width={W}
@@ -578,18 +737,26 @@ export default function BrickBreakerGame() {
           style={{ width: "100%", maxWidth: W, height: "auto", aspectRatio: `${W}/${H}` }}
         />
 
-        {/* Start / Aiming Guidance */}
+        {/* Dynamic In-Game Guidance */}
         {gameState === "aiming" && (
           <div className="absolute top-14 left-0 right-0 pointer-events-none flex justify-center">
-            <div className="bg-black/80 backdrop-blur-md border border-neutral-700 text-neutral-300 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-              👆 Drag anywhere & release to launch
+            <div className="bg-black/85 backdrop-blur-md border border-neutral-700 text-neutral-200 text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-fade-in">
+              👆 Drag to aim • Release to shoot
+            </div>
+          </div>
+        )}
+
+        {gameState === "shooting" && (
+          <div className="absolute bottom-16 left-0 right-0 pointer-events-none flex justify-center">
+            <div className="bg-black/75 backdrop-blur-sm text-neutral-400 text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
+              Tap screen to fast-recall ⚡
             </div>
           </div>
         )}
 
         {/* Game Over Screen */}
         {gameState === "gameover" && (
-          <div className="absolute inset-0 bg-neutral-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-5 text-center text-white z-40 rounded-3xl animate-in fade-in">
+          <div className="absolute inset-0 bg-neutral-950/95 backdrop-blur-md flex flex-col items-center justify-center p-5 text-center text-white z-40 rounded-3xl animate-in fade-in">
             <span className="text-5xl mb-2">💥</span>
             <h2 className="font-serif text-2xl font-black text-[#FF4C29] mb-1">WALL BREACHED!</h2>
             <p className="text-xs text-neutral-400 mb-4">Bricks reached the baseline</p>
@@ -597,6 +764,7 @@ export default function BrickBreakerGame() {
             <div className="bg-neutral-900 border border-neutral-800 w-full p-4 rounded-2xl mb-3 shadow-md">
               <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider">Blocks Smashed</span>
               <h3 className="font-serif text-3xl font-black text-[#FF4C29]">{score}</h3>
+              <p className="text-xs font-bold text-emerald-400 mt-1">+{score * 10} Cafe Points earned</p>
             </div>
 
             {limitNotice && (
@@ -615,7 +783,7 @@ export default function BrickBreakerGame() {
 
             <button
               onClick={resetGame}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-500/25 active:scale-98 transition cursor-pointer"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-black text-sm shadow-lg shadow-emerald-500/25 active:scale-98 transition cursor-pointer"
             >
               PLAY AGAIN 🔄
             </button>
@@ -623,8 +791,9 @@ export default function BrickBreakerGame() {
         )}
       </main>
 
-      <footer className="text-center text-xs font-medium text-neutral-400 pb-1">
-        Drag on screen to aim • Release to shoot all balls
+      {/* Footer Navigation / Instructions */}
+      <footer className="text-center text-[11px] font-medium text-neutral-400 pb-1">
+        Drag to aim bank shots • Tap during flight to fast-forward ⚡
       </footer>
     </div>
   );
