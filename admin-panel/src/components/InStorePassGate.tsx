@@ -83,7 +83,7 @@ export default function InStorePassGate({
             {storeName} {tableNumber ? `• ${tableNumber}` : ""}
           </p>
           <p className="text-xs text-black/65 font-medium mt-2 leading-relaxed">
-            To keep table perks hot and exclusive, our arcade passes and instant discounts <strong>refresh every 3 hours</strong> inside the cafe.
+            Scan the table QR stand at your table to activate an exclusive <strong>5-Hour Table Pass</strong> to play all 9 arcade games and win discounts throughout your visit!
           </p>
         </div>
 
@@ -98,11 +98,11 @@ export default function InStorePassGate({
           </div>
           <div className="flex items-center gap-2.5 text-xs font-bold text-black">
             <span className="text-base">🕹️</span>
-            <span>9 Unlimited Mini-Games (Air Hockey, Tower Stack & more)</span>
+            <span>Full 5-Hour Pass for 9 Mini-Games (Air Hockey, Tower Stack & more)</span>
           </div>
           <div className="flex items-center gap-2.5 text-xs font-bold text-black">
             <span className="text-base">⏳</span>
-            <span>Perks rotate in: <strong className="font-mono text-[#FF4C29]">{timeLeftStr || "3h 00m"}</strong></span>
+            <span>Table perks refresh in: <strong className="font-mono text-[#FF4C29]">{timeLeftStr || "3h 00m"}</strong></span>
           </div>
         </div>
 

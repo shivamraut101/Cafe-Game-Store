@@ -6,7 +6,8 @@
  */
 
 const SECRET_SALT = "forstore_3hr_rotating_arcade_salt_2026";
-const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+const THREE_HOURS_MS = 3 * 60 * 60 * 1000; // Secret key rotation window on table QR
+export const FIVE_HOURS_MS = 5 * 60 * 60 * 1000; // Customer session validity once scanned (5 hours)
 
 // Simple deterministic hash for universal client/server support without heavy external deps
 function simpleHash(input: string): string {
@@ -100,7 +101,8 @@ export function getClientInStoreSession(storeSlug: string): InStoreSessionData |
 }
 
 /**
- * Save an authorized in-store session on the customer's device for 3 hours.
+ * Save an authorized in-store session on the customer's device for 5 hours.
+ * Whatever games the customer plays during these 5 hours remain fully unlocked.
  */
 export function saveClientInStoreSession(storeSlug: string, key: string): InStoreSessionData {
   const slugKey = (storeSlug || "default-store").toLowerCase().trim();
@@ -109,13 +111,13 @@ export function saveClientInStoreSession(storeSlug: string, key: string): InStor
     storeSlug: slugKey,
     key,
     verifiedAt: now,
-    expiresAt: now + THREE_HOURS_MS,
+    expiresAt: now + FIVE_HOURS_MS,
   };
 
   if (typeof window !== "undefined") {
     try {
       localStorage.setItem(`${IN_STORE_SESSION_PREFIX}${slugKey}`, JSON.stringify(session));
-      document.cookie = `${IN_STORE_SESSION_PREFIX}${slugKey}=${encodeURIComponent(key)}; path=/; max-age=10800; SameSite=Lax`;
+      document.cookie = `${IN_STORE_SESSION_PREFIX}${slugKey}=${encodeURIComponent(key)}; path=/; max-age=18000; SameSite=Lax`;
     } catch {}
   }
 

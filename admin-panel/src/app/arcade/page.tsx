@@ -317,7 +317,7 @@ export default function ArcadeLandingPage() {
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wide">
-              Table Pass Active (3h)
+              Table Pass Active (5h)
             </span>
           </div>
           <button
