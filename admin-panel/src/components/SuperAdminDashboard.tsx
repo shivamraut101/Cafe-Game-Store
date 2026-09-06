@@ -14,6 +14,7 @@ import {
   approveTopUpRequestAction,
   rejectTopUpRequestAction,
 } from "../app/actions/adminActions";
+import { updateStoreAdminPinAction } from "../app/actions/authActions";
 import { downloadCSV } from "../lib/csvExport";
 
 export interface MerchantAccount {
@@ -29,6 +30,7 @@ export interface MerchantAccount {
   watermarkRemoved: boolean;
   churnRisk: "Low" | "Medium" | "High";
   aiCreditsUsed: number;
+  adminPin?: string;
 }
 
 interface SuperAdminDashboardProps {
@@ -147,6 +149,24 @@ export default function SuperAdminDashboard({
       await updateStoreWhiteLabelAction(id, { watermarkRemoved: newVal });
     } catch (err) {
       console.error("Failed to persist watermark toggle", err);
+    }
+  };
+
+  const handleResetPin = async (storeName: string) => {
+    const newPin = prompt(`Enter new secret PIN for "${storeName}" (Min 4 chars):`, "9900");
+    if (!newPin || newPin.trim().length < 4) return;
+    try {
+      const res = await updateStoreAdminPinAction(storeName, newPin.trim());
+      if (res.success) {
+        setMerchants(prev =>
+          prev.map(m => (m.storeName === storeName ? { ...m, adminPin: newPin.trim() } : m))
+        );
+        alert(`✓ PIN for "${storeName}" updated to: ${newPin.trim()}`);
+      } else {
+        alert(res.error || "Failed to update PIN");
+      }
+    } catch {
+      alert("Network error updating PIN");
     }
   };
 
@@ -523,6 +543,7 @@ export default function SuperAdminDashboard({
                 <th className="p-4">Subscription Tier</th>
                 <th className="p-4">Churn Risk</th>
                 <th className="p-4">Status</th>
+                <th className="p-4">Portal PIN</th>
                 <th className="p-4">AI Credits Used</th>
                 <th className="p-4">Feature Overrides</th>
                 <th className="p-4 pr-6 text-right">Actions</th>
@@ -531,13 +552,13 @@ export default function SuperAdminDashboard({
             <tbody className="divide-y divide-black/10 text-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-xs font-bold text-black/40">
+                  <td colSpan={8} className="p-8 text-center text-xs font-bold text-black/40">
                     Loading merchants from MongoDB Atlas...
                   </td>
                 </tr>
               ) : filteredMerchants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-xs font-bold text-black/40">
+                  <td colSpan={8} className="p-8 text-center text-xs font-bold text-black/40">
                     No merchant stores found in database.
                   </td>
                 </tr>
@@ -582,6 +603,21 @@ export default function SuperAdminDashboard({
                       >
                         {merchant.status}
                       </span>
+                    </td>
+                    <td className="p-4 font-mono text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-black/5 border border-black/10 px-2 py-0.5 rounded font-black text-[#FF4C29]">
+                          {merchant.adminPin || "9900"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleResetPin(merchant.storeName)}
+                          title="Reset Store PIN"
+                          className="text-[11px] text-black/40 hover:text-black font-bold p-1 cursor-pointer"
+                        >
+                          ✏️
+                        </button>
+                      </div>
                     </td>
                     <td className="p-4 font-mono font-bold">{merchant.aiCreditsUsed || 0}</td>
                     <td className="p-4">

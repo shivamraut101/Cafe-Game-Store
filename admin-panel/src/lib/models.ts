@@ -18,6 +18,7 @@ export interface IStore extends Document {
   watermarkRemoved: boolean;
   rewardCooldownDays?: number;
   dynamicDifficultyScaling?: boolean;
+  adminPin?: string;
   joinedDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -41,6 +42,7 @@ const StoreSchema = new Schema<IStore>(
     watermarkRemoved: { type: Boolean, default: false },
     rewardCooldownDays: { type: Number, default: 7 },
     dynamicDifficultyScaling: { type: Boolean, default: true },
+    adminPin: { type: String, default: "9900" },
     joinedDate: { type: Date, default: Date.now },
   },
   { timestamps: true }

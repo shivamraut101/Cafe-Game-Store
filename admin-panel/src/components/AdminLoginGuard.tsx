@@ -323,6 +323,15 @@ export default function AdminLoginGuard({
                   Super Admin HQ ⚡
                 </button>
               </div>
+
+              <div className="mt-5 pt-3 border-t border-black/10 w-full flex justify-between items-center text-[11px] font-bold">
+                <a href="/recover-pin" className="text-black/60 hover:text-[#FF4C29] transition-colors">
+                  Forgot Store PIN? Recover 🔑
+                </a>
+                <a href="/arcade?store=adda-99" className="text-black/40 hover:text-black">
+                  Store Arcade 🎮
+                </a>
+              </div>
             </>
           ) : (
             /* Register New Store Form */

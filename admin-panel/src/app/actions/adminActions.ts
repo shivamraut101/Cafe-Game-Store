@@ -36,6 +36,7 @@ export async function getSuperAdminMerchantsAction() {
       watermarkRemoved: s.watermarkRemoved,
       churnRisk: s.churnRisk,
       aiCreditsUsed: s.aiCreditsUsed,
+      adminPin: s.adminPin || "9900",
     }));
 
     if (mappedMerchants.length > 0) {
@@ -59,6 +60,7 @@ export async function getSuperAdminMerchantsAction() {
           watermarkRemoved: true,
           churnRisk: "Low",
           aiCreditsUsed: 35,
+          adminPin: "9900",
         },
         {
           id: "demo-store-2",
@@ -74,6 +76,7 @@ export async function getSuperAdminMerchantsAction() {
           watermarkRemoved: true,
           churnRisk: "Low",
           aiCreditsUsed: 80,
+          adminPin: "4411",
         },
       ],
     };

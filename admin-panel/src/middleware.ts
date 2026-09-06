@@ -33,7 +33,7 @@ function constantTimeCompare(a: string, b: string): boolean {
   return result === 0;
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // 1. Always allow static files, images, icons, Next.js internal bundles, and API routes
@@ -47,13 +47,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Always allow public store & player pages:
-  // /arcade, /play/*, /my-rewards, /claim/*, /[storeSlug]/claim
+  // 2. Always allow public store, player pages, and PIN recovery portal:
+  // /arcade, /play/*, /my-rewards, /claim/*, /[storeSlug]/claim, /recover-pin
   if (
     pathname.startsWith("/arcade") ||
     pathname.startsWith("/play") ||
     pathname.startsWith("/my-rewards") ||
     pathname.startsWith("/claim") ||
+    pathname.startsWith("/recover-pin") ||
     pathname.endsWith("/claim")
   ) {
     return NextResponse.next();
@@ -97,7 +98,26 @@ export function middleware(request: NextRequest) {
 
   // If a PIN is supplied in the URL, validate it with timing-safe comparison
   if (urlPin) {
-    const isPinCorrect = constantTimeCompare(urlPin.trim(), MASTER_PIN);
+    let isPinCorrect = constantTimeCompare(urlPin.trim(), MASTER_PIN);
+
+    // If not master PIN, verify against individual store PINs
+    if (!isPinCorrect) {
+      try {
+        const verifyRes = await fetch(new URL("/api/auth/verify-store-pin", request.url), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: urlPin.trim() }),
+        });
+        if (verifyRes.ok) {
+          const data = await verifyRes.json();
+          if (data.valid) {
+            isPinCorrect = true;
+          }
+        }
+      } catch (err) {
+        console.error("Store PIN verification error in middleware", err);
+      }
+    }
 
     if (isPinCorrect) {
       // Clear failed attempts counter upon successful verification

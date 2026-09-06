@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getStoreBrandingAction, updateStoreBrandingAction } from "../../app/actions/adminActions";
+import { getStoreAdminPinAction, updateStoreAdminPinAction } from "../../app/actions/authActions";
 
 interface BrandingTabProps {
   storeName?: string;
@@ -12,6 +13,8 @@ export default function BrandingTab({ storeName: currentStoreName }: BrandingTab
   const [tagline, setTagline] = useState("Your daily dose of caffeine and fun.");
   const [primaryColor, setPrimaryColor] = useState("#FF4C29");
   const [secondaryColor, setSecondaryColor] = useState("#332FD0");
+  const [storePin, setStorePin] = useState("9900");
+  const [copiedPin, setCopiedPin] = useState(false);
   const [activeGames, setActiveGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,6 +34,11 @@ export default function BrandingTab({ storeName: currentStoreName }: BrandingTab
         setPrimaryColor(res.branding.primaryColor || "#FF4C29");
         setSecondaryColor(res.branding.secondaryColor || "#332FD0");
         setActiveGames(res.branding.activeGames || []);
+      }
+
+      const pinRes = await getStoreAdminPinAction(currentStoreName || "Brew & Bites Cafe");
+      if (pinRes.success && pinRes.pin) {
+        setStorePin(pinRes.pin);
       }
     } catch (e) {
       console.error("Failed to load branding from DB", e);
@@ -52,8 +60,12 @@ export default function BrandingTab({ storeName: currentStoreName }: BrandingTab
         currentStoreName
       );
 
+      if (storePin.trim().length >= 4) {
+        await updateStoreAdminPinAction(currentStoreName || storeName, storePin.trim());
+      }
+
       if (res.success) {
-        setMsg("✅ Branding saved to MongoDB Atlas successfully!");
+        setMsg("✅ Branding and Store Access PIN saved successfully!");
       } else {
         setMsg("❌ Failed to save branding to DB.");
       }
@@ -150,13 +162,81 @@ export default function BrandingTab({ storeName: currentStoreName }: BrandingTab
             </div>
           </div>
 
+          {/* Store Admin Access PIN & Secret URL */}
+          <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_#000000]">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-serif text-xl font-bold text-black flex items-center gap-2">
+                <span>🔐</span> Portal Access PIN & Secret URL
+              </h3>
+              <span className="text-[10px] font-mono bg-emerald-100 text-emerald-900 border border-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                PROTECTED
+              </span>
+            </div>
+            <p className="text-xs text-black/60 font-semibold mb-4">
+              Your secret PIN blocks public visitors from accessing your admin portal. Only people with this URL or PIN can see your dashboard.
+            </p>
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">
+                  Custom Store Admin PIN (Min 4 chars)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={storePin}
+                    onChange={(e) => setStorePin(e.target.value)}
+                    placeholder="9900"
+                    className="w-36 p-3 rounded-xl border-2 border-black bg-[#FBF9F4] font-mono font-black text-lg text-[#FF4C29] tracking-widest focus:outline-none focus:ring-2 focus:ring-[#FF4C29]"
+                  />
+                  <span className="text-xs font-semibold text-black/50">
+                    Can be 4-8 digits or a secret word
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">
+                  Your Secret Direct Admin Access URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={typeof window !== "undefined" ? `${window.location.origin}/?pin=${storePin}` : `https://cafe-game-store-admin-panel.vercel.app/?pin=${storePin}`}
+                    className="flex-1 p-3 rounded-xl border-2 border-black bg-black/5 font-mono text-xs font-bold text-black select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = `${window.location.origin}/?pin=${storePin}`;
+                      navigator.clipboard.writeText(url);
+                      setCopiedPin(true);
+                      setTimeout(() => setCopiedPin(false), 2000);
+                    }}
+                    className="py-3 px-4 bg-black text-white rounded-xl border-2 border-black font-bold text-xs shadow-[2px_2px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all cursor-pointer whitespace-nowrap"
+                  >
+                    {copiedPin ? "COPIED! ✓" : "COPY LINK 📋"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-300 p-2.5 rounded-xl text-[11px] font-semibold text-amber-900 flex items-center justify-between">
+                <span>Forgot your PIN? Anyone on your team can recover it via owner email.</span>
+                <a href="/recover-pin" target="_blank" className="font-bold underline text-amber-950 ml-2 whitespace-nowrap">
+                  Recovery Page ↗
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* Save Button */}
           <button
             onClick={handleSave}
             disabled={saving || loading}
             className="w-full py-4 bg-black text-white border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50"
           >
-            {saving ? "SAVING TO MONGO DB..." : "SAVE BRANDING TO DB 💾"}
+            {saving ? "SAVING TO MONGO DB..." : "SAVE BRANDING & PIN TO DB 💾"}
           </button>
         </div>
 

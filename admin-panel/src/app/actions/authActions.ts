@@ -432,3 +432,151 @@ export async function lockAdminAction() {
     return { success: false, error: error.message || "Failed to lock admin portal." };
   }
 }
+
+/**
+ * Server Action: Recovers Store Admin PIN using registered store owner email.
+ * Also unlocks the current browser session directly upon successful email recovery.
+ */
+export async function recoverStorePinAction(ownerEmail: string) {
+  try {
+    await connectDB();
+    const cleanEmail = (ownerEmail || "").trim().toLowerCase();
+
+    if (!cleanEmail) {
+      return { success: false, error: "Please enter your registered store email." };
+    }
+
+    // Search store by owner email or fallback to store owner account
+    const store = await Store.findOne({ ownerEmail: cleanEmail });
+
+    if (!store) {
+      // Check if user exists with store_admin role
+      const user = await User.findOne({ email: cleanEmail, role: { $in: ["store_admin", "super_admin"] } });
+      if (user && user.storeId) {
+        const userStore = await Store.findById(user.storeId);
+        if (userStore) {
+          const pin = userStore.adminPin || "9900";
+          // Unlock session
+          const cookieStore = await cookies();
+          cookieStore.set({
+            name: "forstore_admin_pin_verified",
+            value: "true",
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+            path: "/",
+            maxAge: 30 * 24 * 60 * 60,
+          });
+          return {
+            success: true,
+            storeName: userStore.storeName,
+            pin,
+            recoveryUrl: `/?pin=${pin}`,
+          };
+        }
+      }
+      return {
+        success: false,
+        error: `No cafe or store registered under "${cleanEmail}". Please check your email or contact support.`,
+      };
+    }
+
+    const pin = store.adminPin || "9900";
+
+    // Unlock session on this browser
+    const cookieStore = await cookies();
+    cookieStore.set({
+      name: "forstore_admin_pin_verified",
+      value: "true",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60,
+    });
+
+    // Audit Log
+    await AuditLog.create({
+      storeId: store._id,
+      actorName: store.ownerName || "Store Owner",
+      actorEmail: cleanEmail,
+      actorRole: "Store Admin",
+      ipAddress: "127.0.0.1",
+      action: "PIN_RECOVERY_SUCCESS",
+      actionCategory: "SECURITY",
+      targetType: "Store Security",
+      targetName: store.storeName,
+      details: `PIN recovery verified for ${store.storeName}.`,
+      timestamp: new Date(),
+    });
+
+    return {
+      success: true,
+      storeName: store.storeName,
+      pin,
+      recoveryUrl: `/?pin=${pin}`,
+    };
+  } catch (error: any) {
+    console.error("Error in recoverStorePinAction:", error);
+    return { success: false, error: error.message || "Failed to recover PIN." };
+  }
+}
+
+/**
+ * Server Action: Updates a store's custom admin PIN.
+ */
+export async function updateStoreAdminPinAction(storeName: string, newPin: string) {
+  try {
+    await connectDB();
+    const cleanPin = (newPin || "").trim();
+
+    if (!cleanPin || cleanPin.length < 4) {
+      return { success: false, error: "PIN must be at least 4 characters." };
+    }
+
+    const store = await Store.findOneAndUpdate(
+      { storeName },
+      { $set: { adminPin: cleanPin } },
+      { new: true }
+    );
+
+    if (!store) {
+      return { success: false, error: `Store "${storeName}" not found.` };
+    }
+
+    await AuditLog.create({
+      storeId: store._id,
+      actorName: store.ownerName || "Store Manager",
+      actorEmail: store.ownerEmail,
+      actorRole: "Store Admin",
+      ipAddress: "127.0.0.1",
+      action: "STORE_PIN_UPDATED",
+      actionCategory: "SECURITY",
+      targetType: "Store Security",
+      targetName: store.storeName,
+      details: `Admin PIN updated for ${store.storeName}.`,
+      timestamp: new Date(),
+    });
+
+    return { success: true, newPin: cleanPin };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to update PIN." };
+  }
+}
+
+/**
+ * Server Action: Fetches a store's current admin PIN.
+ */
+export async function getStoreAdminPinAction(storeName: string) {
+  try {
+    await connectDB();
+    const store = await Store.findOne({ storeName });
+    if (!store) {
+      return { success: false, error: "Store not found" };
+    }
+    return { success: true, pin: store.adminPin || "9900" };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
