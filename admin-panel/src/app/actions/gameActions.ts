@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import connectDB from "../../lib/db";
 import { GameSession, MiniGameConfig, RewardClaim, User, Store, AuditLog } from "../../lib/models";
 import mongoose from "mongoose";
@@ -21,6 +22,7 @@ export interface SubmitSessionInput {
   storeSlug?: string;
   storeName?: string;
   userId?: string;
+  playerId?: string;
   gameSlug: string;
   score: number;
   duration?: number;
@@ -50,23 +52,43 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
 
     const storeObjId = new mongoose.Types.ObjectId(storeId);
 
-    // Auto-resolve or create guest player customer for this store in MongoDB Atlas
-    if (!userId) {
-      let defaultCustomer = await User.findOne({ storeId: storeObjId, role: "customer" });
-      if (!defaultCustomer) {
-        defaultCustomer = await User.create({
-          storeId: storeObjId,
-          name: "Arcade Player",
-          email: `player-${Date.now()}@arcade.app`,
-          passwordHash: "guest_no_auth_required",
-          role: "customer",
-          totalCafePoints: 0,
-        });
-      }
-      userId = defaultCustomer._id.toString();
+    // Resolve device-isolated guestPlayerId from cookie or input
+    const cookieStore = await cookies();
+    let guestPlayerId = normalized.playerId || cookieStore.get("forstore_player_id")?.value;
+    if (!guestPlayerId) {
+      guestPlayerId = "ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
+      cookieStore.set({
+        name: "forstore_player_id",
+        value: guestPlayerId,
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
     }
 
-    const userObjId = new mongoose.Types.ObjectId(userId);
+    // Auto-resolve or create device-isolated guest player customer in MongoDB Atlas
+    let customer = null;
+    if (userId) {
+      customer = await User.findById(userId);
+    }
+    if (!customer && guestPlayerId) {
+      customer = await User.findOne({ guestId: guestPlayerId });
+    }
+    if (!customer) {
+      const suffix = guestPlayerId.slice(-4).toUpperCase();
+      customer = await User.create({
+        storeId: storeObjId,
+        guestId: guestPlayerId,
+        name: `Player #${suffix}`,
+        email: `guest-${guestPlayerId}@arcade.app`,
+        passwordHash: "guest_no_auth_required",
+        role: "customer",
+        totalCafePoints: 0,
+      });
+    }
+
+    userId = customer._id.toString();
+    const userObjId = customer._id;
 
     // Fetch live Game Config
     const config = await MiniGameConfig.findOne({
@@ -291,26 +313,31 @@ export async function redeemRewardVoucherAction(claimCode: string) {
 /**
  * Server Action: Fetches customer's active rewards and Cafe Points.
  */
-export async function getUserRewardsAction(userId?: string) {
+export async function getUserRewardsAction(guestPlayerId?: string) {
   try {
     await connectDB();
+    const cookieStore = await cookies();
+    const resolvedGuestId = guestPlayerId || cookieStore.get("forstore_player_id")?.value;
 
-    if (!userId) {
-      const defaultUser = await User.findOne({ role: "customer" });
-      if (defaultUser) userId = defaultUser._id.toString();
+    let user = null;
+    if (resolvedGuestId) {
+      user = await User.findOne({ guestId: resolvedGuestId });
     }
 
-    if (!userId) {
-      return { success: false, error: "User not found" };
+    if (!user) {
+      return {
+        success: true,
+        user: {
+          id: resolvedGuestId || "new-guest",
+          name: resolvedGuestId ? `Player #${resolvedGuestId.slice(-4).toUpperCase()}` : "Arcade Player",
+          email: "",
+          totalCafePoints: 0,
+        },
+        rewards: [],
+      };
     }
 
-    const userObjId = new mongoose.Types.ObjectId(userId);
-    const user = await User.findById(userObjId);
-    let claims = await RewardClaim.find({ userId: userObjId }).sort({ earnedAt: -1 });
-
-    if (claims.length === 0) {
-      claims = await RewardClaim.find({}).sort({ earnedAt: -1 });
-    }
+    const claims = await RewardClaim.find({ userId: user._id }).sort({ earnedAt: -1 });
 
     const formattedClaims = await Promise.all(
       claims.map(async (c) => {
@@ -330,7 +357,7 @@ export async function getUserRewardsAction(userId?: string) {
           rewardName: c.rewardName,
           rewardDescription: c.rewardDescription,
           rewardType: c.rewardType,
-          status: c.status,
+          status: isExpired && c.status === "pending" ? "expired" : c.status,
           earnedAt: c.earnedAt.toISOString(),
           claimedAt: c.claimedAt ? c.claimedAt.toISOString() : null,
           expiresAt: c.expiresAt.toISOString(),
@@ -342,10 +369,10 @@ export async function getUserRewardsAction(userId?: string) {
     return {
       success: true,
       user: {
-        id: user?._id.toString(),
-        name: user?.name || "Player",
-        email: user?.email || "",
-        totalCafePoints: user?.totalCafePoints || 0,
+        id: user._id.toString(),
+        name: user.name || "Player",
+        email: user.email || "",
+        totalCafePoints: user.totalCafePoints || 0,
       },
       rewards: formattedClaims,
     };
@@ -354,25 +381,11 @@ export async function getUserRewardsAction(userId?: string) {
       success: true,
       user: {
         id: "demo-player",
-        name: "Valued Player",
+        name: "Arcade Player",
         email: "player@arcade.app",
-        totalCafePoints: 120,
+        totalCafePoints: 0,
       },
-      rewards: [
-        {
-          id: "demo-v1",
-          claimCode: "BRW-8K2Q",
-          gameSlug: "air-hockey",
-          rewardName: "10% Off Table Reward",
-          rewardDescription: "10% off bill or service",
-          rewardType: "discount",
-          status: "pending",
-          earnedAt: new Date().toISOString(),
-          claimedAt: null,
-          expiresAt: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
-          storeName: "Downtown Tacos & Tequila",
-        },
-      ],
+      rewards: [],
       isDemoFallback: true,
     };
   }

@@ -8,19 +8,54 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const { searchParams } = new URL(req.url);
     let userId = searchParams.get("userId");
+    let guestId = searchParams.get("guestId") || req.cookies.get("forstore_player_id")?.value;
+    const storeSlug = searchParams.get("store");
 
-    // Fallback default customer if no userId passed
-    if (!userId) {
-      const defaultUser = await User.findOne({ role: "customer" });
-      if (defaultUser) userId = defaultUser._id.toString();
+    let storeObjId: mongoose.Types.ObjectId | null = null;
+    if (storeSlug) {
+      const store = await Store.findOne({ slug: storeSlug });
+      if (store) storeObjId = store._id as mongoose.Types.ObjectId;
+    }
+    if (!storeObjId) {
+      const defaultStore = await Store.findOne({ status: "Active" });
+      if (defaultStore) storeObjId = defaultStore._id as mongoose.Types.ObjectId;
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId);
+    } else if (guestId) {
+      user = await User.findOne({ guestId });
+      if (!user) {
+        const suffix = guestId.slice(-4).toUpperCase();
+        user = await User.create({
+          storeId: storeObjId,
+          guestId,
+          name: `Player #${suffix}`,
+          email: `guest-${guestId}@arcade.app`,
+          passwordHash: "guest_no_auth_required",
+          role: "customer",
+          totalCafePoints: 0,
+        });
+      }
     }
 
-    const userObjId = new mongoose.Types.ObjectId(userId);
-    const user = await User.findById(userObjId);
+    if (!user) {
+      const newGuestId = "ply_" + Math.random().toString(36).substring(2, 8) + Date.now().toString(36).slice(-4);
+      guestId = newGuestId;
+      const suffix = newGuestId.slice(-4).toUpperCase();
+      user = await User.create({
+        storeId: storeObjId,
+        guestId: newGuestId,
+        name: `Player #${suffix}`,
+        email: `guest-${newGuestId}@arcade.app`,
+        passwordHash: "guest_no_auth_required",
+        role: "customer",
+        totalCafePoints: 0,
+      });
+    }
+
+    const userObjId = user._id;
     const claims = await RewardClaim.find({ userId: userObjId }).sort({ earnedAt: -1 });
 
     // Format claims with store details
@@ -44,16 +79,29 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: {
-        id: user?._id,
-        name: user?.name,
-        email: user?.email,
-        totalCafePoints: user?.totalCafePoints || 0,
+        id: user._id.toString(),
+        guestId: user.guestId,
+        name: user.name,
+        email: user.email,
+        totalCafePoints: user.totalCafePoints || 0,
       },
       rewards: formattedClaims,
     });
+
+    if (guestId) {
+      response.cookies.set({
+        name: "forstore_player_id",
+        value: guestId,
+        path: "/",
+        maxAge: 365 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
+    }
+
+    return response;
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }

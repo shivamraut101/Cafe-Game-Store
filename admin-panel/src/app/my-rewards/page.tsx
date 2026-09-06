@@ -31,7 +31,9 @@ export default function CustomerRewardsWallet() {
   const fetchRewards = async () => {
     try {
       setLoading(true);
-      const res = await getUserRewardsAction();
+      const { getOrCreateClientPlayerId } = await import("../../lib/playerSession");
+      const playerId = getOrCreateClientPlayerId();
+      const res = await getUserRewardsAction(playerId);
 
       if (res.success && res.user && res.rewards) {
         setUser(res.user);

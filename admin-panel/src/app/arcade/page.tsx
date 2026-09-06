@@ -140,16 +140,19 @@ export default function ArcadeLandingPage() {
       }
     }
 
-    // Fetch customer profile & points from API
-    fetch("/api/rewards/user")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.user) {
-          setUserPoints(data.user.totalCafePoints || 0);
-          setUserName(data.user.name || "Player");
-        }
-      })
-      .catch(() => {});
+    // Ensure unique device-isolated guest player ID
+    import("../../lib/playerSession").then(({ getOrCreateClientPlayerId }) => {
+      const playerId = getOrCreateClientPlayerId();
+      fetch(`/api/rewards/user?guestId=${encodeURIComponent(playerId)}&store=${encodeURIComponent(storeParam)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.user) {
+            setUserPoints(data.user.totalCafePoints || 0);
+            setUserName(data.user.name || "Player");
+          }
+        })
+        .catch(() => {});
+    });
 
     // Fetch store branding for header
     getStoreBrandingAction(storeParam)

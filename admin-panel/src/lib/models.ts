@@ -47,6 +47,7 @@ export const Store: Model<IStore> =
 // ─── User ─────────────────────────────────────────────────
 export interface IUser extends Document {
   storeId: mongoose.Types.ObjectId | null;
+  guestId?: string;
   email: string;
   name: string;
   role: "super_admin" | "store_admin" | "customer";
@@ -63,6 +64,7 @@ export interface IUser extends Document {
 const UserSchema = new Schema<IUser>(
   {
     storeId: { type: Schema.Types.ObjectId, ref: "Store", default: null },
+    guestId: { type: String, index: true },
     email: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     role: { type: String, enum: ["super_admin", "store_admin", "customer"], required: true },
