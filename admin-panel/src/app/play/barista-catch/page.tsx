@@ -64,7 +64,6 @@ export default function BaristaCatchGame() {
   const scoreRef = useRef(0);
   const bestRef = useRef(0);
   const ptsRef = useRef(0);
-  const waitRef = useRef(0);
   const livesRef = useRef(3);
   const comboRef = useRef(0);
   const maxComboRef = useRef(0);
@@ -115,12 +114,6 @@ export default function BaristaCatchGame() {
   const addScorePop = useCallback((text: string, x: number, y: number, color: string) => {
     scorePopRef.current.push({ text, x, y, life: 40, color });
   }, []);
-
-  // Wait timer
-  useEffect(() => {
-    const t = setInterval(() => { waitRef.current++; rerender(); }, 1000);
-    return () => clearInterval(t);
-  }, [rerender]);
 
   // ─── Touch/Mouse Input ──────────────────────────────────
   useEffect(() => {

@@ -12,6 +12,7 @@ const GOAL_WIDTH = 110;
 const MAX_SCORE = 5;
 const FRICTION = 0.994;
 const MAX_PUCK_SPEED = 15;
+const CORNER_SIZE = 42;
 
 interface Particle {
   x: number;
@@ -42,6 +43,9 @@ export default function AirHockeyGame() {
   const scoreP1Ref = useRef(0);
   const scoreP2Ref = useRef(0);
   const matchDurationRef = useRef(0);
+  const lastHitTimeRef = useRef(0);
+  const stuckWatchdogRef = useRef({ x: W / 2, y: H / 2, frames: 0 });
+  const keysRef = useRef<{ [key: string]: boolean }>({});
 
   // Touch tracking map: identifier -> "p1" | "p2"
   const touchMapRef = useRef<Map<number, "p1" | "p2">>(new Map());
@@ -162,6 +166,28 @@ export default function AirHockeyGame() {
     }
   };
 
+  // Keyboard steering for single player / desktop testing
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      keysRef.current[e.code] = true;
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
+        e.preventDefault();
+      }
+      if (e.code === "Space" && gameState === "idle") {
+        initGame(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      keysRef.current[e.code] = false;
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [gameState, initGame]);
+
   // Mouse fallback for single player / desktop testing
   const handleMouseMove = (e: React.MouseEvent) => {
     const canvas = canvasRef.current;
@@ -199,14 +225,63 @@ export default function AirHockeyGame() {
         const p1 = p1Ref.current;
         const p2 = p2Ref.current;
 
+        // Keyboard Controls for Player 1
+        const keys = keysRef.current;
+        let kx = 0;
+        let ky = 0;
+        if (keys["ArrowLeft"] || keys["KeyA"]) kx -= 1;
+        if (keys["ArrowRight"] || keys["KeyD"]) kx += 1;
+        if (keys["ArrowUp"] || keys["KeyW"]) ky -= 1;
+        if (keys["ArrowDown"] || keys["KeyS"]) ky += 1;
+        if (kx !== 0 || ky !== 0) {
+          const moveSpeed = 6.5;
+          p1.prevX = p1.x;
+          p1.prevY = p1.y;
+          p1.x = Math.max(PADDLE_R + 10, Math.min(W - PADDLE_R - 10, p1.x + kx * moveSpeed));
+          p1.y = Math.max(H / 2 + PADDLE_R + 5, Math.min(H - PADDLE_R - 10, p1.y + ky * moveSpeed));
+          p1.vx = p1.x - p1.prevX;
+          p1.vy = p1.y - p1.prevY;
+        }
+
         // Bot AI if in vsBot mode
         if (vsBot) {
-          const targetX = puck.x;
-          const targetY = Math.min(H / 2 - PADDLE_R - 15, Math.max(70, puck.y - 15));
-          p2.vx = (targetX - p2.x) * 0.12;
-          p2.vy = (targetY - p2.y) * 0.12;
+          let targetX = W / 2;
+          let targetY = 75;
+
+          if (puck.y > H / 2) {
+            // DEFENSIVE STANCE: Puck is in Player 1's court
+            // Guard the net smoothly tracking puck X, staying within goal post range
+            targetX = Math.max(W / 2 - 65, Math.min(W / 2 + 65, puck.x));
+            targetY = 75;
+          } else {
+            // Puck is in Bot's court
+            if (puck.y < p2.y + 12 || puck.y < 80) {
+              // BEHIND BOT OR DEEP IN BACK WALL/CORNER!
+              // NEVER push up into the wall or corner!
+              // Swing to open side and drop lower toward center to let corner/wall deflect it:
+              if (puck.x > W / 2) {
+                targetX = Math.max(PADDLE_R + 25, puck.x - 70);
+              } else {
+                targetX = Math.min(W - PADDLE_R - 25, puck.x + 70);
+              }
+              targetY = 115;
+            } else {
+              // STRIKE ZONE: Puck is in front of bot
+              targetX = puck.x + (puck.x > W / 2 ? -10 : 10);
+              targetY = Math.min(H / 2 - PADDLE_R - 8, puck.y - PADDLE_R - 6);
+            }
+          }
+
+          p2.prevX = p2.x;
+          p2.prevY = p2.y;
+          p2.vx = (targetX - p2.x) * 0.14;
+          p2.vy = (targetY - p2.y) * 0.14;
           p2.x += p2.vx;
           p2.y += p2.vy;
+
+          // Strict boundary clamping for Bot paddle
+          p2.x = Math.max(PADDLE_R + 15, Math.min(W - PADDLE_R - 15, p2.x));
+          p2.y = Math.max(PADDLE_R + 25, Math.min(H / 2 - PADDLE_R - 10, p2.y));
         }
 
         // Apply Puck Velocity & Friction
@@ -225,6 +300,75 @@ export default function AirHockeyGame() {
         // Prevent dead puck stranded on center line unreachable by paddles
         if (Math.abs(puck.y - H / 2) < 35 && speed < 0.6) {
           puck.vy = puck.y <= H / 2 ? 2.2 : -2.2;
+        }
+
+        // Anti-Stall / Anti-Freeze Watchdog (Never allows puck to remain pinned anywhere)
+        const sw = stuckWatchdogRef.current;
+        if (Math.hypot(puck.x - sw.x, puck.y - sw.y) < 15) {
+          sw.frames++;
+          if (sw.frames > 40) {
+            // Eject toward center!
+            const toCenterX = W / 2 - puck.x;
+            const toCenterY = H / 2 - puck.y;
+            const dist = Math.hypot(toCenterX, toCenterY) || 1;
+            puck.vx = (toCenterX / dist) * 7;
+            puck.vy = (toCenterY / dist) * 7;
+            sw.frames = 0;
+            p2.x = W / 2;
+            p2.y = 80;
+            ArcadeAudio.playBonus();
+            spawnBurst(puck.x, puck.y, "#F59E0B", 12);
+          }
+        } else {
+          sw.x = puck.x;
+          sw.y = puck.y;
+          sw.frames = 0;
+        }
+
+        // 45° Corner Chamfer Bouncers (Prevents corner trapping)
+        // Top-Left Corner (15, 15)
+        if (puck.x < 15 + CORNER_SIZE && puck.y < 15 + CORNER_SIZE) {
+          const cornerDist = (puck.x - 15) + (puck.y - 15);
+          if (cornerDist < CORNER_SIZE) {
+            puck.vx = Math.abs(puck.vx) * 0.95 + 2.8;
+            puck.vy = Math.abs(puck.vy) * 0.95 + 2.8;
+            puck.x = 15 + CORNER_SIZE / 2 + 2;
+            puck.y = 15 + CORNER_SIZE / 2 + 2;
+            ArcadeAudio.playDrop();
+          }
+        }
+        // Top-Right Corner (W - 15, 15)
+        if (puck.x > W - 15 - CORNER_SIZE && puck.y < 15 + CORNER_SIZE) {
+          const cornerDist = (W - 15 - puck.x) + (puck.y - 15);
+          if (cornerDist < CORNER_SIZE) {
+            puck.vx = -(Math.abs(puck.vx) * 0.95 + 2.8);
+            puck.vy = Math.abs(puck.vy) * 0.95 + 2.8;
+            puck.x = W - 15 - CORNER_SIZE / 2 - 2;
+            puck.y = 15 + CORNER_SIZE / 2 + 2;
+            ArcadeAudio.playDrop();
+          }
+        }
+        // Bottom-Left Corner (15, H - 15)
+        if (puck.x < 15 + CORNER_SIZE && puck.y > H - 15 - CORNER_SIZE) {
+          const cornerDist = (puck.x - 15) + (H - 15 - puck.y);
+          if (cornerDist < CORNER_SIZE) {
+            puck.vx = Math.abs(puck.vx) * 0.95 + 2.8;
+            puck.vy = -(Math.abs(puck.vy) * 0.95 + 2.8);
+            puck.x = 15 + CORNER_SIZE / 2 + 2;
+            puck.y = H - 15 - CORNER_SIZE / 2 - 2;
+            ArcadeAudio.playDrop();
+          }
+        }
+        // Bottom-Right Corner (W - 15, H - 15)
+        if (puck.x > W - 15 - CORNER_SIZE && puck.y > H - 15 - CORNER_SIZE) {
+          const cornerDist = (W - 15 - puck.x) + (H - 15 - puck.y);
+          if (cornerDist < CORNER_SIZE) {
+            puck.vx = -(Math.abs(puck.vx) * 0.95 + 2.8);
+            puck.vy = -(Math.abs(puck.vy) * 0.95 + 2.8);
+            puck.x = W - 15 - CORNER_SIZE / 2 - 2;
+            puck.y = H - 15 - CORNER_SIZE / 2 - 2;
+            ArcadeAudio.playDrop();
+          }
         }
 
         // Left & Right Wall Collision
@@ -325,7 +469,6 @@ export default function AirHockeyGame() {
           const minDist = PADDLE_R + PUCK_R;
 
           if (dist < minDist) {
-            // Normal collision response
             const nx = dx / (dist || 1);
             const ny = dy / (dist || 1);
 
@@ -338,8 +481,32 @@ export default function AirHockeyGame() {
             puck.vx = nx * baseImpulse + (p.vx || 0) * 0.55;
             puck.vy = ny * baseImpulse + (p.vy || 0) * 0.55;
 
-            ArcadeAudio.playTap();
-            spawnBurst(puck.x, puck.y, isP1 ? "#38BDF8" : "#F43F5E", 10);
+            // ANTI-PINCH: If near top wall and hit by bot (P2), NEVER push upward into the wall!
+            if (!isP1 && puck.y <= 65) {
+              puck.vy = Math.max(Math.abs(puck.vy), 5.5);
+              puck.y = Math.max(puck.y, 15 + PUCK_R + 2);
+            }
+            // ANTI-PINCH: If near bottom wall and hit by P1, NEVER push downward into bottom wall!
+            if (isP1 && puck.y >= H - 65) {
+              puck.vy = -Math.max(Math.abs(puck.vy), 5.5);
+              puck.y = Math.min(puck.y, H - 15 - PUCK_R - 2);
+            }
+            // ANTI-PINCH: If near side walls, ensure impulse points inward
+            if (puck.x <= 40) {
+              puck.vx = Math.max(Math.abs(puck.vx), 4.5);
+              puck.x = Math.max(puck.x, 15 + PUCK_R + 2);
+            } else if (puck.x >= W - 40) {
+              puck.vx = -Math.max(Math.abs(puck.vx), 4.5);
+              puck.x = Math.min(puck.x, W - 15 - PUCK_R - 2);
+            }
+
+            // Rate-limit audio and burst particles so they don't fire 60 times/sec if grazing
+            const now = Date.now();
+            if (now - lastHitTimeRef.current > 100) {
+              lastHitTimeRef.current = now;
+              ArcadeAudio.playTap();
+              spawnBurst(puck.x, puck.y, isP1 ? "#38BDF8" : "#F43F5E", 10);
+            }
           }
         };
 
@@ -362,6 +529,14 @@ export default function AirHockeyGame() {
       ctx.strokeStyle = "#334155";
       ctx.lineWidth = 4;
       ctx.strokeRect(15, 15, W - 30, H - 30);
+
+      // 45° Angled Corner Chamfers (Neon Bumpers)
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(15, 15 + CORNER_SIZE); ctx.lineTo(15 + CORNER_SIZE, 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W - 15 - CORNER_SIZE, 15); ctx.lineTo(W - 15, 15 + CORNER_SIZE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(15, H - 15 - CORNER_SIZE); ctx.lineTo(15 + CORNER_SIZE, H - 15); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(W - 15 - CORNER_SIZE, H - 15); ctx.lineTo(W - 15, H - 15 - CORNER_SIZE); ctx.stroke();
 
       // Center Divider Line
       ctx.strokeStyle = "rgba(148, 163, 184, 0.3)";
@@ -661,8 +836,8 @@ export default function AirHockeyGame() {
 
       {/* Tabletop Play Guide */}
       <div className="w-[340px] mt-2 flex items-center justify-between text-neutral-500 text-[11px] px-2 font-medium">
-        <span>📱 Place phone flat on the table</span>
-        <span>Drag paddle to hit puck</span>
+        <span>📱 Flat on table or ⌨️ WASD/Arrows</span>
+        <span>Drag paddle or keys to hit puck</span>
       </div>
     </div>
   );

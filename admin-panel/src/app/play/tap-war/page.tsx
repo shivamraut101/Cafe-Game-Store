@@ -153,6 +153,32 @@ export default function TapWarGame() {
     }
   };
 
+  // Keyboard listener for desktop tapping
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (gameState === "idle") {
+        if (e.code === "Space" || e.code === "Enter") {
+          e.preventDefault();
+          initGame(true);
+        }
+        return;
+      }
+      if (gameState !== "playing") return;
+
+      if (e.code === "Space" || e.code === "Enter" || e.code === "ArrowDown") {
+        e.preventDefault();
+        handleTap("p1", W / 2 + (Math.random() - 0.5) * 60);
+      } else if (["KeyW", "ArrowUp"].includes(e.code)) {
+        e.preventDefault();
+        if (!vsBot) {
+          handleTap("p2", W / 2 + (Math.random() - 0.5) * 60);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [gameState, vsBot, initGame]);
+
   // Game Loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -166,10 +192,23 @@ export default function TapWarGame() {
     const loop = () => {
       // --- UPDATE PHYSICS ---
       if (gameState === "playing") {
-        // Bot AI tapping if in vsBot mode
+        // Bot AI tapping if in vsBot mode with dynamic excitement pacing
         if (vsBot) {
           botTapTimer++;
-          if (botTapTimer >= 6 + Math.random() * 4) {
+          const beamRatio = beamYRef.current / H; // 0 is bot losing, 1 is bot winning
+          let threshold = 8;
+          if (beamRatio < 0.35) {
+            // Player is close to winning - bot rallies with rapid defensive taps!
+            threshold = 5 + Math.random() * 3;
+          } else if (beamRatio > 0.68) {
+            // Bot is far ahead - give the player breathing room to make a heroic comeback
+            threshold = 10 + Math.random() * 5;
+          } else {
+            // Balanced back-and-forth contest
+            threshold = 7 + Math.random() * 3;
+          }
+
+          if (botTapTimer >= threshold) {
             botTapTimer = 0;
             handleTap("p2", W / 2 + (Math.random() - 0.5) * 100);
           }
@@ -525,7 +564,7 @@ export default function TapWarGame() {
 
       {/* Tabletop Play Guide */}
       <div className="w-[340px] mt-2 flex items-center justify-between text-neutral-500 text-[11px] px-2 font-medium">
-        <span>⚡ Tap rapidly to push laser</span>
+        <span>⚡ Tap screen or ⌨️ Space/Enter</span>
         <span>Best of 3 rounds</span>
       </div>
     </div>
