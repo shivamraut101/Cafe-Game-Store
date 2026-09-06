@@ -109,21 +109,6 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const handleShare = async () => {
-    if (typeof window !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: `Reward Voucher: ${claim?.rewardName}`,
-          text: `Here is my cafe reward voucher: ${claim?.claimCode}`,
-          url: window.location.href,
-        });
-      } catch {
-        handleCopy();
-      }
-    } else {
-      handleCopy();
-    }
-  };
 
   const handleRedeem = async () => {
     try {
@@ -248,7 +233,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
                 ⚠️ VOUCHER EXPIRED (2-HOUR WINDOW PASSED)
               </div>
             ) : (
-              <div className="w-full flex flex-col gap-2">
+              <div className="w-full">
                 <button
                   type="button"
                   onClick={handleRedeem}
@@ -256,13 +241,6 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
                   className="w-full py-3.5 bg-[#FF4C29] text-white border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
                 >
                   {isRedeeming ? "REDEEMING..." : "STAFF: TAP TO VERIFY & REDEEM 🎯"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="w-full py-2 bg-white text-black border-2 border-black rounded-xl font-black text-xs hover:bg-[#FBF9F4] transition-colors cursor-pointer"
-                >
-                  SHARE / SAVE VOUCHER 📱
                 </button>
               </div>
             )}
