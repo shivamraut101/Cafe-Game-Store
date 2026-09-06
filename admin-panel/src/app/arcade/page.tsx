@@ -4,7 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getMiniGameConfigsAction, getStoreBrandingAction } from "../actions/adminActions";
 import CustomerNameModal from "../../components/CustomerNameModal";
+import InStorePassGate from "../../components/InStorePassGate";
 import { isDefaultPlayerName } from "../../lib/playerSession";
+import { verifyStoreKey, getClientInStoreSession, saveClientInStoreSession } from "../../lib/storeAccessPass";
 
 interface GameCard {
   slug: string;
@@ -131,18 +133,42 @@ export default function ArcadeLandingPage() {
 
   const [storeName, setStoreName] = useState("Brew & Bites Arcade");
   const [tableNumber, setTableNumber] = useState<string>("");
+  const [storeSlug, setStoreSlug] = useState<string>("adda-99");
+  const [isInStoreUnlocked, setIsInStoreUnlocked] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Read store parameter from URL query string (e.g. ?store=downtown-tacos-tequila)
+    // Read store parameter from URL query string (e.g. ?store=adda-99)
     let storeParam = "";
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const queryStore = params.get("store");
+      const queryKey = params.get("key") || params.get("pass");
+
       if (queryStore) {
         sessionStorage.setItem("selectedStore", queryStore);
         storeParam = queryStore;
       } else {
-        storeParam = sessionStorage.getItem("selectedStore") || "";
+        storeParam = sessionStorage.getItem("selectedStore") || "adda-99";
+      }
+
+      const normalizedSlug = storeParam.toLowerCase().trim();
+      setStoreSlug(normalizedSlug);
+
+      // ─── 3-Hour Rolling In-Store Key Verification ───
+      if (queryKey) {
+        const { valid } = verifyStoreKey(normalizedSlug, queryKey);
+        if (valid) {
+          saveClientInStoreSession(normalizedSlug, queryKey);
+          setIsInStoreUnlocked(true);
+        } else {
+          // Key is stale/invalid. Check if existing valid session exists
+          const session = getClientInStoreSession(normalizedSlug);
+          setIsInStoreUnlocked(Boolean(session));
+        }
+      } else {
+        // Direct link visit: check if this device holds an active in-store 3-hour session
+        const session = getClientInStoreSession(normalizedSlug);
+        setIsInStoreUnlocked(Boolean(session));
       }
 
       const queryTable = params.get("table");
@@ -252,6 +278,28 @@ export default function ArcadeLandingPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Show enticing InStorePassGate if the 3-hour in-store key is missing or expired
+  if (isInStoreUnlocked === false) {
+    return (
+      <InStorePassGate
+        storeSlug={storeSlug || "adda-99"}
+        storeName={storeName}
+        tableNumber={tableNumber}
+        onUnlocked={() => setIsInStoreUnlocked(true)}
+      />
+    );
+  }
+
+  // Hydration state
+  if (isInStoreUnlocked === null) {
+    return (
+      <div className="min-h-screen bg-[#F6F3EB] flex flex-col items-center justify-center p-4">
+        <span className="text-4xl animate-spin">☕</span>
+        <p className="text-xs font-black text-black/50 mt-3">Checking table pass...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F6F3EB] text-[#1A1A1A] flex flex-col items-center justify-between p-4 font-sans select-none">
       {/* Header Bar */}
@@ -265,6 +313,12 @@ export default function ArcadeLandingPage() {
                 {tableNumber}
               </span>
             )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wide">
+              Table Pass Active (3h)
+            </span>
           </div>
           <button
             onClick={() => setShowNameModal(true)}

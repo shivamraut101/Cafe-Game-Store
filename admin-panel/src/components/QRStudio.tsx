@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { generateStoreKey, getNextRotationMs } from "../lib/storeAccessPass";
 interface QRStudioProps {
   storeName?: string;
   gameTitle?: string;
@@ -28,55 +29,55 @@ const themePresets: ThemePreset[] = [
   {
     id: "midnight-dark",
     name: "Midnight Luxury",
-    icon: "🖤",
-    qrColor: "#111111",
-    posterBg: "#F6F3EB",
-    headerBg: "#111111",
-    accentColor: "#EAB308",
+    icon: "🍸",
+    qrColor: "#1A1A1A",
+    posterBg: "#0F172A",
+    headerBg: "#000000",
+    accentColor: "#F59E0B",
   },
   {
-    id: "electric-vibe",
-    name: "Electric Energy",
-    icon: "⚡",
-    qrColor: "#111111",
-    posterBg: "#FBF9F4",
-    headerBg: "#FF4C29",
-    accentColor: "#FF4C29",
+    id: "sunset-glow",
+    name: "Cafe Sunset",
+    icon: "☕",
+    qrColor: "#FF4C29",
+    posterBg: "#FFF7ED",
+    headerBg: "#EA580C",
+    accentColor: "#F97316",
   },
   {
-    id: "fresh-emerald",
-    name: "Fresh Emerald",
-    icon: "🌿",
-    qrColor: "#064E3B",
+    id: "matcha-tea",
+    name: "Zen Matcha",
+    icon: "🍵",
+    qrColor: "#065F46",
     posterBg: "#F0FDF4",
-    headerBg: "#065F46",
-    accentColor: "#059669",
+    headerBg: "#047857",
+    accentColor: "#10B981",
   },
   {
-    id: "ocean-cyan",
-    name: "Ocean & Steel",
-    icon: "🌊",
-    qrColor: "#0C4A6E",
-    posterBg: "#F0F9FF",
-    headerBg: "#0284C7",
-    accentColor: "#0369A1",
+    id: "cyber-punk",
+    name: "Electric Arcade",
+    icon: "⚡",
+    qrColor: "#7C3AED",
+    posterBg: "#FAF5FF",
+    headerBg: "#6D28D9",
+    accentColor: "#8B5CF6",
   },
   {
-    id: "royal-gold",
-    name: "Royal Gold & Velvet",
-    icon: "👑",
-    qrColor: "#4A044E",
-    posterBg: "#FDF4FF",
-    headerBg: "#701A75",
-    accentColor: "#D97706",
-  },
-  {
-    id: "warm-earth",
-    name: "Warm Earth & Caramel",
+    id: "clean-white",
+    name: "Nordic Minimal",
     icon: "✨",
-    qrColor: "#451A03",
+    qrColor: "#111827",
+    posterBg: "#FFFFFF",
+    headerBg: "#1F2937",
+    accentColor: "#3B82F6",
+  },
+  {
+    id: "retro-kraft",
+    name: "Artisan Craft",
+    icon: "📜",
+    qrColor: "#78350F",
     posterBg: "#FEF3C7",
-    headerBg: "#78350F",
+    headerBg: "#92400E",
     accentColor: "#B45309",
   },
 ];
@@ -120,8 +121,10 @@ export default function QRStudio({
   const qrRef = useRef<HTMLDivElement>(null);
   const [qrCodeInstance, setQrCodeInstance] = useState<any>(null);
 
-  // QR Code Destination URL (Includes store slug and table for exact DB routing on scan)
+  // QR Code Destination URL (Includes store slug, 3-hour rotating key, and table for exact DB routing)
   const storeSlug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const [activeKey, setActiveKey] = useState("");
+  const [rotationCountdown, setRotationCountdown] = useState("");
   const defaultUrl = typeof window !== "undefined"
     ? `${window.location.origin}/arcade?store=${storeSlug}${tableNumber ? `&table=${encodeURIComponent(tableNumber)}` : ""}`
     : `http://localhost:3000/arcade?store=${storeSlug}`;
@@ -130,14 +133,30 @@ export default function QRStudio({
 
   useEffect(() => {
     const slug = storeName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const key = generateStoreKey(slug, 0);
+    setActiveKey(key);
+
     if (typeof window !== "undefined") {
       const tableParam = tableNumber ? `&table=${encodeURIComponent(tableNumber)}` : "";
-      const newUrl = `${window.location.origin}/arcade?store=${slug}${tableParam}`;
+      const newUrl = `${window.location.origin}/arcade?store=${slug}&key=${key}${tableParam}`;
       setTargetUrl(newUrl);
       if (qrCodeInstance) {
         qrCodeInstance.update({ data: newUrl });
       }
     }
+
+    const updateTimer = () => {
+      const ms = getNextRotationMs();
+      const totalSec = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSec / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      setRotationCountdown(`${hours}h ${mins}m ${secs}s`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
   }, [storeName, tableNumber, qrCodeInstance]);
 
   const handleSelectPreset = (preset: ThemePreset) => {
@@ -287,6 +306,40 @@ export default function QRStudio({
             <span>Poster Customizer Settings</span>
             <span className="text-xs font-semibold text-black/50">Strict Character Limits</span>
           </h3>
+
+          {/* 3-Hour Rolling In-Store Pass Info Card */}
+          <div className="bg-emerald-50 border-2 border-emerald-500/60 rounded-xl p-3.5 flex flex-col gap-2 shadow-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase text-emerald-950 flex items-center gap-1.5">
+                <span>🔒</span> 3-Hour Rolling In-Store Pass
+              </span>
+              <span className="text-[10px] font-mono font-black bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded border border-emerald-400">
+                {activeKey || "CAFE-ACTIVE"}
+              </span>
+            </div>
+            <p className="text-[11px] text-emerald-950/80 leading-relaxed font-medium">
+              Protects games from out-of-store sharing. Only customers who scan this table QR get unlocked for 3 hours. Next key rotation in <strong className="font-mono text-emerald-950">{rotationCountdown}</strong>.
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="text"
+                readOnly
+                value={targetUrl}
+                className="flex-1 px-3 py-1.5 bg-white text-black font-mono text-[10px] rounded-lg border border-black/20 truncate"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(targetUrl);
+                  setCopiedUrl(true);
+                  setTimeout(() => setCopiedUrl(false), 2000);
+                }}
+                className="px-3 py-1.5 bg-black text-white text-xs font-black rounded-lg uppercase whitespace-nowrap cursor-pointer hover:bg-neutral-800"
+              >
+                {copiedUrl ? "Copied! ✅" : "Copy URL"}
+              </button>
+            </div>
+          </div>
 
           {/* Theme Preset */}
           <div>
