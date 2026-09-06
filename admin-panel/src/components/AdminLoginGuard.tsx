@@ -171,6 +171,14 @@ export default function AdminLoginGuard({
     return (
       <div className="min-h-screen bg-[#F6F3EB] flex flex-col items-center justify-center p-4 font-sans select-none">
         <main className="w-full max-w-md bg-white border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col items-center text-center relative">
+          {/* Master PIN Verification Indicator */}
+          <div className="w-full flex items-center justify-between bg-emerald-50 text-emerald-900 px-3 py-1.5 rounded-xl border border-emerald-400 font-mono text-[10px] font-black tracking-wider uppercase mb-4 shadow-[1px_1px_0px_0px_#000]">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              SECURE GATEWAY
+            </span>
+            <span>MASTER PIN UNLOCKED 🔓</span>
+          </div>
           
           {/* Top Mode Selector: Sign In vs Register */}
           <div className="w-full grid grid-cols-2 gap-2 bg-[#FBF9F4] p-1.5 rounded-2xl border-2 border-black mb-5">

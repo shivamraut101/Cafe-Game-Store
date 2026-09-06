@@ -3,7 +3,7 @@
 import React from "react";
 import { TierLevel, UserRole } from "../types";
 import CustomDropdown from "./CustomDropdown";
-import { logoutAction } from "../app/actions/authActions";
+import { logoutAction, lockAdminAction } from "../app/actions/authActions";
 
 interface RoleHeaderProps {
   currentRole: UserRole;
@@ -30,11 +30,11 @@ export default function RoleHeader({
 }: RoleHeaderProps) {
   const handleLogout = async () => {
     try {
-      await logoutAction();
+      await lockAdminAction();
       sessionStorage.removeItem("cafe_admin_session");
-      window.location.reload();
+      window.location.href = "/arcade?store=adda-99";
     } catch (e) {
-      window.location.reload();
+      window.location.href = "/arcade?store=adda-99";
     }
   };
 

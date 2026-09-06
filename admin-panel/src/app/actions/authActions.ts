@@ -390,3 +390,45 @@ export async function registerMerchantAction(input: RegisterMerchantInput) {
     return { success: false, error: error.message || "Failed to register store." };
   }
 }
+
+/**
+ * Server Action: Validates the master admin PIN from URL parameter.
+ */
+export async function verifyMasterPinAction(pin: string) {
+  try {
+    const MASTER_PIN = process.env.ADMIN_MASTER_PIN || "9900";
+    const cleanPin = (pin || "").trim();
+
+    if (cleanPin && cleanPin === MASTER_PIN) {
+      const cookieStore = await cookies();
+      cookieStore.set({
+        name: "forstore_admin_pin_verified",
+        value: "true",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+      });
+      return { success: true };
+    }
+
+    return { success: false, error: "Invalid Master PIN." };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to verify PIN." };
+  }
+}
+
+/**
+ * Server Action: Clears the master admin PIN verification and logs out.
+ */
+export async function lockAdminAction() {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete("forstore_admin_pin_verified");
+    cookieStore.delete(SESSION_COOKIE_NAME);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to lock admin portal." };
+  }
+}
