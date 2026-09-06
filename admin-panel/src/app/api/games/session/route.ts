@@ -103,9 +103,7 @@ export async function POST(req: NextRequest) {
         earnedAt: { $gte: thirtyMinsAgo },
       });
 
-      if (existingPendingClaim) {
-        cooldownNotice = `You already have an active voucher (${existingPendingClaim.claimCode}) ready to claim!`;
-      } else {
+      if (!existingPendingClaim) {
         // Find highest tier qualified by player's score
         const qualifiedTiers = config.rewardTiers
           .filter((t) => score >= t.pointThreshold)

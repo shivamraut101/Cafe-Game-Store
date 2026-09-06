@@ -14,6 +14,7 @@ interface GameCard {
   icon: string;
   description: string;
   rewardHighlight: string;
+  topReward?: string;
   color: string;
   shadowColor: string;
   totalPlays?: number;
@@ -28,6 +29,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🏒",
     description: "Lay phone on the table & duel your friend, partner, or kid in real-time!",
     rewardHighlight: "Win Table Winner Perk",
+    topReward: "Table Winner Perk",
     color: "bg-[#2563EB]",
     shadowColor: "shadow-[4px_4px_0px_0px_#2563EB]",
     popular: true,
@@ -39,6 +41,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "⚡",
     description: "Rapid-fire finger tap duel! Lay phone flat and battle for table supremacy!",
     rewardHighlight: "Win Rapid Tap Perk",
+    topReward: "Rapid Tap Perk",
     color: "bg-[#D946EF]",
     shadowColor: "shadow-[4px_4px_0px_0px_#D946EF]",
     popular: true,
@@ -50,6 +53,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🧱",
     description: "Angle your shots, break neon blocks, collect multiballs & trigger cafe combos!",
     rewardHighlight: "Win 15% Off Voucher",
+    topReward: "15% Off Voucher",
     color: "bg-[#6366F1]",
     shadowColor: "shadow-[4px_4px_0px_0px_#6366F1]",
     popular: true,
@@ -61,6 +65,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🏗️",
     description: "Stack moving cafe tiers with precision! Perfectly aligned blocks trigger score combos.",
     rewardHighlight: "Win 10% Off Voucher",
+    topReward: "10% Off Voucher",
     color: "bg-[#FF4C29]",
     shadowColor: "shadow-[4px_4px_0px_0px_#FF4C29]",
     popular: true,
@@ -72,6 +77,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🚀",
     description: "Navigate past steaming pipes and espresso machines in this retro flyer!",
     rewardHighlight: "Win Instant 5% Off",
+    topReward: "Instant 5% Off",
     color: "bg-[#F59E0B]",
     shadowColor: "shadow-[4px_4px_0px_0px_#F59E0B]",
     popular: true,
@@ -83,6 +89,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🎁",
     description: "Catch falling coffee beans, donuts, and cups while avoiding spoiled milk!",
     rewardHighlight: "Win 15% Off Voucher",
+    topReward: "15% Off Voucher",
     color: "bg-[#10B981]",
     shadowColor: "shadow-[4px_4px_0px_0px_#10B981]",
     popular: true,
@@ -94,6 +101,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🍉",
     description: "Drop delicious cafe items, merge matching treats, and build the giant treat!",
     rewardHighlight: "Win 10% Off Reward",
+    topReward: "10% Off Reward",
     color: "bg-[#EC4899]",
     shadowColor: "shadow-[4px_4px_0px_0px_#EC4899]",
     popular: true,
@@ -105,6 +113,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🌀",
     description: "Rotate the 3D spiral tower to drop through openings while avoiding red zones!",
     rewardHighlight: "Win 10% Off Voucher",
+    topReward: "10% Off Voucher",
     color: "bg-[#06B6D4]",
     shadowColor: "shadow-[4px_4px_0px_0px_#06B6D4]",
     popular: true,
@@ -116,6 +125,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     icon: "🦘",
     description: "Bounce across endless floating cafe tiles without falling into the void!",
     rewardHighlight: "Win 10% Off Voucher",
+    topReward: "10% Off Voucher",
     color: "bg-[#14B8A6]",
     shadowColor: "shadow-[4px_4px_0px_0px_#14B8A6]",
     popular: true,
@@ -130,6 +140,10 @@ export default function ArcadeLandingPage() {
   const [dismissedNamePrompt, setDismissedNamePrompt] = useState(false);
   const [games, setGames] = useState<GameCard[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [claimedRewardNames, setClaimedRewardNames] = useState<string[]>([]);
+  const [claimedGameSlugs, setClaimedGameSlugs] = useState<string[]>([]);
+  const [hasPendingVoucher, setHasPendingVoucher] = useState(false);
 
   const [storeName, setStoreName] = useState("Brew & Bites Arcade");
   const [tableNumber, setTableNumber] = useState<string>("");
@@ -176,11 +190,16 @@ export default function ArcadeLandingPage() {
         })
         .catch(() => {});
 
-      // Anti-Farming stealth difficulty check (silent behind the scenes)
+      // Anti-Farming stealth difficulty & claimed offer check (silent behind the scenes)
       getPlayerChallengerStatusAction(playerId, storeParam)
         .then((statusRes) => {
           if (typeof window !== "undefined") {
             sessionStorage.setItem("challengerMode", statusRes.success && statusRes.isChallenger ? "true" : "false");
+          }
+          if (statusRes.success) {
+            setClaimedRewardNames(statusRes.claimedRewardNames || []);
+            setClaimedGameSlugs(statusRes.claimedGameSlugs || []);
+            setHasPendingVoucher(Boolean(statusRes.hasPendingVoucher));
           }
         })
         .catch(() => {});
@@ -205,7 +224,7 @@ export default function ArcadeLandingPage() {
           const mapped: GameCard[] = res.configs
             .filter((c: any) => c.enabled !== false)
             .map((c) => {
-              const topReward = c.rewardTiers && c.rewardTiers.length > 0 ? c.rewardTiers[0].rewardName : "Instant Rewards";
+              const topReward = c.rewardTiers && c.rewardTiers.length > 0 ? c.rewardTiers[0].rewardName : undefined;
               
               let color = "bg-[#FF4C29]";
               let shadowColor = "shadow-[4px_4px_0px_0px_#FF4C29]";
@@ -252,7 +271,8 @@ export default function ArcadeLandingPage() {
                 type: typeLabel,
                 icon: c.icon,
                 description: desc,
-                rewardHighlight: `Win ${topReward}`,
+                rewardHighlight: topReward ? `Win ${topReward}` : "Play & Earn Points",
+                topReward,
                 color,
                 shadowColor,
                 totalPlays,
@@ -442,19 +462,38 @@ export default function ArcadeLandingPage() {
                 </div>
               </div>
 
-              {/* Reward Highlight Badge */}
-              <div className="bg-[#FBF9F4] p-3 rounded-2xl border-2 border-black flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🏆</span>
-                  <span className="text-xs font-bold text-emerald-700">{game.rewardHighlight}</span>
-                </div>
-                <Link
-                  href={`/play/${game.slug}`}
-                  className="py-2.5 px-4 bg-black text-white font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] hover:bg-[#FF4C29] transition-all whitespace-nowrap"
-                >
-                  PLAY NOW 🚀
-                </Link>
-              </div>
+              {/* Action / Reward Highlight Badge */}
+              {(() => {
+                const isOfferClaimed = Boolean(
+                  hasPendingVoucher ||
+                  claimedGameSlugs.includes(game.slug) ||
+                  (game.topReward && claimedRewardNames.some(
+                    (r) => r.toLowerCase().trim() === game.topReward?.toLowerCase().trim()
+                  ))
+                );
+
+                return (
+                  <div className="bg-[#FBF9F4] p-3 rounded-2xl border-2 border-black flex items-center justify-between gap-2">
+                    {isOfferClaimed || !game.topReward ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">⭐</span>
+                        <span className="text-xs font-bold text-amber-700">Play & Earn Cafe Points</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🏆</span>
+                        <span className="text-xs font-bold text-emerald-700">Win {game.topReward}</span>
+                      </div>
+                    )}
+                    <Link
+                      href={`/play/${game.slug}`}
+                      className="py-2.5 px-4 bg-black text-white font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] hover:bg-[#FF4C29] transition-all whitespace-nowrap"
+                    >
+                      PLAY NOW 🚀
+                    </Link>
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

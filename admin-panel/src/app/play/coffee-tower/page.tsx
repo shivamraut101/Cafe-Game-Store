@@ -31,7 +31,6 @@ export default function CoffeeTowerGame() {
   const [waitTime, setWaitTime] = useState(0);
   const [showPerfect, setShowPerfect] = useState(false);
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
-  const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const [isChallenger, setIsChallenger] = useState(false);
 
@@ -307,8 +306,6 @@ export default function CoffeeTowerGame() {
       }).then((res) => {
         if (res.limitReached) {
           setLimitNotice(res.error || "Daily limit reached for this game.");
-        } else if (res.cooldownNotice) {
-          setCooldownNotice(res.cooldownNotice);
         }
         if (res.success && res.rewardEarned && res.claimCode) {
           setEarnedReward({
@@ -513,12 +510,6 @@ export default function CoffeeTowerGame() {
             {limitNotice && (
               <div className="bg-amber-400 text-black w-full p-3 rounded-2xl border-2 border-black mb-4 text-xs font-black text-center shadow-[3px_3px_0px_0px_#000]">
                 ⏳ {limitNotice}
-              </div>
-            )}
-
-            {cooldownNotice && !earnedReward && (
-              <div className="bg-blue-100 text-blue-900 w-full p-3 rounded-2xl border-2 border-blue-400 mb-4 text-xs font-bold text-center">
-                ℹ️ {cooldownNotice}
               </div>
             )}
 

@@ -72,7 +72,6 @@ export default function BaristaCatchGame() {
   const rerender = useCallback(() => forceRender((n) => n + 1), []);
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
-  const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
 
   const trayRef = useRef({ x: W / 2, targetX: W / 2 });
   const itemsRef = useRef<FallingItem[]>([]);
@@ -133,7 +132,6 @@ export default function BaristaCatchGame() {
         // Start game
         setEarnedReward(null);
         setLimitNotice(null);
-        setCooldownNotice(null);
         scoreRef.current = 0; livesRef.current = 3; comboRef.current = 0; maxComboRef.current = 0;
         itemsRef.current = []; particlesRef.current = []; scorePopRef.current = [];
         fRef.current = 0; spawnTimerRef.current = 0; flashRef.current = 0; shakeRef.current = 0;
@@ -145,7 +143,6 @@ export default function BaristaCatchGame() {
         if (cooldownRef.current > 0) return;
         setEarnedReward(null);
         setLimitNotice(null);
-        setCooldownNotice(null);
         scoreRef.current = 0; livesRef.current = 3; comboRef.current = 0; maxComboRef.current = 0;
         itemsRef.current = []; particlesRef.current = []; scorePopRef.current = [];
         fRef.current = 0; spawnTimerRef.current = 0; flashRef.current = 0; shakeRef.current = 0;
@@ -492,8 +489,6 @@ export default function BaristaCatchGame() {
                     submitGameSessionAction({ gameSlug: "barista-catch", score: fs, storeName: targetStoreName, duration: elapsedSec }).then((res) => {
                       if (res.limitReached) {
                         setLimitNotice(res.error || "Daily limit reached for this game.");
-                      } else if (res.cooldownNotice) {
-                        setCooldownNotice(res.cooldownNotice);
                       }
                       if (res.success && res.rewardEarned && res.claimCode) {
                         setEarnedReward({
@@ -735,15 +730,10 @@ export default function BaristaCatchGame() {
               </div>
             )}
 
-            {/* Daily Limit & Cooldown Notices */}
+            {/* Daily Limit Notice */}
             {limitNotice && (
               <div className="bg-rose-500/20 border-2 border-rose-500 text-rose-300 px-3 py-2 rounded-xl text-xs font-bold mb-3 w-full">
                 ⚠️ {limitNotice}
-              </div>
-            )}
-            {cooldownNotice && (
-              <div className="bg-amber-500/20 border-2 border-amber-500 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold mb-3 w-full">
-                ⏳ {cooldownNotice}
               </div>
             )}
 

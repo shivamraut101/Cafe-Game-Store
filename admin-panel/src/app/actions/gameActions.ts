@@ -176,9 +176,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
         earnedAt: { $gte: thirtyMinsAgo },
       });
 
-      if (existingPendingClaim) {
-        cooldownNotice = `You already have an active voucher (${existingPendingClaim.claimCode}) ready to be redeemed at the counter!`;
-      } else {
+      if (!existingPendingClaim) {
         // Find highest qualified tier
         const qualifiedTiers = config.rewardTiers
           .filter((t) => score >= t.pointThreshold)
@@ -196,11 +194,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
             earnedAt: { $gte: windowStart },
           });
 
-          if (duplicateRecentClaim) {
-            const msPassed = Date.now() - new Date(duplicateRecentClaim.earnedAt).getTime();
-            const daysLeft = Math.max(1, Math.ceil((cooldownDays * 24 * 60 * 60 * 1000 - msPassed) / (24 * 60 * 60 * 1000)));
-            cooldownNotice = `You already earned "${topTier.rewardName}" this week! You can earn this offer again in ${daysLeft} day${daysLeft > 1 ? 's' : ''}. Points awarded!`;
-          } else {
+          if (!duplicateRecentClaim) {
             rewardEarned = {
               tierId: topTier.id,
               rewardName: topTier.rewardName || "Cafe Reward",
@@ -548,37 +542,88 @@ export async function getPlayerChallengerStatusAction(guestPlayerId?: string, st
     const dynamicScaling = store?.dynamicDifficultyScaling !== false;
 
     if (!resolvedGuestId || !store) {
-      return { success: true, isChallenger: false, cooldownDays, dynamicScaling };
+      return {
+        success: true,
+        isChallenger: false,
+        cooldownDays,
+        dynamicScaling,
+        claimedRewardNames: [] as string[],
+        claimedGameSlugs: [] as string[],
+        hasPendingVoucher: false,
+      };
     }
 
     const user = await User.findOne({ guestId: resolvedGuestId });
     if (!user) {
-      return { success: true, isChallenger: false, cooldownDays, dynamicScaling };
+      return {
+        success: true,
+        isChallenger: false,
+        cooldownDays,
+        dynamicScaling,
+        claimedRewardNames: [] as string[],
+        claimedGameSlugs: [] as string[],
+        hasPendingVoucher: false,
+      };
     }
 
     const windowStart = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);
-    const recentClaim = await RewardClaim.findOne({
+    const recentClaims = await RewardClaim.find({
       storeId: store._id,
       userId: user._id,
       earnedAt: { $gte: windowStart },
     }).sort({ earnedAt: -1 });
 
-    if (recentClaim && dynamicScaling) {
-      const msPassed = Date.now() - new Date(recentClaim.earnedAt).getTime();
+    const claimedRewardNames = recentClaims.map((c) => c.rewardName).filter(Boolean);
+    const claimedGameSlugs = recentClaims.map((c) => c.gameSlug).filter(Boolean);
+
+    // Active unredeemed voucher in last 30 minutes
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const activePendingClaim = await RewardClaim.findOne({
+      storeId: store._id,
+      userId: user._id,
+      status: "pending",
+      earnedAt: { $gte: thirtyMinsAgo },
+    });
+    const hasPendingVoucher = Boolean(activePendingClaim);
+
+    const isChallenger = recentClaims.length > 0 && dynamicScaling;
+
+    if (recentClaims.length > 0) {
+      const topClaim = recentClaims[0];
+      const msPassed = Date.now() - new Date(topClaim.earnedAt).getTime();
       const daysRemaining = Math.max(1, Math.ceil((cooldownDays * 24 * 60 * 60 * 1000 - msPassed) / (24 * 60 * 60 * 1000)));
       return {
         success: true,
-        isChallenger: true,
+        isChallenger,
         cooldownDays,
         daysRemaining,
-        lastRewardName: recentClaim.rewardName,
-        earnedAt: recentClaim.earnedAt.toISOString(),
+        claimedRewardNames,
+        claimedGameSlugs,
+        hasPendingVoucher,
+        lastRewardName: topClaim.rewardName,
+        earnedAt: topClaim.earnedAt.toISOString(),
       };
     }
 
-    return { success: true, isChallenger: false, cooldownDays, dynamicScaling };
+    return {
+      success: true,
+      isChallenger: false,
+      cooldownDays,
+      dynamicScaling,
+      claimedRewardNames: [],
+      claimedGameSlugs: [],
+      hasPendingVoucher,
+    };
   } catch (error: any) {
-    return { success: true, isChallenger: false, cooldownDays: 7, dynamicScaling: true };
+    return {
+      success: true,
+      isChallenger: false,
+      cooldownDays: 7,
+      dynamicScaling: true,
+      claimedRewardNames: [],
+      claimedGameSlugs: [],
+      hasPendingVoucher: false,
+    };
   }
 }
 

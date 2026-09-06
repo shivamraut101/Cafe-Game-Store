@@ -63,7 +63,6 @@ export default function DropMergeGame() {
   const [gameState, setGameState] = useState<"idle" | "playing" | "gameover">("playing");
   const [nextTier, setNextTier] = useState<number>(0);
   const [earnedReward, setEarnedReward] = useState<{ rewardName: string; claimCode: string } | null>(null);
-  const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
   const [limitNotice, setLimitNotice] = useState<string | null>(null);
 
   const ballsRef = useRef<PhysBall[]>([]);
@@ -265,7 +264,6 @@ export default function DropMergeGame() {
             duration: Math.max(3, Math.round(fRef.current / 60)),
           }).then((res) => {
             if (res.limitReached) setLimitNotice(res.error || "Daily limit reached.");
-            else if (res.cooldownNotice) setCooldownNotice(res.cooldownNotice);
             if (res.success && res.rewardEarned && res.claimCode) {
               setEarnedReward({ rewardName: res.rewardEarned.rewardName, claimCode: res.claimCode });
             }
@@ -447,7 +445,6 @@ export default function DropMergeGame() {
     setScore(0);
     setEarnedReward(null);
     setLimitNotice(null);
-    setCooldownNotice(null);
     setGameState("playing");
     setNextTier(getRandomDropTier());
   };
