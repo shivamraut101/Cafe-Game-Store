@@ -19,6 +19,7 @@ export default function AdminLoginGuard({
   
   // Auth Mode: Sign In vs Register
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [showDemoAuth, setShowDemoAuth] = useState<boolean>(false);
 
   // Sign In States
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
@@ -36,6 +37,16 @@ export default function AdminLoginGuard({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("tab") === "register" || p.get("mode") === "register") {
+        setAuthMode("register");
+      }
+      if (p.get("demo") === "true" || p.get("pin")) {
+        setShowDemoAuth(true);
+      }
+    }
+
     async function checkActiveSession() {
       try {
         const res = await getSessionAction();
@@ -171,13 +182,13 @@ export default function AdminLoginGuard({
     return (
       <div className="min-h-screen bg-[#F6F3EB] flex flex-col items-center justify-center p-4 font-sans select-none">
         <main className="w-full max-w-md bg-white border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col items-center text-center relative">
-          {/* Master PIN Verification Indicator */}
-          <div className="w-full flex items-center justify-between bg-emerald-50 text-emerald-900 px-3 py-1.5 rounded-xl border border-emerald-400 font-mono text-[10px] font-black tracking-wider uppercase mb-4 shadow-[1px_1px_0px_0px_#000]">
+          {/* Top Portal Badge */}
+          <div className="w-full flex items-center justify-between bg-[#FBF9F4] text-black/80 px-3 py-1.5 rounded-xl border-2 border-black font-mono text-[10px] font-black tracking-wider uppercase mb-4 shadow-[1px_1px_0px_0px_#000]">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              SECURE GATEWAY
+              <span className="w-2 h-2 rounded-full bg-[#FF4C29] animate-pulse"></span>
+              FORSTORE HQ
             </span>
-            <span>MASTER PIN UNLOCKED 🔓</span>
+            <span>MERCHANT PORTAL ⚡</span>
           </div>
           
           {/* Top Mode Selector: Sign In vs Register */}
@@ -296,40 +307,44 @@ export default function AdminLoginGuard({
                 </button>
               </form>
 
-              {/* Quick Demo Sign-in Divider */}
-              <div className="w-full flex items-center my-5">
-                <div className="flex-1 border-t-2 border-black/10" />
-                <span className="px-3 text-[10px] font-black uppercase tracking-wider text-black/40">
-                  OR QUICK 1-CLICK AUTH
-                </span>
-                <div className="flex-1 border-t-2 border-black/10" />
-              </div>
+              {/* Quick Demo Sign-in Divider (Only shown if ?demo=true or ?pin= is used) */}
+              {showDemoAuth && (
+                <>
+                  <div className="w-full flex items-center my-5">
+                    <div className="flex-1 border-t-2 border-black/10" />
+                    <span className="px-3 text-[10px] font-black uppercase tracking-wider text-black/40">
+                      OR QUICK 1-CLICK AUTH
+                    </span>
+                    <div className="flex-1 border-t-2 border-black/10" />
+                  </div>
 
-              <div className="w-full grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  disabled={isLoggingIn}
-                  onClick={() => handleQuickDemoFill("store_admin")}
-                  className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  Merchant Admin 🏪
-                </button>
-                <button
-                  type="button"
-                  disabled={isLoggingIn}
-                  onClick={() => handleQuickDemoFill("super_admin")}
-                  className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  Super Admin HQ ⚡
-                </button>
-              </div>
+                  <div className="w-full grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      disabled={isLoggingIn}
+                      onClick={() => handleQuickDemoFill("store_admin")}
+                      className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      Merchant Admin 🏪
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isLoggingIn}
+                      onClick={() => handleQuickDemoFill("super_admin")}
+                      className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      Super Admin HQ ⚡
+                    </button>
+                  </div>
+                </>
+              )}
 
               <div className="mt-5 pt-3 border-t border-black/10 w-full flex justify-between items-center text-[11px] font-bold">
-                <a href="/recover-pin" className="text-black/60 hover:text-[#FF4C29] transition-colors">
-                  Forgot Store PIN? Recover 🔑
+                <a href="/" className="text-black/60 hover:text-black transition-colors">
+                  ← Back to Homepage
                 </a>
-                <a href="/arcade?store=adda-99" className="text-black/40 hover:text-black">
-                  Store Arcade 🎮
+                <a href="/recover-pin" className="text-black/60 hover:text-[#FF4C29] transition-colors">
+                  Forgot Store PIN? 🔑
                 </a>
               </div>
             </>

@@ -47,26 +47,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Always allow public store, player pages, and PIN recovery portal:
-  // /arcade, /play/*, /my-rewards, /claim/*, /[storeSlug]/claim, /recover-pin
-  if (
-    pathname.startsWith("/arcade") ||
-    pathname.startsWith("/play") ||
-    pathname.startsWith("/my-rewards") ||
-    pathname.startsWith("/claim") ||
-    pathname.startsWith("/recover-pin") ||
-    pathname.endsWith("/claim")
-  ) {
+  // 2. All public website pages (Landing page, Admin Portal, Storefront, Recovery, Games)
+  // No forced redirection to any particular store!
+  const urlPin = searchParams.get("pin");
+
+  // If no PIN query parameter is present, allow all valid pages normally:
+  if (!urlPin) {
     return NextResponse.next();
   }
 
-  // 3. Admin Portal Gatekeeper (Protected route: "/")
+  // 3. If a PIN is supplied in the URL, validate it with brute-force rate limiting:
   const MASTER_PIN = process.env.ADMIN_MASTER_PIN || "9900";
-  const urlPin = searchParams.get("pin");
-  const cookiePin = request.cookies.get("forstore_admin_pin_verified")?.value;
-  const adminSession = request.cookies.get("forstore_session")?.value;
-
-  // Extract client IP address
   const forwarded = request.headers.get("x-forwarded-for");
   const clientIp = forwarded ? forwarded.split(",")[0].trim() : (request.headers.get("x-real-ip") || "127.0.0.1");
 
@@ -82,9 +73,8 @@ export async function middleware(request: NextRequest) {
   // Check if this IP is currently locked out due to previous brute-force attempts
   if (clientRecord && clientRecord.lockedUntil > now) {
     const remainingSeconds = Math.ceil((clientRecord.lockedUntil - now) / 1000);
-    // Return 429 Too Many Requests with stealth redirect header
     return new NextResponse(
-      `<html><head><meta http-equiv="refresh" content="3;url=/arcade?store=adda-99"></head><body style="font-family:sans-serif;text-align:center;padding:50px;background:#111;color:#fff;"><h2>🔒 Security Lockout Active</h2><p>Too many invalid PIN attempts from your IP. Access locked for ${remainingSeconds} seconds.</p><p>Redirecting to store arcade...</p></body></html>`,
+      `<html><head><meta http-equiv="refresh" content="3;url=/admin"></head><body style="font-family:sans-serif;text-align:center;padding:50px;background:#111;color:#fff;"><h2>🔒 Security Lockout Active</h2><p>Too many invalid PIN attempts from your IP. Access locked for ${remainingSeconds} seconds.</p><p>Redirecting to portal...</p></body></html>`,
       {
         status: 429,
         headers: {
@@ -96,72 +86,57 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // If a PIN is supplied in the URL, validate it with timing-safe comparison
-  if (urlPin) {
-    let isPinCorrect = constantTimeCompare(urlPin.trim(), MASTER_PIN);
+  let isPinCorrect = constantTimeCompare(urlPin.trim(), MASTER_PIN);
 
-    // If not master PIN, verify against individual store PINs
-    if (!isPinCorrect) {
-      try {
-        const verifyRes = await fetch(new URL("/api/auth/verify-store-pin", request.url), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pin: urlPin.trim() }),
-        });
-        if (verifyRes.ok) {
-          const data = await verifyRes.json();
-          if (data.valid) {
-            isPinCorrect = true;
-          }
-        }
-      } catch (err) {
-        console.error("Store PIN verification error in middleware", err);
-      }
-    }
-
-    if (isPinCorrect) {
-      // Clear failed attempts counter upon successful verification
-      ipAttempts.delete(clientIp);
-
-      const response = NextResponse.next();
-      response.cookies.set({
-        name: "forstore_admin_pin_verified",
-        value: "true",
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        sameSite: "lax",
-        httpOnly: true,
+  // If not master PIN, verify against individual store PINs in MongoDB
+  if (!isPinCorrect) {
+    try {
+      const verifyRes = await fetch(new URL("/api/auth/verify-store-pin", request.url), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin: urlPin.trim() }),
       });
-      return response;
-    } else {
-      // Failed attempt: update brute-force tracking
-      if (!clientRecord) {
-        clientRecord = { count: 1, lockedUntil: 0, lastAttempt: now };
-      } else {
-        clientRecord.count += 1;
-        clientRecord.lastAttempt = now;
+      if (verifyRes.ok) {
+        const data = await verifyRes.json();
+        if (data.valid) {
+          isPinCorrect = true;
+        }
       }
-
-      if (clientRecord.count >= MAX_ATTEMPTS) {
-        clientRecord.lockedUntil = now + LOCKOUT_DURATION_MS;
-      }
-      ipAttempts.set(clientIp, clientRecord);
-
-      // Stealth redirect immediately back to public arcade
-      const publicStoreUrl = new URL("/arcade?store=adda-99", request.url);
-      return NextResponse.redirect(publicStoreUrl);
+    } catch (err) {
+      console.error("Store PIN verification error in middleware", err);
     }
   }
 
-  // If already unlocked via verified PIN cookie or active admin session
-  if (cookiePin === "true" || adminSession) {
+  if (isPinCorrect) {
+    // Clear failed attempts counter upon successful verification
+    ipAttempts.delete(clientIp);
+
+    const response = NextResponse.next();
+    response.cookies.set({
+      name: "forstore_admin_pin_verified",
+      value: "true",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      sameSite: "lax",
+      httpOnly: true,
+    });
+    return response;
+  } else {
+    // Failed PIN attempt: update brute-force tracking
+    if (!clientRecord) {
+      clientRecord = { count: 1, lockedUntil: 0, lastAttempt: now };
+    } else {
+      clientRecord.count += 1;
+      clientRecord.lastAttempt = now;
+    }
+
+    if (clientRecord.count >= MAX_ATTEMPTS) {
+      clientRecord.lockedUntil = now + LOCKOUT_DURATION_MS;
+    }
+    ipAttempts.set(clientIp, clientRecord);
+
     return NextResponse.next();
   }
-
-  // 4. Unauthorized visitor accessing root "/" without master PIN:
-  // Redirect to public store arcade so normal visitors never see the admin portal
-  const publicStoreUrl = new URL("/arcade?store=adda-99", request.url);
-  return NextResponse.redirect(publicStoreUrl);
 }
 
 export const config = {

@@ -32,9 +32,9 @@ export default function RoleHeader({
     try {
       await lockAdminAction();
       sessionStorage.removeItem("cafe_admin_session");
-      window.location.href = "/arcade?store=adda-99";
+      window.location.href = "/admin";
     } catch (e) {
-      window.location.href = "/arcade?store=adda-99";
+      window.location.href = "/admin";
     }
   };
 
