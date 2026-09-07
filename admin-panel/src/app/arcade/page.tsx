@@ -177,30 +177,36 @@ export default function ArcadeLandingPage() {
     }
 
     // Ensure unique device-isolated guest player ID & hardware device fingerprint
-    import("../../lib/playerSession").then(({ getOrCreateClientPlayerId, getClientDeviceFingerprint }) => {
-      const playerId = getOrCreateClientPlayerId();
-      const fp = getClientDeviceFingerprint();
-      setGuestPlayerId(playerId);
+    import("../../lib/playerSession").then(
+      ({ getOrCreateClientPlayerId, getClientDeviceFingerprint, setClientPlayerIdentity }) => {
+        const playerId = getOrCreateClientPlayerId();
+        const fp = getClientDeviceFingerprint();
+        setGuestPlayerId(playerId);
 
-      fetch(
-        `/api/rewards/user?guestId=${encodeURIComponent(playerId)}&store=${encodeURIComponent(storeParam)}&fp=${encodeURIComponent(fp)}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.user) {
-            setUserPoints(data.user.totalCafePoints || 0);
-            setUserName(data.user.name || "Player");
-
-            // Auto-link to existing profile with points on the same physical device!
-            if (data.user.guestId && data.user.guestId !== playerId) {
-              setGuestPlayerId(data.user.guestId);
-              try {
-                localStorage.setItem("forstore_guest_player_id", data.user.guestId);
-              } catch {}
-            }
+        // Store device fingerprint in cookie for server action telemetry
+        try {
+          if (fp) {
+            document.cookie = `forstore_device_fp=${fp}; path=/; max-age=31536000; SameSite=Lax`;
           }
-        })
-        .catch(() => {});
+        } catch {}
+
+        fetch(
+          `/api/rewards/user?guestId=${encodeURIComponent(playerId)}&store=${encodeURIComponent(storeParam)}&fp=${encodeURIComponent(fp)}`
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && data.user) {
+              setUserPoints(data.user.totalCafePoints || 0);
+              setUserName(data.user.name || "Player");
+
+              // Auto-link to unified master profile on this physical device
+              if (data.user.guestId) {
+                setGuestPlayerId(data.user.guestId);
+                setClientPlayerIdentity(data.user.guestId, data.user.name);
+              }
+            }
+          })
+          .catch(() => {});
 
       // Anti-Farming stealth difficulty & claimed offer check (silent behind the scenes across user & device)
       getPlayerChallengerStatusAction(playerId, storeParam, fp)
@@ -531,7 +537,9 @@ export default function ArcadeLandingPage() {
           setGuestPlayerId(syncedUser.guestId);
           setUserPoints(syncedUser.totalCafePoints);
           try {
-            localStorage.setItem("forstore_guest_player_id", syncedUser.guestId);
+            import("../../lib/playerSession").then(({ setClientPlayerIdentity }) => {
+              setClientPlayerIdentity(syncedUser.guestId, syncedUser.name);
+            });
           } catch {}
         }}
       />

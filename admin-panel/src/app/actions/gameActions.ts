@@ -77,17 +77,23 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     if (!customer && guestPlayerId) {
       customer = await User.findOne({ guestId: guestPlayerId });
     }
-    // Auto-link by hardware device fingerprint if customer not found or has 0 points
-    if ((!customer || customer.totalCafePoints === 0) && deviceFingerprint) {
-      const existingDeviceCustomer = await User.findOne({
+    // Auto-link by hardware device fingerprint across all profiles / incognito windows on same device
+    if (deviceFingerprint) {
+      const candidates = await User.find({
         storeId: storeObjId,
         deviceFingerprint,
-        totalCafePoints: { $gt: 0 },
-      }).sort({ totalCafePoints: -1 });
+      }).sort({ totalCafePoints: -1, createdAt: 1 });
 
-      if (existingDeviceCustomer) {
-        customer = existingDeviceCustomer;
-        guestPlayerId = existingDeviceCustomer.guestId;
+      if (candidates.length > 0) {
+        const bestCandidate =
+          candidates.find((u) => (u.totalCafePoints || 0) > 0) ||
+          candidates.find((u) => !u.name.startsWith("Player #")) ||
+          candidates[0];
+
+        if (!customer || customer._id.toString() !== bestCandidate._id.toString()) {
+          customer = bestCandidate;
+          guestPlayerId = bestCandidate.guestId;
+        }
       }
     }
 
@@ -504,15 +510,21 @@ export async function getUserRewardsAction(guestPlayerId?: string, deviceFingerp
       user = await User.findOne({ guestId: resolvedGuestId });
     }
 
-    // Auto-link by hardware device fingerprint if user has 0 points or doesn't exist
-    if ((!user || user.totalCafePoints === 0) && deviceFingerprint) {
-      const existingDeviceUser = await User.findOne({
+    // Auto-link by hardware device fingerprint across all profiles / incognito windows on same device
+    if (deviceFingerprint) {
+      const candidates = await User.find({
         deviceFingerprint,
-        totalCafePoints: { $gt: 0 },
-      }).sort({ totalCafePoints: -1, updatedAt: -1 });
+      }).sort({ totalCafePoints: -1, createdAt: 1 });
 
-      if (existingDeviceUser) {
-        user = existingDeviceUser;
+      if (candidates.length > 0) {
+        const bestCandidate =
+          candidates.find((u) => (u.totalCafePoints || 0) > 0) ||
+          candidates.find((u) => !u.name.startsWith("Player #")) ||
+          candidates[0];
+
+        if (!user || user._id.toString() !== bestCandidate._id.toString()) {
+          user = bestCandidate;
+        }
       }
     }
 
@@ -622,7 +634,17 @@ export async function updateCustomerNameAction(newName: string, guestPlayerId?: 
     const suffix = resolvedGuestId.slice(-4).toUpperCase();
     const displayName = trimmed || `Player #${suffix}`;
 
-    let user = await User.findOne({ guestId: resolvedGuestId });
+    const deviceFingerprint = cookieStore.get("forstore_device_fp")?.value || "";
+    let user = null;
+    if (resolvedGuestId) {
+      user = await User.findOne({ guestId: resolvedGuestId });
+    }
+    if (!user && deviceFingerprint) {
+      user = await User.findOne({ deviceFingerprint }).sort({ totalCafePoints: -1, createdAt: 1 });
+      if (user && user.guestId) {
+        resolvedGuestId = user.guestId;
+      }
+    }
     if (!user) {
       user = await User.create({
         guestId: resolvedGuestId,
@@ -706,7 +728,7 @@ export async function getPlayerChallengerStatusAction(
 
     let user = resolvedGuestId ? await User.findOne({ guestId: resolvedGuestId }) : null;
     if (!user && deviceFingerprint) {
-      user = await User.findOne({ deviceFingerprint });
+      user = await User.findOne({ deviceFingerprint }).sort({ totalCafePoints: -1, createdAt: 1 });
     }
 
     const windowStart = new Date(Date.now() - cooldownDays * 24 * 60 * 60 * 1000);

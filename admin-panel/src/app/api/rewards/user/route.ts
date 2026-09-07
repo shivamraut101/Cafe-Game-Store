@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "../../../../lib/db";
-import { RewardClaim, User, Store } from "../../../../lib/models";
+import { RewardClaim, User, Store, GameSession } from "../../../../lib/models";
 import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
@@ -49,19 +49,48 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3. Hardware Device Fingerprint Auto-Linking
-    // If current profile is fresh/empty (0 points) or unlinked, check if this same device
-    // already has an active player profile in this store!
-    if (fp && (!user || (user.totalCafePoints === 0))) {
-      const existingDeviceUser = await User.findOne({
+    // 3. Hardware Device Fingerprint Auto-Linking & Consolidation
+    // Seamlessly unifies all Chrome profiles & incognito windows on the same physical device!
+    if (fp) {
+      const deviceUsers = await User.find({
         storeId: storeObjId,
         deviceFingerprint: fp,
-        totalCafePoints: { $gt: 0 },
-      }).sort({ totalCafePoints: -1, updatedAt: -1 });
+      }).sort({ totalCafePoints: -1, createdAt: 1 });
 
-      if (existingDeviceUser) {
-        user = existingDeviceUser;
-        guestId = existingDeviceUser.guestId;
+      if (deviceUsers.length > 0) {
+        // Master account election:
+        // Priority 1: Profile with points (> 0)
+        // Priority 2: Profile with custom personalized name (not starting with "Player #")
+        // Priority 3: Oldest created profile on this device
+        const masterUser =
+          deviceUsers.find((u) => (u.totalCafePoints || 0) > 0) ||
+          deviceUsers.find((u) => !u.name.startsWith("Player #")) ||
+          deviceUsers[0];
+
+        // Link current session to masterUser
+        if (!user || user._id.toString() !== masterUser._id.toString()) {
+          if (user && (user.totalCafePoints || 0) > 0 && user._id.toString() !== masterUser._id.toString()) {
+            masterUser.totalCafePoints = (masterUser.totalCafePoints || 0) + (user.totalCafePoints || 0);
+            await masterUser.save();
+            await RewardClaim.updateMany({ userId: user._id }, { userId: masterUser._id });
+            await GameSession.updateMany({ userId: user._id }, { userId: masterUser._id });
+          }
+          user = masterUser;
+          guestId = masterUser.guestId;
+        }
+
+        // Merge and clean up any duplicate empty accounts created during incognito / separate profile testing
+        for (const duplicate of deviceUsers) {
+          if (duplicate._id.toString() !== masterUser._id.toString()) {
+            if ((duplicate.totalCafePoints || 0) > 0) {
+              masterUser.totalCafePoints = (masterUser.totalCafePoints || 0) + duplicate.totalCafePoints;
+              await masterUser.save();
+            }
+            await RewardClaim.updateMany({ userId: duplicate._id }, { userId: masterUser._id });
+            await GameSession.updateMany({ userId: duplicate._id }, { userId: masterUser._id });
+            await User.deleteOne({ _id: duplicate._id });
+          }
+        }
       }
     }
 

@@ -36,7 +36,9 @@ export default function CustomerRewardsWallet() {
   const fetchRewards = async () => {
     try {
       setLoading(true);
-      const { getOrCreateClientPlayerId, getClientDeviceFingerprint } = await import("../../lib/playerSession");
+      const { getOrCreateClientPlayerId, getClientDeviceFingerprint, setClientPlayerIdentity } = await import(
+        "../../lib/playerSession"
+      );
       const playerId = getOrCreateClientPlayerId();
       const fp = getClientDeviceFingerprint();
       setGuestId(playerId);
@@ -45,11 +47,9 @@ export default function CustomerRewardsWallet() {
       if (res.success && res.user && res.rewards) {
         setUser(res.user);
         setRewards(res.rewards as any);
-        if (res.user.guestId && res.user.guestId !== playerId) {
+        if (res.user.guestId) {
           setGuestId(res.user.guestId);
-          try {
-            localStorage.setItem("forstore_guest_player_id", res.user.guestId);
-          } catch {}
+          setClientPlayerIdentity(res.user.guestId, res.user.name);
         }
       }
     } catch (e) {

@@ -12,6 +12,9 @@ export function getOrCreateClientPlayerId(): string {
   try {
     let id = localStorage.getItem(PLAYER_COOKIE_NAME);
     if (!id) {
+      id = localStorage.getItem("forstore_guest_player_id");
+    }
+    if (!id) {
       // Check existing cookie first
       const match = document.cookie.match(new RegExp(`(^|;\\s*)${PLAYER_COOKIE_NAME}=([^;]+)`));
       if (match && match[2]) {
@@ -25,11 +28,25 @@ export function getOrCreateClientPlayerId(): string {
     }
 
     localStorage.setItem(PLAYER_COOKIE_NAME, id);
+    localStorage.setItem("forstore_guest_player_id", id);
     document.cookie = `${PLAYER_COOKIE_NAME}=${id}; path=/; max-age=31536000; SameSite=Lax`;
     return id;
   } catch {
     return "ply_guest";
   }
+}
+
+export function setClientPlayerIdentity(guestId: string, name?: string): void {
+  if (typeof window === "undefined" || !guestId) return;
+  try {
+    localStorage.setItem(PLAYER_COOKIE_NAME, guestId);
+    localStorage.setItem("forstore_guest_player_id", guestId);
+    document.cookie = `${PLAYER_COOKIE_NAME}=${guestId}; path=/; max-age=31536000; SameSite=Lax`;
+
+    if (name && !isDefaultPlayerName(name)) {
+      setClientPlayerName(name);
+    }
+  } catch {}
 }
 
 export function getClientPlayerName(): string {
