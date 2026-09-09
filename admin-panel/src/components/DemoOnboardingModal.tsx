@@ -39,7 +39,7 @@ export default function DemoOnboardingModal({ isOpen, onClose }: DemoOnboardingM
   };
 
   const whatsappMessage = encodeURIComponent(
-    `Hi ForStore Team! I'm testing the demo on demo.curaflowstudio.com and would love to onboard my cafe with the 100 Free Plays trial.`
+    `Hi Shivam! I'm testing the demo on demo.curaflowstudio.com and would love to onboard my cafe with the 100 Free Plays trial.`
   );
 
   return (
@@ -129,19 +129,20 @@ export default function DemoOnboardingModal({ isOpen, onClose }: DemoOnboardingM
             {/* Direct WhatsApp & Email */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <a
-                href={`https://wa.me/?text=${whatsappMessage}`}
+                href={`https://wa.me/919749694882?text=${whatsappMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="py-2.5 px-4 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs hover:bg-black/5 transition-all text-center flex items-center justify-center gap-2"
               >
-                <span>💬</span> Message on WhatsApp
+                <span>💬</span> WhatsApp: +91 97496 94882
               </a>
 
               <a
-                href="mailto:contact@forstore.app?subject=Inquiry%20from%20Demo%20Store&body=Hi%2C%20I%20tested%20the%20demo%20and%20want%20to%20know%20more%20about%20setting%20this%20up%20for%20my%20cafe."
-                className="py-2.5 px-4 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs hover:bg-black/5 transition-all text-center flex items-center justify-center gap-2"
+                href="mailto:shivam@primexmeta.com?subject=Inquiry%20from%20Demo%20Store&body=Hi%20Shivam%2C%20I%20tested%20the%20demo%20at%20demo.curaflowstudio.com%20and%20want%20to%20know%20more%20about%20setting%20this%20up%20for%20my%20cafe."
+                className="py-2.5 px-4 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs hover:bg-black/5 transition-all text-center flex items-center justify-center gap-2 truncate"
+                title="shivam@primexmeta.com"
               >
-                <span>✉️</span> Email question
+                <span>✉️</span> Email: shivam@primexmeta.com
               </a>
             </div>
 
@@ -182,7 +183,7 @@ export default function DemoOnboardingModal({ isOpen, onClose }: DemoOnboardingM
             <span className="text-3xl mb-1 block">🎉</span>
             <h3 className="font-serif text-xl font-black text-emerald-900">Request Received!</h3>
             <p className="text-xs text-emerald-800 font-semibold mt-1 max-w-sm mx-auto">
-              Our founder will message you on WhatsApp within 15 minutes with a personalized setup and your 100 Free Plays grant.
+              We will message you on WhatsApp or Email (+91 97496 94882 / shivam@primexmeta.com) within 15 minutes with a personalized setup and your 100 Free Plays grant.
             </p>
             <div className="mt-4 flex justify-center gap-3">
               <a

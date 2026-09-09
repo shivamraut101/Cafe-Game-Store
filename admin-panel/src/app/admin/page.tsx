@@ -3,10 +3,6 @@
 import React, { useState, useEffect } from "react";
 import RoleHeader from "../../components/RoleHeader";
 import CustomDropdown from "../../components/CustomDropdown";
-import SuperAdminDashboard from "../../components/SuperAdminDashboard";
-import GlobalAnalyticsTab from "../../components/tabs/super-admin/GlobalAnalyticsTab";
-import BillingPayoutsTab from "../../components/tabs/super-admin/BillingPayoutsTab";
-import GlobalTemplatesTab from "../../components/tabs/super-admin/GlobalTemplatesTab";
 import AnalyticsTab from "../../components/tabs/AnalyticsTab";
 import BrandingTab from "../../components/tabs/BrandingTab";
 import WalletTab from "../../components/tabs/WalletTab";
@@ -40,10 +36,6 @@ export default function AdminPortal() {
   const [activeTab, setActiveTab] = useState<
     "overview" | "analytics" | "branding" | "wallet" | "subscription" | "qr-studio" | "audit-logs" | "game-manager"
   >("overview");
-
-  const [superAdminTab, setSuperAdminTab] = useState<
-    "merchants" | "global-analytics" | "billing" | "global-templates" | "audit-logs"
-  >("merchants");
 
   const [games, setGames] = useState<Game[]>([]);
   const [miniGameConfigs, setMiniGameConfigs] = useState<MiniGameConfig[]>([]);
@@ -104,41 +96,39 @@ export default function AdminPortal() {
     await updateMiniGameConfigAction(updated);
   };
 
-  const updateUrl = (newRole: UserRole, newTab: string) => {
+  const updateUrl = (newTab: string) => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      params.set("role", newRole);
       params.set("tab", newTab);
-      window.history.pushState({ role: newRole, tab: newTab }, "", `?${params.toString()}`);
+      window.history.pushState({ tab: newTab }, "", `?${params.toString()}`);
     }
   };
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const urlRole = params.get("role") as UserRole;
+      const urlRole = params.get("role");
       const urlTab = params.get("tab");
+      const impersonateParam = params.get("impersonate");
 
-      if (urlRole === "super_admin" || urlRole === "store_admin") {
-        setRole(urlRole);
+      if (urlRole === "super_admin") {
+        window.location.href = "/superadmin";
+        return;
       }
+
+      if (impersonateParam) {
+        setImpersonatedStore(impersonateParam);
+        setCurrentStore(impersonateParam);
+      }
+
       if (urlTab) {
-        if (urlRole === "super_admin") {
-          setSuperAdminTab(urlTab as any);
-        } else {
-          setActiveTab(urlTab as any);
-        }
+        setActiveTab(urlTab as any);
       }
 
       const handlePopState = () => {
         const p = new URLSearchParams(window.location.search);
-        const r = p.get("role") as UserRole;
         const t = p.get("tab");
-        if (r) setRole(r);
-        if (t) {
-          if (r === "super_admin") setSuperAdminTab(t as any);
-          else setActiveTab(t as any);
-        }
+        if (t) setActiveTab(t as any);
       };
 
       window.addEventListener("popstate", handlePopState);
@@ -246,20 +236,12 @@ export default function AdminPortal() {
     { id: "audit-logs", label: "Audit Logs", icon: "📜" },
   ];
 
-  const superAdminTabs = [
-    { id: "merchants", label: "Merchants", icon: "👑" },
-    { id: "global-analytics", label: "Global Analytics", icon: "📈" },
-    { id: "billing", label: "Billing & Payouts", icon: "💳" },
-    { id: "global-templates", label: "Global Templates", icon: "🎮", badge: "New" },
-    { id: "audit-logs", label: "System Audit Logs", icon: "📜" },
-  ];
-
   return (
     <AdminLoginGuard
-      activeRole={role}
+      activeRole="store_admin"
       onLoginSuccess={(r, email, storeName) => {
         setAuthRole(r);
-        setRole(r);
+        setRole("store_admin");
         if (email) setUserEmail(email);
         if (r === "store_admin" && storeName) {
           setCurrentStore(storeName);
@@ -267,68 +249,48 @@ export default function AdminPortal() {
       }}
     >
       <div className="flex flex-col min-h-screen bg-[#F6F3EB]">
-      {/* Top Global Role Switcher Bar */}
-      <RoleHeader
-        currentRole={role}
-        currentTier={tier}
-        authRole={authRole}
-        userEmail={userEmail}
-        storeName={currentStore}
-        onRoleChange={(newRole) => {
-          setRole(newRole);
-          const defaultTab = newRole === "super_admin" ? superAdminTab : activeTab;
-          updateUrl(newRole, defaultTab);
-        }}
-        onTierChange={setTier}
-        impersonatedStore={impersonatedStore}
-        onExitImpersonation={handleExitImpersonation}
-      />
+      {/* Top Impersonation Banner if super_admin is inspecting store */}
+      {impersonatedStore && (
+        <aside aria-label="Impersonation Status" className="bg-amber-400 text-black border-b-2 border-black px-6 py-2 flex items-center justify-between text-xs font-bold shadow-sm">
+          <div className="flex items-center gap-2">
+            <span>👑</span>
+            <span>Impersonating Store: <strong>{impersonatedStore}</strong> (from Super Admin Console)</span>
+          </div>
+          <a
+            href="/superadmin"
+            className="bg-black text-white px-3 py-1 rounded-xl text-xs font-bold hover:bg-neutral-800 transition-colors"
+          >
+            Return to Super Admin →
+          </a>
+        </aside>
+      )}
 
       {/* Main Header Bar */}
-      <header className={`border-b-2 border-black sticky top-0 z-40 ${role === "super_admin" ? "bg-[#111111] text-white" : "bg-white text-black"}`}>
+      <header className="border-b-2 border-black sticky top-0 z-40 bg-white text-black">
         <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#FF4C29] rounded-xl border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000]">
               <span className="text-white font-black text-xl">F</span>
             </div>
             <div>
-              <h1 className="font-serif font-black text-2xl tracking-tight">
-                {role === "super_admin" ? "ForStore HQ" : "ForStore"}
-              </h1>
-              <p className={`text-[10px] font-bold tracking-widest uppercase -mt-1 ${role === "super_admin" ? "text-[#FF4C29]" : "text-black/40"}`}>
-                {role === "super_admin" ? "Super Admin Panel" : "Store Admin Panel"}
+              <h1 className="font-serif font-black text-2xl tracking-tight">ForStore</h1>
+              <p className="text-[10px] font-bold tracking-widest uppercase -mt-1 text-black/40">
+                Store Admin Panel
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            {authRole === "super_admin" ? (
-              <div className="w-64">
-                <CustomDropdown
-                  options={storesList}
-                  value={currentStore}
-                  onChange={setCurrentStore}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 bg-[#FBF9F4] text-black px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000]">
-                <span>🏪</span>
-                <span>{currentStore || "My Store"}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 bg-[#FBF9F4] text-black px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000]">
+              <span>🏪</span>
+              <span>{currentStore || "My Store"}</span>
+            </div>
 
-            <button className={`p-2 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] hover:shadow-none transition-all relative ${role === "super_admin" ? "bg-[#222222]" : "bg-[#FBF9F4]"}`}>
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#FF4C29] rounded-full border-2 border-black animate-pulse"></span>
-              🔔
-            </button>
-
-            <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border-2 border-black ${role === "super_admin" ? "bg-white text-black" : "bg-black text-white"}`}>
-              <div className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center text-xs">
-                {role === "super_admin" ? "👑" : "🧑‍💼"}
+            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border-2 border-black bg-black text-white">
+              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">
+                🧑‍💼
               </div>
-              <span className="font-bold text-sm">
-                {role === "super_admin" ? "Super Admin" : "Store Manager"}
-              </span>
+              <span className="font-bold text-sm">Store Manager</span>
             </div>
           </div>
         </div>
@@ -339,84 +301,39 @@ export default function AdminPortal() {
         {/* Sidebar Navigation */}
         <aside className="w-full md:w-64 flex-shrink-0">
           <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto pb-4 md:pb-0 sticky top-24">
-            {role === "super_admin" ? (
-              superAdminTabs.map((tab) => {
-                const isActive = superAdminTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setSuperAdminTab(tab.id as any);
-                      updateUrl("super_admin", tab.id);
-                    }}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all border-2 text-left
-                      ${isActive 
-                        ? 'bg-black text-white border-black shadow-[4px_4px_0px_0px_#FF4C29] translate-y-[-2px]' 
-                        : 'bg-white text-black/60 border-transparent hover:border-black/10 hover:bg-black/5'
-                      }
-                    `}
-                  >
-                    <span className={isActive ? "opacity-100" : "opacity-50"}>{tab.icon}</span>
-                    {tab.label}
-                    {tab.badge && (
-                      <span className={`ml-auto text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${isActive ? 'bg-[#FF4C29] border-black text-white' : 'bg-black/5 border-black/10 text-black/40'}`}>
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })
-            ) : (
-              storeAdminTabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id as any);
-                      updateUrl("store_admin", tab.id);
-                    }}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all border-2 text-left
-                      ${isActive 
-                        ? 'bg-black text-[#ffffff] border-black shadow-[4px_4px_0px_0px_#FF4C29] translate-y-[-2px]' 
-                        : 'bg-white text-black/60 border-transparent hover:border-black/10 hover:bg-black/5'
-                      }
-                    `}
-                  >
-                    <span className={isActive ? "opacity-100" : "opacity-50"}>{tab.icon}</span>
-                    {tab.label}
-                    {tab.badge && (
-                      <span className={`ml-auto text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${isActive ? 'bg-[#FF4C29] border-black text-white' : 'bg-black/5 border-black/10 text-black/40'}`}>
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })
-            )}
+            {storeAdminTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    updateUrl(tab.id);
+                  }}
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition-all border-2 text-left
+                    ${isActive 
+                      ? 'bg-black text-[#ffffff] border-black shadow-[4px_4px_0px_0px_#FF4C29] translate-y-[-2px]' 
+                      : 'bg-white text-black/60 border-transparent hover:border-black/10 hover:bg-black/5'
+                    }
+                  `}
+                >
+                  <span className={isActive ? "opacity-100" : "opacity-50"}>{tab.icon}</span>
+                  {tab.label}
+                  {tab.badge && (
+                    <span className={`ml-auto text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md border ${isActive ? 'bg-[#FF4C29] border-black text-white' : 'bg-black/5 border-black/10 text-black/40'}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </aside>
 
         {/* Content Area */}
         <section className="flex-1 min-w-0">
-          {role === "super_admin" ? (
-            <>
-              {superAdminTab === "merchants" && (
-                <SuperAdminDashboard
-                  onImpersonateStore={handleImpersonateStore}
-                  onCreateStore={() => setShowCreateStoreModal(true)}
-                />
-              )}
-              {superAdminTab === "global-analytics" && <GlobalAnalyticsTab />}
-              {superAdminTab === "billing" && <BillingPayoutsTab />}
-              {superAdminTab === "global-templates" && <GlobalTemplatesTab />}
-              {superAdminTab === "audit-logs" && <AuditLogsTab />}
-            </>
-          ) : (
-            <>
-              {activeTab === "overview" && (
+          {activeTab === "overview" && (
                 <div className="space-y-6">
                   {/* 3-Step Quick Launcher Banner */}
                   <div className="bg-gradient-to-r from-[#1A1A1A] to-[#2D2D2D] text-white rounded-3xl p-6 border-3 border-black shadow-[6px_6px_0px_0px_#FF4C29] flex flex-col lg:flex-row items-center justify-between gap-6">
@@ -562,8 +479,6 @@ export default function AdminPortal() {
                 />
               )}
               {activeTab === "audit-logs" && <AuditLogsTab />}
-            </>
-          )}
         </section>
       </main>
 

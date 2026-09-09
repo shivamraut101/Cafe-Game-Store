@@ -26,7 +26,6 @@ export default function AdminLoginGuard({
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [selectedRoleTab, setSelectedRoleTab] = useState<"store_admin" | "super_admin">(activeRole);
 
   // Self-Serve Registration States
   const [regStoreName, setRegStoreName] = useState<string>("");
@@ -79,7 +78,7 @@ export default function AdminLoginGuard({
       const res = await loginAction({
         email: email.trim(),
         password,
-        role: selectedRoleTab,
+        role: "store_admin",
       });
 
       if (!res.success || !res.user) {
@@ -133,9 +132,8 @@ export default function AdminLoginGuard({
     }
   };
 
-  const handleQuickDemoFill = async (role: "store_admin" = "store_admin") => {
+  const handleQuickDemoFill = async () => {
     if (isClientProd()) return;
-    setSelectedRoleTab("store_admin");
     setAuthMode("login");
     const demoEmail = "manager@brewbites.com";
     const demoPass = "admin123";
@@ -149,7 +147,7 @@ export default function AdminLoginGuard({
       const res = await loginAction({
         email: demoEmail,
         password: demoPass,
-        role,
+        role: "store_admin",
       });
 
       if (res.success && res.user) {
@@ -227,42 +225,10 @@ export default function AdminLoginGuard({
 
           {authMode === "login" ? (
             <>
-              <h1 className="font-serif text-2xl font-black text-black mb-1">Cafe Admin Portal</h1>
+              <h1 className="font-serif text-2xl font-black text-black mb-1">Cafe Store Admin Portal</h1>
               <p className="text-xs font-semibold text-black/60 mb-5">
-                Database-authenticated login for cafe owners and SaaS platform administrators.
+                Database-authenticated login for cafe owners and store managers.
               </p>
-
-              {/* Role Tab Switcher */}
-              <div className="w-full grid grid-cols-2 gap-2 bg-[#FBF9F4] p-1 rounded-xl border border-black/20 mb-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRoleTab("store_admin");
-                    setErrorMsg(null);
-                  }}
-                  className={`py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                    selectedRoleTab === "store_admin"
-                      ? "bg-black text-white"
-                      : "text-black/60 hover:text-black"
-                  }`}
-                >
-                  🏪 Store Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRoleTab("super_admin");
-                    setErrorMsg(null);
-                  }}
-                  className={`py-2 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                    selectedRoleTab === "super_admin"
-                      ? "bg-[#332FD0] text-white"
-                      : "text-black/60 hover:text-black"
-                  }`}
-                >
-                  ⚡ Super Admin
-                </button>
-              </div>
 
               {/* Login Form */}
               <form onSubmit={handleLogin} className="w-full flex flex-col gap-3.5 text-left">
@@ -275,7 +241,7 @@ export default function AdminLoginGuard({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={selectedRoleTab === "super_admin" ? "superadmin@domain.com" : "admin@yourcafe.com"}
+                    placeholder="admin@yourcafe.com"
                     className="w-full p-3 rounded-xl border-2 border-black bg-[#FBF9F4] font-semibold text-sm focus:outline-none focus:border-[#FF4C29] shadow-[2px_2px_0px_0px_#000]"
                   />
                 </div>
@@ -324,26 +290,23 @@ export default function AdminLoginGuard({
                     <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-2.5 text-[11px] font-bold text-amber-900 text-left">
                       💡 <span className="font-black">Demo Sandbox:</span> Pre-loaded with 100 Free Plays (1,000 Credits), active minigames & sample cafe data.
                     </div>
-                    <div className="w-full grid grid-cols-2 gap-2.5">
-                      <button
-                        type="button"
-                        disabled={isLoggingIn}
-                        onClick={() => handleQuickDemoFill("store_admin")}
-                        className="py-2.5 px-2 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#10B981] hover:bg-emerald-50 hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50 flex flex-col items-center justify-center gap-0.5"
-                      >
-                        <span className="text-sm">🏪 Store Admin</span>
-                        <span className="text-[9px] font-semibold text-black/50">Brew & Bites Cafe</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLoggingIn}
-                        onClick={() => handleQuickDemoFill("super_admin")}
-                        className="py-2.5 px-2 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#332FD0] hover:bg-blue-50 hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50 flex flex-col items-center justify-center gap-0.5"
-                      >
-                        <span className="text-sm">⚡ Super Admin</span>
-                        <span className="text-[9px] font-semibold text-black/50">ForStore HQ</span>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={isLoggingIn}
+                      onClick={() => handleQuickDemoFill()}
+                      className="w-full py-3 px-4 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[3px_3px_0px_0px_#10B981] hover:bg-emerald-50 hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2.5 text-left">
+                        <span className="text-xl">🏪</span>
+                        <div>
+                          <span className="text-xs font-black block">1-Click Demo Login</span>
+                          <span className="text-[10px] font-semibold text-black/50">Brew & Bites Cafe (Pre-loaded with 100 Free Plays)</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-1 rounded-lg">
+                        Enter Demo →
+                      </span>
+                    </button>
                   </div>
                 </>
               )}
