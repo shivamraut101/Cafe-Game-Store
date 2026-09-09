@@ -72,7 +72,7 @@ export default function MarketingHomePage() {
                 href="/admin?mode=register"
                 className="bg-[#111111] text-white text-center py-4 px-8 rounded-2xl font-bold border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all flex items-center justify-center gap-2 text-sm"
               >
-                Start Free Trial (100 Credits) <span>→</span>
+                Start Free Trial (100 Free Plays) <span>→</span>
               </Link>
               <a
                 href="#calculator"
@@ -83,7 +83,7 @@ export default function MarketingHomePage() {
             </div>
 
             <div className="flex flex-wrap gap-4 mt-2 text-xs font-bold text-black/70">
-              <span className="flex items-center gap-1.5">✓ 100 Free Trial Scan Credits</span>
+              <span className="flex items-center gap-1.5">✓ 100 Free Plays on Sign-up</span>
               <span className="flex items-center gap-1.5">✓ Capped at 10 plays/user/day</span>
               <span className="flex items-center gap-1.5">✓ Custom Printable QR Table Stands</span>
             </div>

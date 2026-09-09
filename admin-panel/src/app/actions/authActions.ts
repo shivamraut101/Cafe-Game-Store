@@ -307,7 +307,7 @@ export async function registerMerchantAction(input: RegisterMerchantInput) {
       ownerName,
       plan: "Starter",
       status: "Active",
-      walletBalance: 100, // 100 Free Trial Scan Credits
+      walletBalance: 100, // 100 Free Plays credited on sign-up
       totalScans: 0,
       churnRisk: "Low",
       aiCreditsUsed: 0,

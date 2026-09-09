@@ -73,7 +73,7 @@ export default function Home() {
                 href={ADMIN_URL}
                 className="bg-[#111111] text-white text-center py-4 px-8 rounded-2xl font-bold border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all flex items-center justify-center gap-2 text-sm"
               >
-                Start Free Trial <span>→</span>
+                Start Free Trial (100 Free Plays) <span>→</span>
               </a>
               <a
                 href="#calculator"
@@ -84,6 +84,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap gap-4 mt-2 text-xs font-bold text-black/70">
+              <span className="flex items-center gap-1.5">✓ 100 Free Plays on Sign-up</span>
               <span className="flex items-center gap-1.5">✓ Custom Domain (play.yourstore.com)</span>
               <span className="flex items-center gap-1.5">✓ 1 Credit = $0.02 / scan</span>
               <span className="flex items-center gap-1.5">✓ Vector QR PDF Printables</span>
