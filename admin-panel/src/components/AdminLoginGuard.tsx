@@ -133,12 +133,12 @@ export default function AdminLoginGuard({
     }
   };
 
-  const handleQuickDemoFill = async (role: "store_admin" | "super_admin") => {
+  const handleQuickDemoFill = async (role: "store_admin" = "store_admin") => {
     if (isClientProd()) return;
-    setSelectedRoleTab(role);
+    setSelectedRoleTab("store_admin");
     setAuthMode("login");
-    const demoEmail = role === "super_admin" ? "koushik@forstore.app" : "manager@brewbites.com";
-    const demoPass = role === "super_admin" ? "super123" : "admin123";
+    const demoEmail = "manager@brewbites.com";
+    const demoPass = "admin123";
     setEmail(demoEmail);
     setPassword(demoPass);
     setErrorMsg(null);
@@ -320,22 +320,14 @@ export default function AdminLoginGuard({
                     <div className="flex-1 border-t-2 border-black/10" />
                   </div>
 
-                  <div className="w-full grid grid-cols-2 gap-3">
+                  <div className="w-full">
                     <button
                       type="button"
                       disabled={isLoggingIn}
                       onClick={() => handleQuickDemoFill("store_admin")}
-                      className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-50"
+                      className="w-full py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-50"
                     >
                       Merchant Admin 🏪
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isLoggingIn}
-                      onClick={() => handleQuickDemoFill("super_admin")}
-                      className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      Super Admin HQ ⚡
                     </button>
                   </div>
                 </>
