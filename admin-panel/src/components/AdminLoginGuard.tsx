@@ -355,11 +355,11 @@ export default function AdminLoginGuard({
             <>
               <h1 className="font-serif text-2xl font-black text-black mb-1">Turn Wait Time Into Revenue</h1>
               <p className="text-xs font-semibold text-black/60 mb-3">
-                Get started in 30 seconds with 100 free scan credits for your business.
+                Get started in 30 seconds with 100 free plays for your business.
               </p>
 
               <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-900 rounded-xl p-2.5 text-xs font-bold mb-4 w-full text-left">
-                🎁 <span className="font-black">Trial Perks:</span> 100 Free Scan Credits • 3 Ready-to-Play Minigames • Custom Printable QR Studio
+                🎁 <span className="font-black">Trial Perks:</span> 100 Free Plays • 9 Ready-to-Play Minigames • Custom Printable QR Studio
               </div>
 
               <form onSubmit={handleRegister} className="w-full flex flex-col gap-3 text-left">
