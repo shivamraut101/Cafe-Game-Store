@@ -12,7 +12,7 @@ import {
 } from "../../lib/auth";
 import { getMiniGameConfigsAction } from "./adminActions";
 import { sendPinRecoveryEmail, maskEmail } from "../../lib/emailService";
-import { isProd } from "../../lib/appEnv";
+import { isProd, isDemo } from "../../lib/appEnv";
 
 const SESSION_COOKIE_NAME = "forstore_session";
 
@@ -37,6 +37,14 @@ export async function loginAction(data: {
     const user = await User.findOne({ email });
     if (!user) {
       return { success: false, error: "Invalid email or password." };
+    }
+
+    // Strictly prohibit super admin in Demo Sandbox
+    if (isDemo() && (data.role === "super_admin" || user.role === "super_admin")) {
+      return {
+        success: false,
+        error: "Super Admin access is disabled in the Demo Sandbox environment.",
+      };
     }
 
     // Role check
@@ -140,7 +148,7 @@ export async function loginAction(data: {
     // Demo fallback sessions are strictly prohibited in Production
     if (!isProd()) {
       const email = data.email?.trim().toLowerCase();
-      const isDemoSuper = email === "koushik@forstore.app";
+      const isDemoSuper = !isDemo() && email === "koushik@forstore.app";
       const isDemoStore = email === "manager@brewbites.com" || email?.includes("demo") || email?.includes("admin");
 
       if (isDemoSuper || isDemoStore) {

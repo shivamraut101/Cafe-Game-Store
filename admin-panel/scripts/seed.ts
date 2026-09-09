@@ -138,16 +138,9 @@ async function seed() {
   ]);
   console.log(`   ✅ ${stores.length} pre-funded stores created (Brew & Bites preloaded with 1,000 credits / 100 free plays)`);
 
-  // ─── 2. Auth Users ──────────────────────────────────────
-  console.log("👤 Creating demo admin and customer users...");
+  // ─── 2. Auth Users (Store Admins and Customers ONLY in DEMO) ──
+  console.log("👤 Creating demo store admin and customer users...");
   const users = await User.insertMany([
-    {
-      email: "koushik@forstore.app",
-      name: "Koushik (Super Admin)",
-      role: "super_admin",
-      passwordHash: hashPassword("super123"),
-      totalCafePoints: 0,
-    },
     {
       storeId: stores[0]._id,
       email: "manager@brewbites.com",
@@ -333,7 +326,7 @@ async function seed() {
   console.log("🎁 Creating sample reward claims...");
   const dummySession = await GameSession.create({
     storeId: stores[0]._id,
-    userId: users[3]._id,
+    userId: users[2]._id,
     gameSlug: "coffee-tower",
     difficulty: "medium",
     score: 18,
@@ -347,7 +340,7 @@ async function seed() {
   await RewardClaim.insertMany([
     {
       storeId: stores[0]._id,
-      userId: users[3]._id,
+      userId: users[2]._id,
       sessionId: dummySession._id,
       gameSlug: "coffee-tower",
       rewardName: "Free Regular Coffee",
@@ -358,12 +351,12 @@ async function seed() {
       earnedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       claimedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       claimedByStaffName: "Sarah Jenkins",
-      claimedByStaffId: users[1]._id.toString(),
+      claimedByStaffId: users[0]._id.toString(),
       expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     },
     {
       storeId: stores[0]._id,
-      userId: users[3]._id,
+      userId: users[2]._id,
       sessionId: dummySession._id,
       gameSlug: "coffee-tower",
       rewardName: "Free Fresh Cookie",
@@ -374,12 +367,12 @@ async function seed() {
       earnedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       claimedAt: new Date(),
       claimedByStaffName: "Sarah Jenkins",
-      claimedByStaffId: users[1]._id.toString(),
+      claimedByStaffId: users[0]._id.toString(),
       expiresAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
     },
     {
       storeId: stores[0]._id,
-      userId: users[3]._id,
+      userId: users[2]._id,
       sessionId: dummySession._id,
       gameSlug: "coffee-tower",
       rewardName: "20% Off Order",
@@ -398,9 +391,9 @@ async function seed() {
   await AuditLog.insertMany([
     {
       storeId: stores[0]._id,
-      actorName: "Koushik (Super Admin)",
-      actorEmail: "koushik@forstore.app",
-      actorRole: "Super Admin",
+      actorName: "Sarah Jenkins",
+      actorEmail: "manager@brewbites.com",
+      actorRole: "Store Admin",
       ipAddress: "127.0.0.1",
       action: "WALLET_GRANT",
       actionCategory: "BILLING",

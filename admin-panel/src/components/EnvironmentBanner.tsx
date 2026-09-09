@@ -52,12 +52,21 @@ export default function EnvironmentBanner() {
           <span className="text-black/20">|</span>
 
           <a
-            href="https://wa.me/?text=Hi%20ForStore%20Team!%20I'm%20exploring%20the%20demo%20at%20demo.curaflowstudio.com%20and%20had%20a%20few%20questions%20about%20onboarding."
+            href="https://wa.me/919749694882?text=Hi%20Shivam!%20I'm%20exploring%20the%20demo%20at%20demo.curaflowstudio.com%20and%20had%20a%20few%20questions%20about%20onboarding."
             target="_blank"
             rel="noopener noreferrer"
-            className="text-black/60 hover:text-black font-semibold text-xs transition-colors flex items-center gap-1"
+            className="text-black/70 hover:text-black font-semibold text-xs transition-colors flex items-center gap-1"
           >
-            Ask a question
+            <span>💬</span> WhatsApp
+          </a>
+
+          <span className="text-black/20">|</span>
+
+          <a
+            href="mailto:shivam@primexmeta.com?subject=Inquiry%20from%20Demo%20Store&body=Hi%20Shivam%2C%20I%20tested%20the%20demo%20at%20demo.curaflowstudio.com%20and%20want%20to%20know%20more%20about%20setting%20this%20up%20for%20my%20cafe."
+            className="text-black/70 hover:text-black font-semibold text-xs transition-colors flex items-center gap-1"
+          >
+            <span>✉️</span> Email
           </a>
 
           <button
