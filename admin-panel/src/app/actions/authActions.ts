@@ -477,7 +477,7 @@ export async function recoverStorePinAction(ownerEmail: string) {
         error: "No PIN configured for this store. Please contact your administrator.",
       };
     }
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_ADMIN_URL || "";
     const accessUrl = appBaseUrl ? `${appBaseUrl}/?pin=${pin}` : `/?pin=${pin}`;
 
     // Dispatch secure email with the PIN and direct unlock link
