@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import connectDB from "../../lib/db";
-import { GameSession, MiniGameConfig, RewardClaim, User, Store, AuditLog } from "../../lib/models";
+import { GameSession, MiniGameConfig, RewardClaim, User, Store, AuditLog, ProspectSession } from "../../lib/models";
 import mongoose from "mongoose";
 
 // Generate clean, readable 4-character random code (e.g. BRW-7X92)
@@ -373,6 +373,32 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     await User.findByIdAndUpdate(userObjId, {
       $inc: { totalCafePoints: pointsEarned },
     });
+
+    // Synchronize gameplay metrics with ProspectSession for demo engagement tracking
+    try {
+      const vId = deviceFingerprint || customer?.deviceFingerprint;
+      if (vId) {
+        let prospect = await ProspectSession.findOne({ visitorId: vId });
+        if (prospect) {
+          const gIdx = prospect.gamesPlayed.findIndex((g) => g.gameSlug === gameSlug);
+          if (gIdx >= 0) {
+            prospect.gamesPlayed[gIdx].plays += 1;
+            prospect.gamesPlayed[gIdx].totalSeconds += Math.max(duration, 5);
+            prospect.gamesPlayed[gIdx].highScore = Math.max(prospect.gamesPlayed[gIdx].highScore, score);
+          } else {
+            prospect.gamesPlayed.push({
+              gameSlug,
+              plays: 1,
+              totalSeconds: Math.max(duration, 5),
+              highScore: score,
+            });
+          }
+          prospect.markModified("gamesPlayed");
+          prospect.lastSeenAt = new Date();
+          await prospect.save();
+        }
+      }
+    } catch {}
 
     return {
       success: true,
