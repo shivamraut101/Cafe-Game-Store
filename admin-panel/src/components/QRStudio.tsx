@@ -82,7 +82,7 @@ const themePresets: ThemePreset[] = [
 ];
 
 export default function QRStudio({
-  storeName = "Brew & Bites Cafe",
+  storeName = "My Store",
   primaryColor = "#FF4C29",
   logoEmoji = "☕",
 }: QRStudioProps) {

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { UserRole, TierLevel, Game, MerchantAccount } from "../types";
 import { logAction } from "../lib/auditLogger";
+import { isClientProd } from "../lib/appEnv";
 
 interface GlobalStateContextType {
   role: UserRole;
@@ -33,18 +34,26 @@ export function GlobalStateProvider({ children }: { children: ReactNode }) {
   const [tier, setTier] = useState<TierLevel>("Pro Store");
   const [impersonatedStore, setImpersonatedStore] = useState<string | null>(null);
 
-  const [storesList, setStoresList] = useState<string[]>([
-    "Brew & Bites Cafe (Main Branch)",
-    "Downtown Tacos & Tequila",
-    "Pixel Arcade Cafe",
-  ]);
-  const [currentStore, setCurrentStore] = useState(storesList[0]);
+  const [storesList, setStoresList] = useState<string[]>(
+    isClientProd()
+      ? []
+      : [
+          "Brew & Bites Cafe (Main Branch)",
+          "Downtown Tacos & Tequila",
+          "Pixel Arcade Cafe",
+        ]
+  );
+  const [currentStore, setCurrentStore] = useState(storesList[0] || "");
 
-  const [games, setGames] = useState<Game[]>([
-    { id: "1", name: "Spin to Win", type: "Wheel", icon: "🎡", status: "Active", scans: 1240, winRate: 15, reward: "Free Coffee", shadowColor: "shadow-flat-blue" },
-    { id: "2", name: "Instant Lottery", type: "Scratch", icon: "🎟️", status: "Active", scans: 950, winRate: 8, reward: "10% Off Pastry", shadowColor: "shadow-flat-orange" },
-    { id: "3", name: "Slot Machine", type: "Slots", icon: "🎰", status: "Active", scans: 2100, winRate: 12, reward: "Free Size Upgrade", shadowColor: "shadow-flat-pink" },
-  ]);
+  const [games, setGames] = useState<Game[]>(
+    isClientProd()
+      ? []
+      : [
+          { id: "1", name: "Spin to Win", type: "Wheel", icon: "🎡", status: "Active", scans: 1240, winRate: 15, reward: "Free Coffee", shadowColor: "shadow-flat-blue" },
+          { id: "2", name: "Instant Lottery", type: "Scratch", icon: "🎟️", status: "Active", scans: 950, winRate: 8, reward: "10% Off Pastry", shadowColor: "shadow-flat-orange" },
+          { id: "3", name: "Slot Machine", type: "Slots", icon: "🎰", status: "Active", scans: 2100, winRate: 12, reward: "Free Size Upgrade", shadowColor: "shadow-flat-pink" },
+        ]
+  );
 
   const handleStoreCreated = (newStore: MerchantAccount) => {
     setStoresList([newStore.storeName, ...storesList]);

@@ -9,8 +9,8 @@ interface BrandingTabProps {
 }
 
 export default function BrandingTab({ storeName: currentStoreName }: BrandingTabProps) {
-  const [storeName, setStoreName] = useState(currentStoreName || "Brew & Bites Cafe");
-  const [tagline, setTagline] = useState("Your daily dose of caffeine and fun.");
+  const [storeName, setStoreName] = useState(currentStoreName || "My Store");
+  const [tagline, setTagline] = useState("Play mini-games to win exclusive rewards!");
   const [primaryColor, setPrimaryColor] = useState("#FF4C29");
   const [secondaryColor, setSecondaryColor] = useState("#332FD0");
   const [storePin, setStorePin] = useState("9900");
@@ -29,14 +29,14 @@ export default function BrandingTab({ storeName: currentStoreName }: BrandingTab
       setLoading(true);
       const res = await getStoreBrandingAction(currentStoreName);
       if (res.success && res.branding) {
-        setStoreName(res.branding.storeName || currentStoreName || "Brew & Bites Cafe");
-        setTagline(res.branding.tagline || "");
+        setStoreName(res.branding.storeName || currentStoreName || "My Store");
+        setTagline(res.branding.tagline || "Play mini-games to win exclusive rewards!");
         setPrimaryColor(res.branding.primaryColor || "#FF4C29");
         setSecondaryColor(res.branding.secondaryColor || "#332FD0");
         setActiveGames(res.branding.activeGames || []);
       }
 
-      const pinRes = await getStoreAdminPinAction(currentStoreName || "Brew & Bites Cafe");
+      const pinRes = await getStoreAdminPinAction(currentStoreName || "");
       if (pinRes.success && pinRes.pin) {
         setStorePin(pinRes.pin);
       }
@@ -203,7 +203,7 @@ export default function BrandingTab({ storeName: currentStoreName }: BrandingTab
                   <input
                     type="text"
                     readOnly
-                    value={typeof window !== "undefined" ? `${window.location.origin}/?pin=${storePin}` : `https://cafe-game-store-admin-panel.vercel.app/?pin=${storePin}`}
+                    value={typeof window !== "undefined" ? `${window.location.origin}/?pin=${storePin}` : `/?pin=${storePin}`}
                     className="flex-1 p-3 rounded-xl border-2 border-black bg-black/5 font-mono text-xs font-bold text-black select-all"
                   />
                   <button

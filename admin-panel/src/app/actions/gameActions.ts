@@ -47,9 +47,12 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
       let store = null;
       if (storeSlug) store = await Store.findOne({ slug: storeSlug });
       if (!store && storeName) store = await Store.findOne({ storeName });
-      if (!store) store = await Store.findOne({ storeName: "Downtown Tacos & Tequila" });
       if (!store) store = await Store.findOne({ status: "Active" });
       if (store) storeId = store._id.toString();
+    }
+
+    if (!storeId) {
+      return { success: false, error: "No active store found." };
     }
 
     const storeObjId = new mongoose.Types.ObjectId(storeId);

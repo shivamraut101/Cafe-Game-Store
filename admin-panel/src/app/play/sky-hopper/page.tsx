@@ -361,7 +361,7 @@ export default function SkyHopperGame() {
           ArcadeAudio.playCrash();
           setGameState("gameover");
 
-          const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+          const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "") : "";
           submitGameSessionAction({
             gameSlug: "sky-hopper",
             score: scoreRef.current,

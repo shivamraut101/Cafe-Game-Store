@@ -145,9 +145,9 @@ export default function ArcadeLandingPage() {
   const [claimedGameSlugs, setClaimedGameSlugs] = useState<string[]>([]);
   const [hasPendingVoucher, setHasPendingVoucher] = useState(false);
 
-  const [storeName, setStoreName] = useState("Brew & Bites Arcade");
+  const [storeName, setStoreName] = useState("Arcade");
   const [tableNumber, setTableNumber] = useState<string>("");
-  const [storeSlug, setStoreSlug] = useState<string>("adda-99");
+  const [storeSlug, setStoreSlug] = useState<string>("");
 
 
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function ArcadeLandingPage() {
         sessionStorage.setItem("selectedStore", queryStore);
         storeParam = queryStore;
       } else {
-        storeParam = sessionStorage.getItem("selectedStore") || "adda-99";
+        storeParam = sessionStorage.getItem("selectedStore") || "";
       }
 
       const normalizedSlug = storeParam.toLowerCase().trim();

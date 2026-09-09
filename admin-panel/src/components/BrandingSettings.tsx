@@ -25,14 +25,14 @@ export default function BrandingSettings({
   onSave,
 }: BrandingSettingsProps) {
   const [config, setConfig] = useState<BrandConfig>({
-    storeName: initialConfig?.storeName || "Brew & Bites Cafe",
-    storeSlug: initialConfig?.storeSlug || "brew-and-bites",
+    storeName: initialConfig?.storeName || "My Store",
+    storeSlug: initialConfig?.storeSlug || "",
     primaryColor: initialConfig?.primaryColor || "#FF4C29",
     accentColor: initialConfig?.accentColor || "#8B5CF6",
     logoEmoji: initialConfig?.logoEmoji || "☕",
-    customDomain: initialConfig?.customDomain || "play.brewbites.com",
+    customDomain: initialConfig?.customDomain || "",
     removeWatermark: initialConfig?.removeWatermark || false,
-    welcomeMessage: initialConfig?.welcomeMessage || "Welcome to Brew & Bites Loyalty Hub!",
+    welcomeMessage: initialConfig?.welcomeMessage || "Welcome to our Loyalty Hub!",
   });
 
   const [saved, setSaved] = useState(false);

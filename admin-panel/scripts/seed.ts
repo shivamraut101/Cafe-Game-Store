@@ -41,6 +41,21 @@ async function seed() {
     RewardClaim.deleteMany({}),
   ]);
 
+  if (envMode === "prod" || envMode === "production") {
+    console.log("🔒 Production Mode: Creating ONLY Super Admin account. No mock stores or fake data will be inserted.");
+    const superAdmin = await User.create({
+      email: process.env.SUPER_ADMIN_EMAIL || "koushik@forstore.app",
+      name: "Super Admin",
+      role: "super_admin",
+      passwordHash: hashPassword(process.env.SUPER_ADMIN_PASSWORD || "super123"),
+      totalCafePoints: 0,
+    });
+    console.log(`   ✅ Production Super Admin created (${superAdmin.email})`);
+    console.log("\n🎉 Production database initialized clean with 0 mock stores and 0 fake vouchers!\n");
+    await mongoose.disconnect();
+    return;
+  }
+
   // ─── 1. Stores (Clean 4 Cafes for DEV Mode) ──────────────
   console.log("🏪 Creating 4 clean cafe stores...");
   const stores = await Store.insertMany([

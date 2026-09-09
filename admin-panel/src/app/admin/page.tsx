@@ -310,7 +310,7 @@ export default function AdminPortal() {
             ) : (
               <div className="flex items-center gap-2 bg-[#FBF9F4] text-black px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000]">
                 <span>🏪</span>
-                <span>{currentStore || "Brew & Bites Cafe"}</span>
+                <span>{currentStore || "My Store"}</span>
               </div>
             )}
 

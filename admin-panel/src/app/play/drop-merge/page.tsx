@@ -256,7 +256,7 @@ export default function DropMergeGame() {
 
           const fs = scoreRef.current;
           if (fs > bestScore) setBestScore(fs);
-          const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+          const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "") : "";
           submitGameSessionAction({
             gameSlug: "drop-merge",
             score: fs,

@@ -484,7 +484,7 @@ export default function BaristaCatchGame() {
                     rerender();
 
                     // Submit session & check for reward vouchers via Server Action
-                    const targetStoreName = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+                    const targetStoreName = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "") : "";
                     const elapsedSec = Math.max(2, Math.round(fRef.current / 60));
                     submitGameSessionAction({ gameSlug: "barista-catch", score: fs, storeName: targetStoreName, duration: elapsedSec }).then((res) => {
                       if (res.limitReached) {

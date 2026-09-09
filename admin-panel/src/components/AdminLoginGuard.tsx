@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { loginAction, getSessionAction, registerMerchantAction } from "../app/actions/authActions";
+import { isClientProd } from "../lib/appEnv";
 
 interface AdminLoginGuardProps {
   children: React.ReactNode;
@@ -42,10 +43,7 @@ export default function AdminLoginGuard({
       if (p.get("tab") === "register" || p.get("mode") === "register") {
         setAuthMode("register");
       }
-      const isClientProd =
-        process.env.NEXT_PUBLIC_APP_ENV === "prod" ||
-        process.env.NEXT_PUBLIC_APP_ENV === "production";
-      if (!isClientProd && (p.get("demo") === "true" || p.get("pin"))) {
+      if (!isClientProd() && (p.get("demo") === "true" || p.get("pin"))) {
         setShowDemoAuth(true);
       }
     }
@@ -136,6 +134,7 @@ export default function AdminLoginGuard({
   };
 
   const handleQuickDemoFill = async (role: "store_admin" | "super_admin") => {
+    if (isClientProd()) return;
     setSelectedRoleTab(role);
     setAuthMode("login");
     const demoEmail = role === "super_admin" ? "koushik@forstore.app" : "manager@brewbites.com";
@@ -276,7 +275,7 @@ export default function AdminLoginGuard({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={selectedRoleTab === "super_admin" ? "koushik@forstore.app" : "manager@brewbites.com"}
+                    placeholder={selectedRoleTab === "super_admin" ? "superadmin@domain.com" : "admin@yourcafe.com"}
                     className="w-full p-3 rounded-xl border-2 border-black bg-[#FBF9F4] font-semibold text-sm focus:outline-none focus:border-[#FF4C29] shadow-[2px_2px_0px_0px_#000]"
                   />
                 </div>
@@ -310,8 +309,8 @@ export default function AdminLoginGuard({
                 </button>
               </form>
 
-              {/* Quick Demo Sign-in Divider (Only shown if ?demo=true or ?pin= is used) */}
-              {showDemoAuth && (
+              {/* Quick Demo Sign-in Divider (Strictly blocked in production) */}
+              {showDemoAuth && !isClientProd() && (
                 <>
                   <div className="w-full flex items-center my-5">
                     <div className="flex-1 border-t-2 border-black/10" />

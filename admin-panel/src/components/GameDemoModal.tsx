@@ -257,7 +257,7 @@ export default function GameDemoModal({ engineId, onClose }: GameDemoModalProps)
           {/* Top Store Badge */}
           <div className="text-center mb-2">
             <span className="text-[10px] font-black uppercase tracking-widest bg-black text-white px-3 py-1 rounded-full border border-black shadow-[2px_2px_0px_0px_#FF4C29]">
-              Brew & Bites Cafe
+              Arcade Preview
             </span>
           </div>
 

@@ -16,7 +16,7 @@ Follow this guide to deploy **ForStore (Cafe Game Store)** to production today.
 ## 2. Environment Variables Checklist
 
 ### For `admin-panel`:
-Configure these in your hosting dashboard (Vercel, Railway, AWS, Docker):
+Configure these in your cloud hosting provider dashboard (Docker, VPS, Cloud Container, etc.):
 
 | Variable | Description | Example / Production Value |
 |---|---|---|
@@ -97,27 +97,29 @@ Since your main root domain hosts your **Curaflow Studio** website, both **ForSt
 
 ---
 
-## 4. Deploying to Vercel (Alternative Option)
+## 4. Production & Demo Environment Deployment Guide
 
-### Project 1: Deploy `admin-panel`
-1. Go to [Vercel Dashboard](https://vercel.com/new) -> **Import Git Repository**.
-2. Set **Root Directory** to `admin-panel`.
-3. Framework Preset: **Next.js**.
-4. In **Environment Variables**, add:
-   - `MONGODB_URI`
-   - `MONGODB_ENV` = `prod`
-   - `SESSION_SECRET`
-5. Click **Deploy**.
-6. Under **Settings -> Domains**, assign `app.forstore.app` (or your chosen domain).
+### Deploying the `prod` Environment:
+1. Connect your git repository to your hosting provider.
+2. Select the `prod` branch.
+3. Set **Root Directory** to `admin-panel`.
+4. In **Environment Variables**, configure:
+   - `NEXT_PUBLIC_APP_ENV` = `prod`
+   - `APP_ENV` = `prod`
+   - `MONGODB_URI` = `mongodb+srv://.../cafe-game-store-prod`
+   - `SESSION_SECRET` = `<your-secure-secret>`
+5. Deploy the application.
 
-### Project 2: Deploy `storefront`
-1. Go to [Vercel Dashboard](https://vercel.com/new) -> **Import Git Repository** (same repo).
-2. Set **Root Directory** to `storefront`.
-3. Framework Preset: **Next.js**.
-4. In **Environment Variables**, add:
-   - `NEXT_PUBLIC_ADMIN_URL` = `https://app.forstore.app`
-5. Click **Deploy**.
-6. Under **Settings -> Domains**, assign `forstore.app` and `www.forstore.app`.
+### Deploying the `demo` Sandbox Environment:
+1. Connect your git repository to your hosting provider.
+2. Select the `main` branch (or demo subdomain).
+3. Set **Root Directory** to `admin-panel`.
+4. In **Environment Variables**, configure:
+   - `NEXT_PUBLIC_APP_ENV` = `demo`
+   - `APP_ENV` = `demo`
+   - `MONGODB_URI` = `mongodb+srv://.../cafe-game-store-demo`
+   - `SESSION_SECRET` = `<your-demo-secret>`
+5. Deploy the sandbox application.
 
 ---
 

@@ -370,7 +370,7 @@ export default function HelixDropGame() {
                 setGameState("gameover");
                 spawnShatter(W / 2, BALL_SCREEN_Y, "#FF4C29");
 
-                const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+                const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "") : "";
                 submitGameSessionAction({
                   gameSlug: "helix-drop",
                   score: scoreRef.current,

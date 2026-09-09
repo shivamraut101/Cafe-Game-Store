@@ -297,7 +297,7 @@ export default function CoffeeTowerGame() {
       lastTapTimeRef.current = performance.now() + 650; // Buffer to prevent accidental dismissal of Game Over screen
 
       // Submit session & check for reward vouchers via Server Action
-      const targetStoreName = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+      const targetStoreName = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "") : "";
       submitGameSessionAction({
         gameSlug: "coffee-tower",
         score: fs,

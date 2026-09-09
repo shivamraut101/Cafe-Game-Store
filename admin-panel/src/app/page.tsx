@@ -94,8 +94,8 @@ export default function MarketingHomePage() {
             <div className="bg-[#EAE6DA] rounded-3xl p-6 md:p-8 border-2 border-black shadow-[8px_8px_0px_0px_#000000] flex flex-col gap-6 relative overflow-hidden">
               <div className="flex items-center justify-between border-b-2 border-black/10 pb-4">
                 <div>
-                  <span className="text-xs font-bold text-black/50 uppercase tracking-wider">LIVE DEMO SIMULATOR</span>
-                  <h3 className="font-serif text-xl font-bold text-black">Brew & Bites Cafe (White-Labeled)</h3>
+                  <span className="text-xs font-bold text-black/50 uppercase tracking-wider">INTERACTIVE PREVIEW</span>
+                  <h3 className="font-serif text-xl font-bold text-black">Custom Cafe Experience (White-Labeled)</h3>
                 </div>
                 <span className="bg-purple-100 border border-purple-300 text-purple-900 text-xs font-bold px-3 py-1 rounded-full">
                   Pro Tier Active

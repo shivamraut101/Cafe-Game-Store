@@ -31,7 +31,7 @@ const peakHoursData = [
 ];
 
 export default function StoreAnalytics({
-  storeName = "Brew & Bites Cafe (Main Branch)",
+  storeName = "Store Performance",
 }: StoreAnalyticsProps) {
   const [timeRange, setTimeRange] = useState<"14d" | "30d" | "90d">("14d");
 

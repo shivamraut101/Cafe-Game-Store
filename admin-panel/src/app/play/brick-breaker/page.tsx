@@ -365,8 +365,8 @@ export default function BrickBreakerGame() {
 
             const targetStore =
               typeof window !== "undefined"
-                ? sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila"
-                : "Downtown Tacos & Tequila";
+                ? sessionStorage.getItem("selectedStore") || ""
+                : "";
 
             submitGameSessionAction({
               gameSlug: "brick-breaker",

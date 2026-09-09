@@ -76,7 +76,7 @@ export default function RoleHeader({
         ) : (
           <div className="flex items-center gap-2">
             <span className="bg-purple-900/60 text-purple-200 px-3 py-1 rounded-xl border border-purple-700 text-xs font-black flex items-center gap-1.5">
-              <span>🏪</span> Logged in: {storeName || "Brew & Bites Cafe"}
+              <span>🏪</span> Logged in: {storeName || "Store Admin"}
             </span>
             {userEmail && (
               <span className="text-white/50 text-[11px] font-mono hidden sm:inline">

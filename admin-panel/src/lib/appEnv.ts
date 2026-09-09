@@ -37,19 +37,30 @@ export function isDev(): boolean {
 }
 
 /**
- * Client-side environment check using public environment variable
+ * Client-side environment check using public environment variable & hostname
  */
 export function getClientAppEnvironment(): AppEnvironment {
   if (typeof window === "undefined") return getAppEnvironment();
   
+  // Hostname inspection (demo subdomain isolation)
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname.includes("demo-") || hostname.startsWith("demo.") || hostname.includes(".demo.")) {
+    return "demo";
+  }
+
   const raw = (
     process.env.NEXT_PUBLIC_APP_ENV ||
-    "demo"
+    (process.env.NODE_ENV === "production" ? "prod" : "dev")
   )
     .toLowerCase()
     .trim();
 
   if (raw === "prod" || raw === "production") return "prod";
+  if (raw === "demo") return "demo";
   if (raw === "dev" || raw === "development") return "dev";
-  return "demo";
+  return "prod";
+}
+
+export function isClientProd(): boolean {
+  return getClientAppEnvironment() === "prod";
 }

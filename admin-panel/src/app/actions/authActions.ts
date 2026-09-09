@@ -470,9 +470,15 @@ export async function recoverStorePinAction(ownerEmail: string) {
       };
     }
 
-    const pin = targetStore.adminPin || "9900";
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://cafe-game-store-admin-panel.vercel.app";
-    const accessUrl = `${appBaseUrl}/?pin=${pin}`;
+    const pin = targetStore.adminPin;
+    if (!pin) {
+      return {
+        success: false,
+        error: "No PIN configured for this store. Please contact your administrator.",
+      };
+    }
+    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    const accessUrl = appBaseUrl ? `${appBaseUrl}/?pin=${pin}` : `/?pin=${pin}`;
 
     // Dispatch secure email with the PIN and direct unlock link
     const emailRes = await sendPinRecoveryEmail({
@@ -567,7 +573,10 @@ export async function getStoreAdminPinAction(storeName: string) {
     if (!store) {
       return { success: false, error: "Store not found" };
     }
-    return { success: true, pin: store.adminPin || "9900" };
+    if (!store.adminPin && isProd()) {
+      return { success: false, error: "No PIN configured for this store." };
+    }
+    return { success: true, pin: store.adminPin || (isProd() ? "" : "9900") };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redeemRewardVoucherAction } from "../actions/gameActions";
 import { getSessionAction, loginAction, logoutAction } from "../actions/authActions";
 import { downloadCSV } from "../../lib/csvExport";
+import { isClientProd } from "../../lib/appEnv";
 
 interface RedeemedRecord {
   claimCode: string;
@@ -131,6 +132,7 @@ export default function StaffVoucherLookupPortal() {
   };
 
   const handleQuickDemoLogin = async () => {
+    if (isClientProd()) return;
     setIsLoggingIn(true);
     setLoginError(null);
     try {
@@ -334,7 +336,7 @@ export default function StaffVoucherLookupPortal() {
                   type="email"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="manager@brewbites.com"
+                  placeholder="manager@yourstore.com"
                   className="w-full p-3 rounded-xl border-2 border-black font-semibold text-sm bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29]"
                 />
               </div>
@@ -361,16 +363,18 @@ export default function StaffVoucherLookupPortal() {
               </button>
             </form>
 
-            <div className="w-full mt-4 pt-4 border-t-2 border-dashed border-black/10 text-center">
-              <button
-                type="button"
-                onClick={handleQuickDemoLogin}
-                disabled={isLoggingIn}
-                className="w-full py-2.5 bg-amber-400 text-black border-2 border-black rounded-xl font-black text-xs shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
-              >
-                ⚡ 1-CLICK QUICK DEMO MANAGER ACCESS
-              </button>
-            </div>
+            {!isClientProd() && (
+              <div className="w-full mt-4 pt-4 border-t-2 border-dashed border-black/10 text-center">
+                <button
+                  type="button"
+                  onClick={handleQuickDemoLogin}
+                  disabled={isLoggingIn}
+                  className="w-full py-2.5 bg-amber-400 text-black border-2 border-black rounded-xl font-black text-xs shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
+                >
+                  ⚡ 1-CLICK QUICK DEMO MANAGER ACCESS
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           /* ─── AUTHENTICATED STAFF & MANAGER VERIFICATION DASHBOARD ───────── */
@@ -381,7 +385,7 @@ export default function StaffVoucherLookupPortal() {
                 <div>
                   <span className="text-[9px] font-black uppercase tracking-wider text-black/40 block">AUTHORIZED STORE</span>
                   <span className="font-serif text-sm font-black text-black">
-                    🏬 {session.user?.storeName || "Downtown Tacos & Tequila"}
+                    🏬 {session.user?.storeName || "Store Counter"}
                   </span>
                 </div>
                 <button

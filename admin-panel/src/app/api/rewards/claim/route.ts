@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "../../../../lib/db";
 import { RewardClaim, Store, User } from "../../../../lib/models";
+import { isProd } from "../../../../lib/appEnv";
 
 export async function GET(req: NextRequest) {
   try {
@@ -45,6 +46,9 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    if (isProd()) {
+      return NextResponse.json({ error: "Invalid or expired claim code" }, { status: 404 });
+    }
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code")?.toUpperCase();
     if (code && (code.startsWith("BRW-") || code.length >= 4)) {
@@ -61,10 +65,10 @@ export async function GET(req: NextRequest) {
           earnedAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
           claimedByStaffName: undefined,
-          storeName: "Downtown Tacos & Tequila",
-          storeSlug: "downtown-tacos",
-          customerName: "Table #04 Guest",
-          customerEmail: "guest@table04.local",
+          storeName: "Demo Store",
+          storeSlug: "demo-store",
+          customerName: "Guest",
+          customerEmail: "guest@arcade.local",
         },
       });
     }
@@ -113,6 +117,9 @@ export async function POST(req: NextRequest) {
       claimedByStaffName: claim.claimedByStaffName || staffName,
     });
   } catch (error: any) {
+    if (isProd()) {
+      return NextResponse.json({ error: "Failed to process reward claim. Please verify code or contact manager." }, { status: 400 });
+    }
     try {
       const body = await req.json().catch(() => ({}));
       const { code } = body;

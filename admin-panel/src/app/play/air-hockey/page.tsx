@@ -401,7 +401,7 @@ export default function AirHockeyGame() {
               ArcadeAudio.playPerfect(5);
 
               const elapsedSec = Math.max(10, Math.floor((Date.now() - matchDurationRef.current) / 1000));
-              const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+              const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "") : "";
               submitGameSessionAction({
                 gameSlug: "air-hockey",
                 score: newScore,
@@ -439,7 +439,7 @@ export default function AirHockeyGame() {
               ArcadeAudio.playPerfect(5);
 
               const elapsedSec = Math.max(10, Math.floor((Date.now() - matchDurationRef.current) / 1000));
-              const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "Downtown Tacos & Tequila") : "Downtown Tacos & Tequila";
+              const targetStore = typeof window !== "undefined" ? (sessionStorage.getItem("selectedStore") || "") : "";
               submitGameSessionAction({
                 gameSlug: "air-hockey",
                 score: newScore,

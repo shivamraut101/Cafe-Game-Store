@@ -9,11 +9,19 @@ export default function CustomerGamePlayer() {
   const gameType = rawGameType.toLowerCase();
 
   const [gameState, setGameState] = useState<"idle" | "playing" | "won">("idle");
+  const [storeDisplayName, setStoreDisplayName] = useState<string>("Loyalty Arcade");
   const [reward, setReward] = useState<string>("");
   const [voucherCode, setVoucherCode] = useState<string>("");
   const [timeLeft, setTimeLeft] = useState<number>(900); // 15 min timer
   const [copied, setCopied] = useState<boolean>(false);
   const [redeemed, setRedeemed] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const s = sessionStorage.getItem("selectedStore");
+      if (s) setStoreDisplayName(s);
+    }
+  }, []);
 
   // Spin Wheel State
   const [rotation, setRotation] = useState(0);
@@ -330,8 +338,8 @@ export default function CustomerGamePlayer() {
             ☕
           </div>
           <div>
-            <h1 className="font-serif font-black text-lg text-white">Brew & Bites Cafe</h1>
-            <p className="text-[10px] font-bold text-[#FF4C29] tracking-widest uppercase">Table #4 • Spin & Redeem</p>
+            <h1 className="font-serif font-black text-lg text-white">{storeDisplayName}</h1>
+            <p className="text-[10px] font-bold text-[#FF4C29] tracking-widest uppercase">Table • Spin & Redeem</p>
           </div>
         </div>
         <span className="bg-emerald-400 text-black px-2.5 py-1 rounded-full text-[10px] font-black uppercase border border-black animate-pulse">

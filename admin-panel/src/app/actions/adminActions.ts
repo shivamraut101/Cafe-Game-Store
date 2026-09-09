@@ -540,12 +540,12 @@ export async function getCampaignsAction(storeId?: string) {
       },
     ];
 
-    if (!storeObjId) return { success: true, campaigns: defaultCampaigns };
+    if (!storeObjId) return { success: true, campaigns: isProd() ? [] : defaultCampaigns };
 
     const campaigns = await Campaign.find({ storeId: storeObjId });
 
     if (campaigns.length === 0) {
-      return { success: true, campaigns: defaultCampaigns };
+      return { success: true, campaigns: isProd() ? [] : defaultCampaigns };
     }
 
     return {
@@ -564,6 +564,9 @@ export async function getCampaignsAction(storeId?: string) {
     };
   } catch (error: any) {
     console.error("Error in getCampaignsAction:", error);
+    if (isProd()) {
+      return { success: false, error: "Failed to load campaigns", campaigns: [] };
+    }
     return {
       success: true,
       campaigns: [
