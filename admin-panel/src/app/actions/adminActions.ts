@@ -13,6 +13,7 @@ import {
   TopUpRequest,
 } from "../../lib/models";
 import mongoose from "mongoose";
+import { isProd } from "../../lib/appEnv";
 
 /**
  * Server Action: Fetches all merchant store accounts directly from active MongoDB database.
@@ -43,6 +44,12 @@ export async function getSuperAdminMerchantsAction() {
       return { success: true, merchants: mappedMerchants };
     }
 
+    // In Production: Never expose fake demo stores. Return empty list if no merchants registered yet.
+    if (isProd()) {
+      return { success: true, merchants: [] };
+    }
+
+    // In Demo / Dev Sandbox: Return sample stores for sales presentations
     return {
       success: true,
       merchants: [
@@ -82,6 +89,9 @@ export async function getSuperAdminMerchantsAction() {
     };
   } catch (error: any) {
     console.error("Error in getSuperAdminMerchantsAction:", error);
+    if (isProd()) {
+      return { success: false, error: "Failed to load merchants.", merchants: [] };
+    }
     return {
       success: true,
       merchants: [

@@ -12,6 +12,7 @@ import {
 } from "../../lib/auth";
 import { getMiniGameConfigsAction } from "./adminActions";
 import { sendPinRecoveryEmail, maskEmail } from "../../lib/emailService";
+import { isProd } from "../../lib/appEnv";
 
 const SESSION_COOKIE_NAME = "forstore_session";
 
@@ -135,45 +136,49 @@ export async function loginAction(data: {
     };
   } catch (error: any) {
     console.error("Error in loginAction:", error);
-    const email = data.email?.trim().toLowerCase();
-    const isDemoSuper = email === "koushik@forstore.app";
-    const isDemoStore = email === "manager@brewbites.com" || email?.includes("demo") || email?.includes("admin");
 
-    if (isDemoSuper || isDemoStore) {
-      const demoUser = isDemoSuper
-        ? {
-            userId: "demo-super-admin-id",
-            name: "Koushik (Super Admin)",
-            email: "koushik@forstore.app",
-            role: "super_admin" as const,
-            storeId: null,
-            storeName: null,
-          }
-        : {
-            userId: "demo-store-admin-id",
-            name: "Brew Bites Manager",
-            email: email || "manager@brewbites.com",
-            role: "store_admin" as const,
-            storeId: "demo-store-id",
-            storeName: "Brew & Bites Arcade",
-          };
+    // Demo fallback sessions are strictly prohibited in Production
+    if (!isProd()) {
+      const email = data.email?.trim().toLowerCase();
+      const isDemoSuper = email === "koushik@forstore.app";
+      const isDemoStore = email === "manager@brewbites.com" || email?.includes("demo") || email?.includes("admin");
 
-      const token = createSessionToken(demoUser);
-      const cookieStore = await cookies();
-      cookieStore.set({
-        name: SESSION_COOKIE_NAME,
-        value: token,
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60,
-      });
+      if (isDemoSuper || isDemoStore) {
+        const demoUser = isDemoSuper
+          ? {
+              userId: "demo-super-admin-id",
+              name: "Koushik (Super Admin)",
+              email: "koushik@forstore.app",
+              role: "super_admin" as const,
+              storeId: null,
+              storeName: null,
+            }
+          : {
+              userId: "demo-store-admin-id",
+              name: "Brew Bites Manager",
+              email: email || "manager@brewbites.com",
+              role: "store_admin" as const,
+              storeId: "demo-store-id",
+              storeName: "Brew & Bites Arcade",
+            };
 
-      return {
-        success: true,
-        user: demoUser,
-      };
+        const token = createSessionToken(demoUser);
+        const cookieStore = await cookies();
+        cookieStore.set({
+          name: SESSION_COOKIE_NAME,
+          value: token,
+          httpOnly: true,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+          maxAge: 7 * 24 * 60 * 60,
+        });
+
+        return {
+          success: true,
+          user: demoUser,
+        };
+      }
     }
 
     return { success: false, error: error.message || "Failed to log in." };

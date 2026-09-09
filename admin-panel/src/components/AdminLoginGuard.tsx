@@ -42,7 +42,10 @@ export default function AdminLoginGuard({
       if (p.get("tab") === "register" || p.get("mode") === "register") {
         setAuthMode("register");
       }
-      if (p.get("demo") === "true" || p.get("pin")) {
+      const isClientProd =
+        process.env.NEXT_PUBLIC_APP_ENV === "prod" ||
+        process.env.NEXT_PUBLIC_APP_ENV === "production";
+      if (!isClientProd && (p.get("demo") === "true" || p.get("pin"))) {
         setShowDemoAuth(true);
       }
     }

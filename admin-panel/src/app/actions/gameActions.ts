@@ -16,6 +16,7 @@ function generateCode(): string {
 }
 
 import { validateGameScore } from "../../lib/antiCheat";
+import { isProd } from "../../lib/appEnv";
 
 export interface SubmitSessionInput {
   storeId?: string;
@@ -389,6 +390,12 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     };
   } catch (error: any) {
     console.error("Error in submitGameSessionAction:", error);
+    if (isProd()) {
+      return {
+        success: false,
+        error: "Unable to record game session. Please check connection and try again.",
+      };
+    }
     const fallbackCode = generateCode();
     return {
       success: true,
@@ -595,6 +602,14 @@ export async function getUserRewardsAction(guestPlayerId?: string, deviceFingerp
       rewards: formattedClaims,
     };
   } catch (error: any) {
+    console.error("Error in getUserRewardsAction:", error);
+    if (isProd()) {
+      return {
+        success: false,
+        error: "Unable to retrieve rewards wallet. Please try again.",
+        rewards: [],
+      };
+    }
     return {
       success: true,
       user: {

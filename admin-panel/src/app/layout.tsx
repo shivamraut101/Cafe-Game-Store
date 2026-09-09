@@ -24,6 +24,8 @@ export const viewport: Viewport = {
   themeColor: "#111111",
 };
 
+import EnvironmentBanner from "../components/EnvironmentBanner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans bg-[#F6F3EB] text-[#1A1A1A]">
+        <EnvironmentBanner />
         {children}
       </body>
     </html>
