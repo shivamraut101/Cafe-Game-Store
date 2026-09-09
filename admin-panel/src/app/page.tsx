@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { triggerStoryboardModal } from "../components/DemoStoryboardModal";
 
 export default function MarketingHomePage() {
   const [scansPerMonth, setScansPerMonth] = useState(1500);
@@ -27,6 +28,13 @@ export default function MarketingHomePage() {
         </div>
 
         <nav className="hidden md:flex items-center gap-8 font-semibold text-sm">
+          <button
+            onClick={() => triggerStoryboardModal(0)}
+            className="text-black hover:text-[#FF4C29] transition-colors font-bold flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>📖</span>
+            <span>How It Works</span>
+          </button>
           <a href="#features" className="hover:text-black/70 transition-colors">White-Labeling</a>
           <a href="#calculator" className="hover:text-black/70 transition-colors">ROI Calculator</a>
           <a href="#pricing" className="hover:text-black/70 transition-colors">Pricing & Plans</a>
@@ -80,6 +88,13 @@ export default function MarketingHomePage() {
               >
                 Calculate Store ROI
               </a>
+              <button
+                onClick={() => triggerStoryboardModal(0)}
+                className="bg-amber-100 text-black text-center py-4 px-6 rounded-2xl font-black border-2 border-black hover:bg-amber-200 transition-all flex items-center justify-center gap-1.5 text-sm shadow-[4px_4px_0px_0px_#000000] cursor-pointer"
+              >
+                <span>🎬</span>
+                <span>See Storyboard</span>
+              </button>
             </div>
 
             <div className="flex flex-wrap gap-4 mt-2 text-xs font-bold text-black/70">

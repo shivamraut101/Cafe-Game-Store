@@ -27,6 +27,7 @@ import DemoOnboardingModal from "../../components/DemoOnboardingModal";
 import StaffTab from "../../components/tabs/StaffTab";
 import { isClientProd } from "../../lib/appEnv";
 import { triggerBuyoutModal } from "../../components/DemoBuyoutModal";
+import { triggerStoryboardModal } from "../../components/DemoStoryboardModal";
 
 export default function AdminPortal() {
   const [role, setRole] = useState<UserRole>("store_admin");
@@ -289,14 +290,25 @@ export default function AdminPortal() {
 
           <div className="flex items-center gap-3">
             {!isClientProd() && (
-              <button
-                type="button"
-                onClick={() => triggerBuyoutModal({ plan: "Pro Store", source: "store_admin_header" })}
-                className="bg-[#FF4C29] text-white hover:bg-[#ff360e] px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-y-[1px] flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>🚀</span>
-                <span>Deploy in Your Venue ↗</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => triggerStoryboardModal(2)}
+                  className="bg-white hover:bg-amber-100 text-black px-3 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-y-[1px] flex items-center gap-1.5 cursor-pointer"
+                  title="View 60-second visual customer loop"
+                >
+                  <span>📖</span>
+                  <span>How It Works</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerBuyoutModal({ plan: "Pro Store", source: "store_admin_header" })}
+                  className="bg-[#FF4C29] text-white hover:bg-[#ff360e] px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-y-[1px] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🚀</span>
+                  <span>Deploy in Your Venue ↗</span>
+                </button>
+              </>
             )}
 
             <div className="flex items-center gap-2 bg-[#FBF9F4] text-black px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000]">

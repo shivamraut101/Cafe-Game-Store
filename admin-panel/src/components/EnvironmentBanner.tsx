@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { getClientAppEnvironment } from "../lib/appEnv";
 import DemoOnboardingModal from "./DemoOnboardingModal";
 import { triggerBuyoutModal } from "./DemoBuyoutModal";
+import { triggerStoryboardModal } from "./DemoStoryboardModal";
 
 /**
  * Environment Indicator Banner with Sales Conversion Triggers
@@ -43,6 +44,17 @@ export default function EnvironmentBanner() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => triggerStoryboardModal(0)}
+            className="text-black hover:text-[#332FD0] font-black text-xs flex items-center gap-1 bg-amber-200/90 hover:bg-amber-300 px-2.5 py-1 rounded-md border border-amber-400 transition-colors cursor-pointer"
+            title="See the 3-step customer loop in 60 seconds"
+          >
+            <span>📖</span>
+            <span>60s Storyboard</span>
+          </button>
+
+          <span className="text-black/20">|</span>
+
           <button
             onClick={() => triggerBuyoutModal({ plan: "Pro Store", source: "demo_top_banner" })}
             className="text-black hover:text-[#FF4C29] font-black text-xs underline decoration-2 underline-offset-2 transition-colors cursor-pointer flex items-center gap-1"
