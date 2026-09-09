@@ -33,7 +33,7 @@ function constantTimeCompare(a: string, b: string): boolean {
   return result === 0;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // 1. Always allow static files, images, icons, Next.js internal bundles, and API routes
@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
         }
       }
     } catch (err) {
-      console.error("Store PIN verification error in middleware", err);
+      console.error("Store PIN verification error in proxy", err);
     }
   }
 

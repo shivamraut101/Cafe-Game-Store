@@ -7,9 +7,11 @@
     "dev": "npm run dev --prefix admin-panel",
     "dev:admin": "npm run dev --prefix admin-panel",
     "dev:storefront": "npm run dev --prefix storefront",
-    "build": "npm run build --prefix admin-panel && npm run build --prefix storefront",
+    "build": "npm run build --prefix admin-panel",
+    "build:all": "npm run build --prefix admin-panel && npm run build --prefix storefront",
     "build:admin": "npm run build --prefix admin-panel",
     "build:storefront": "npm run build --prefix storefront",
+    "start": "node server.js",
     "start:admin": "npm run start --prefix admin-panel",
     "start:storefront": "npm run start --prefix storefront",
     "seed": "npm run seed --prefix admin-panel",
@@ -19,5 +21,11 @@
   "workspaces": [
     "admin-panel",
     "storefront"
-  ]
+  ],
+  "dependencies": {
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "mongoose": "^9.9.1"
+  }
 }

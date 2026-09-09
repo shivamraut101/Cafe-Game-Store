@@ -1,10 +1,10 @@
-const fs = require("fs");
 const path = require("path");
+const fs = require("fs");
 
-// In production, if standalone server is present, run it directly
-const standaloneServer = path.join(__dirname, ".next", "standalone", "server.js");
-if (process.env.NODE_ENV === "production" && fs.existsSync(standaloneServer)) {
-  require(standaloneServer);
+// In production, delegate to standalone server if available
+const adminStandalone = path.join(__dirname, "admin-panel", ".next", "standalone", "server.js");
+if (process.env.NODE_ENV === "production" && fs.existsSync(adminStandalone)) {
+  require(adminStandalone);
   return;
 }
 
@@ -14,7 +14,7 @@ let next;
 try {
   next = require("next");
 } catch (e) {
-  console.error("Next.js runtime module not found in local node_modules:", e.message);
+  console.error("Next.js runtime module not found:", e.message);
   process.exit(1);
 }
 
@@ -22,7 +22,12 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
 const port = parseInt(process.env.PORT || "3000", 10);
 
-const app = next({ dev, hostname, port, dir: __dirname });
+// Auto-detect whether running from root or inside admin-panel
+const appDir = fs.existsSync(path.join(__dirname, "admin-panel", "package.json"))
+  ? path.join(__dirname, "admin-panel")
+  : __dirname;
+
+const app = next({ dev, hostname, port, dir: appDir });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
@@ -41,6 +46,6 @@ app.prepare().then(() => {
       process.exit(1);
     })
     .listen(port, () => {
-      console.log(`> Ready on http://${hostname}:${port} (Environment: ${process.env.NODE_ENV || "development"})`);
+      console.log(`> Ready on http://${hostname}:${port} (Environment: ${process.env.NODE_ENV || "development"}, dir: ${appDir})`);
     });
 });
