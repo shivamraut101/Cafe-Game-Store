@@ -26,9 +26,10 @@ export const viewport: Viewport = {
 
 import { Suspense } from "react";
 import EnvironmentBanner from "../components/EnvironmentBanner";
-import DemoOnboardingFab from "../components/DemoOnboardingFab";
 import DemoWelcomeModal from "../components/DemoWelcomeModal";
 import DemoBuyoutModal from "../components/DemoBuyoutModal";
+import DemoStoryboardModal from "../components/DemoStoryboardModal";
+import DemoQuestWidget from "../components/DemoQuestWidget";
 import ProspectTelemetryTracker from "../components/ProspectTelemetryTracker";
 
 export default function RootLayout({
@@ -42,11 +43,12 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <ProspectTelemetryTracker />
           <DemoWelcomeModal />
+          <DemoStoryboardModal />
           <DemoBuyoutModal />
         </Suspense>
         <EnvironmentBanner />
         {children}
-        <DemoOnboardingFab />
+        <DemoQuestWidget />
       </body>
     </html>
   );
