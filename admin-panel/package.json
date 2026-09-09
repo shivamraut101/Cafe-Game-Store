@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:server": "node server.js",
     "lint": "eslint",
     "seed": "npx tsx scripts/seed.ts",
     "seed:demo": "npx tsx scripts/seed.ts",
