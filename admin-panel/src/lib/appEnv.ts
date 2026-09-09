@@ -44,7 +44,7 @@ export function getClientAppEnvironment(): AppEnvironment {
   
   // Hostname inspection (demo subdomain isolation)
   const hostname = window.location.hostname.toLowerCase();
-  if (hostname.includes("demo-") || hostname.startsWith("demo.") || hostname.includes(".demo.")) {
+  if (hostname.includes("demo")) {
     return "demo";
   }
 

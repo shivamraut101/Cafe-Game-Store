@@ -8,7 +8,10 @@ import { getResolvedMongoURI } from "../src/lib/db";
 import { hashPassword } from "../src/lib/auth";
 
 async function seed() {
-  const envMode = (process.env.MONGODB_ENV || "demo").toLowerCase();
+  const cliArg = process.argv[2]?.toLowerCase();
+  const envMode = (cliArg || process.env.MONGODB_ENV || "demo").toLowerCase();
+  process.env.MONGODB_ENV = envMode;
+  process.env.APP_ENV = envMode;
   const mongoUri = getResolvedMongoURI();
 
   console.log(`🌱 Connecting to MongoDB Atlas [${envMode.toUpperCase()} DATABASE]...`);
@@ -16,6 +19,7 @@ async function seed() {
 
   await mongoose.connect(mongoUri);
   console.log(`✅ Connected to ${envMode.toUpperCase()} Database on MongoDB Atlas!\n`);
+
 
   const {
     Store,
@@ -56,8 +60,8 @@ async function seed() {
     return;
   }
 
-  // ─── 1. Stores (Clean 4 Cafes for DEV Mode) ──────────────
-  console.log("🏪 Creating 4 clean cafe stores...");
+  // ─── 1. Stores (Pre-Funded for DEMO Mode) ──────────────
+  console.log("🏪 Creating 4 pre-funded demo cafe stores...");
   const stores = await Store.insertMany([
     {
       storeName: "Brew & Bites Cafe (Main Branch)",
@@ -67,11 +71,17 @@ async function seed() {
       plan: "Pro Store",
       status: "Active",
       walletBalance: 1000,
-      totalScans: 0,
+      totalScans: 4280,
+      totalPlays: 2450,
+      sponsoredPlays: 230,
       churnRisk: "Low",
-      aiCreditsUsed: 0,
+      aiCreditsUsed: 42,
       whiteLabelOverride: true,
-      joinedDate: new Date(),
+      watermarkRemoved: false,
+      rewardCooldownDays: 7,
+      dynamicDifficultyScaling: true,
+      adminPin: "9900",
+      joinedDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     },
     {
       storeName: "Downtown Tacos & Tequila",
@@ -81,12 +91,17 @@ async function seed() {
       plan: "Enterprise",
       status: "Active",
       walletBalance: 2500,
-      totalScans: 0,
+      totalScans: 6810,
+      totalPlays: 4120,
+      sponsoredPlays: 480,
       churnRisk: "Low",
-      aiCreditsUsed: 0,
+      aiCreditsUsed: 89,
       whiteLabelOverride: true,
       watermarkRemoved: true,
-      joinedDate: new Date(),
+      rewardCooldownDays: 5,
+      dynamicDifficultyScaling: true,
+      adminPin: "9900",
+      joinedDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
     },
     {
       storeName: "Pixel Arcade Cafe",
@@ -95,11 +110,15 @@ async function seed() {
       ownerName: "Alex Rivera",
       plan: "Pro Store",
       status: "Active",
-      walletBalance: 500,
-      totalScans: 0,
+      walletBalance: 1500,
+      totalScans: 3120,
+      totalPlays: 1890,
+      sponsoredPlays: 150,
       churnRisk: "Low",
-      aiCreditsUsed: 0,
-      joinedDate: new Date(),
+      aiCreditsUsed: 25,
+      whiteLabelOverride: true,
+      watermarkRemoved: false,
+      joinedDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
     },
     {
       storeName: "Corner Bakery & Espresso",
@@ -108,17 +127,19 @@ async function seed() {
       ownerName: "Emily Chen",
       plan: "Starter",
       status: "Active",
-      walletBalance: 200,
-      totalScans: 0,
+      walletBalance: 800,
+      totalScans: 1200,
+      totalPlays: 850,
+      sponsoredPlays: 90,
       churnRisk: "Low",
-      aiCreditsUsed: 0,
-      joinedDate: new Date(),
+      aiCreditsUsed: 10,
+      joinedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     },
   ]);
-  console.log(`   ✅ ${stores.length} clean stores created`);
+  console.log(`   ✅ ${stores.length} pre-funded stores created (Brew & Bites preloaded with 1,000 credits / 100 free plays)`);
 
   // ─── 2. Auth Users ──────────────────────────────────────
-  console.log("👤 Creating admin and guest users...");
+  console.log("👤 Creating demo admin and customer users...");
   const users = await User.insertMany([
     {
       email: "koushik@forstore.app",
@@ -152,7 +173,7 @@ async function seed() {
       totalCafePoints: 350,
     },
   ]);
-  console.log(`   ✅ ${users.length} auth users created with cryptographically salted passwords`);
+  console.log(`   ✅ ${users.length} auth users created`);
 
   // ─── 3. MiniGameConfigs for all 4 stores ────────────────
   console.log("🎮 Provisioning default mini-game configs for all stores...");
@@ -204,30 +225,229 @@ async function seed() {
   const gameConfigs = await MiniGameConfig.insertMany(gameConfigsToInsert);
   console.log(`   ✅ ${gameConfigs.length} game configs provisioned`);
 
-  // ─── 4. Store Branding ──────────────────────────────────
+  // ─── 4. Campaigns ───────────────────────────────────────
+  console.log("📢 Provisioning sample marketing campaigns...");
+  const campaigns = await Campaign.insertMany([
+    {
+      storeId: stores[0]._id,
+      name: "Coffee Stack Tower Challenge",
+      type: "Stack Game",
+      icon: "☕",
+      status: "Active",
+      scans: 1420,
+      winRate: 18,
+      reward: "Free Regular Coffee at 15 pts",
+    },
+    {
+      storeId: stores[0]._id,
+      name: "Morning Flappy Rush",
+      type: "Arcade Flappy",
+      icon: "🐦",
+      status: "Active",
+      scans: 980,
+      winRate: 12,
+      reward: "Free Fresh Pastry at 10 pts",
+    },
+    {
+      storeId: stores[0]._id,
+      name: "Catch & Save VIP",
+      type: "Falling Catch",
+      icon: "🍽️",
+      status: "Active",
+      scans: 1880,
+      winRate: 22,
+      reward: "20% Off Total Bill at 100 pts",
+    },
+    {
+      storeId: stores[1]._id,
+      name: "Taco Stack Fiesta",
+      type: "Stack Game",
+      icon: "🌮",
+      status: "Active",
+      scans: 3410,
+      winRate: 15,
+      reward: "Free Taco Trio at 20 pts",
+    },
+    {
+      storeId: stores[1]._id,
+      name: "Spicy Catch Bonanza",
+      type: "Falling Catch",
+      icon: "🌶️",
+      status: "Active",
+      scans: 2200,
+      winRate: 25,
+      reward: "Free Churro Dessert at 150 pts",
+    },
+    {
+      storeId: stores[2]._id,
+      name: "Retro Pixel Run",
+      type: "Retro Arcade",
+      icon: "👾",
+      status: "Active",
+      scans: 2150,
+      winRate: 20,
+      reward: "1 Hour Free Game Pass at 30 pts",
+    },
+  ]);
+  console.log(`   ✅ ${campaigns.length} campaigns provisioned`);
+
+  // ─── 5. Store Branding ──────────────────────────────────
   console.log("🎨 Creating store branding...");
-  for (const s of stores) {
-    await StoreBranding.create({
-      storeId: s._id,
+  await StoreBranding.insertMany([
+    {
+      storeId: stores[0]._id,
       primaryColor: "#FF4C29",
       secondaryColor: "#332FD0",
       fontFamily: "Inter",
       darkMode: false,
+      watermarkVisible: false,
+    },
+    {
+      storeId: stores[1]._id,
+      primaryColor: "#E11D48",
+      secondaryColor: "#F59E0B",
+      fontFamily: "Inter",
+      darkMode: false,
+      watermarkVisible: false,
+    },
+    {
+      storeId: stores[2]._id,
+      primaryColor: "#8B5CF6",
+      secondaryColor: "#06B6D4",
+      fontFamily: "Inter",
+      darkMode: true,
       watermarkVisible: true,
-    });
-  }
-  console.log(`   ✅ ${stores.length} store branding records created`);
+    },
+    {
+      storeId: stores[3]._id,
+      primaryColor: "#D97706",
+      secondaryColor: "#475569",
+      fontFamily: "Inter",
+      darkMode: false,
+      watermarkVisible: true,
+    },
+  ]);
+  console.log(`   ✅ 4 store branding records created`);
+
+  // ─── 6. Sample Reward Claims & Staff Redemptions ────────
+  console.log("🎁 Creating sample reward claims...");
+  const dummySession = await GameSession.create({
+    storeId: stores[0]._id,
+    userId: users[3]._id,
+    gameSlug: "coffee-tower",
+    difficulty: "medium",
+    score: 18,
+    cafePointsEarned: 18,
+    duration: 45,
+    combo: 3,
+    billingStatus: "billed",
+    creditsBilled: 1,
+  });
+
+  await RewardClaim.insertMany([
+    {
+      storeId: stores[0]._id,
+      userId: users[3]._id,
+      sessionId: dummySession._id,
+      gameSlug: "coffee-tower",
+      rewardName: "Free Regular Coffee",
+      rewardDescription: "Any regular drip or espresso coffee",
+      rewardType: "item",
+      status: "claimed",
+      claimCode: "BB-8491",
+      earnedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      claimedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      claimedByStaffName: "Sarah Jenkins",
+      claimedByStaffId: users[1]._id.toString(),
+      expiresAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+    },
+    {
+      storeId: stores[0]._id,
+      userId: users[3]._id,
+      sessionId: dummySession._id,
+      gameSlug: "coffee-tower",
+      rewardName: "Free Fresh Cookie",
+      rewardDescription: "Chocolate chip cookie",
+      rewardType: "item",
+      status: "claimed",
+      claimCode: "BB-8492",
+      earnedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      claimedAt: new Date(),
+      claimedByStaffName: "Sarah Jenkins",
+      claimedByStaffId: users[1]._id.toString(),
+      expiresAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000),
+    },
+    {
+      storeId: stores[0]._id,
+      userId: users[3]._id,
+      sessionId: dummySession._id,
+      gameSlug: "coffee-tower",
+      rewardName: "20% Off Order",
+      rewardDescription: "20% discount on entire bill",
+      rewardType: "discount",
+      status: "pending",
+      claimCode: "CLAIM-8821",
+      earnedAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  ]);
+  console.log(`   ✅ 3 sample reward claims created (2 claimed by staff, 1 pending)`);
+
+  // ─── 7. Sample Audit Logs ────────────────────────────────
+  console.log("📜 Creating demo audit logs...");
+  await AuditLog.insertMany([
+    {
+      storeId: stores[0]._id,
+      actorName: "Koushik (Super Admin)",
+      actorEmail: "koushik@forstore.app",
+      actorRole: "Super Admin",
+      ipAddress: "127.0.0.1",
+      action: "WALLET_GRANT",
+      actionCategory: "BILLING",
+      targetType: "Store Wallet",
+      targetName: "Brew & Bites Cafe",
+      details: "Granted 1,000 wallet credits (100 Free Plays Trial) to Brew & Bites Cafe",
+      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    },
+    {
+      storeId: stores[0]._id,
+      actorName: "Sarah Jenkins",
+      actorEmail: "manager@brewbites.com",
+      actorRole: "Store Admin",
+      ipAddress: "192.168.1.5",
+      action: "CAMPAIGN_ACTIVATED",
+      actionCategory: "CAMPAIGN",
+      targetType: "Game Campaign",
+      targetName: "Coffee Stack Tower Challenge",
+      details: "Activated Coffee Stack Tower with tier rewards: Free Coffee, Free Cookie",
+      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    },
+    {
+      storeId: stores[0]._id,
+      actorName: "Sarah Jenkins",
+      actorEmail: "manager@brewbites.com",
+      actorRole: "Store Admin",
+      ipAddress: "192.168.1.5",
+      action: "STAFF_VOUCHER_CLAIM",
+      actionCategory: "SECURITY",
+      targetType: "Voucher Code",
+      targetName: "BB-8491",
+      details: "Redeemed Free Regular Coffee at counter for guest player",
+      timestamp: new Date(),
+    },
+  ]);
+  console.log(`   ✅ 3 demo audit logs created`);
 
   // ─── Summary ────────────────────────────────────────────
-  console.log(`\n🎉 Clean Seed Complete! [${envMode.toUpperCase()} DATABASE] summary:`);
+  console.log(`\n🎉 Pre-Funded Demo Seed Complete! [${envMode.toUpperCase()} DATABASE] summary:`);
   console.log(`   Stores:           ${await Store.countDocuments()}`);
   console.log(`   Users:            ${await User.countDocuments()}`);
   console.log(`   MiniGameConfigs:  ${await MiniGameConfig.countDocuments()}`);
   console.log(`   Campaigns:        ${await Campaign.countDocuments()}`);
   console.log(`   StoreBranding:    ${await StoreBranding.countDocuments()}`);
-  console.log(`   GameSessions:     ${await GameSession.countDocuments()} (Clean 0)`);
-  console.log(`   RewardClaims:     ${await RewardClaim.countDocuments()} (Clean 0)`);
-  console.log(`   AuditLogs:        ${await AuditLog.countDocuments()} (Clean 0)`);
+  console.log(`   GameSessions:     ${await GameSession.countDocuments()}`);
+  console.log(`   RewardClaims:     ${await RewardClaim.countDocuments()}`);
+  console.log(`   AuditLogs:        ${await AuditLog.countDocuments()}`);
 
   await mongoose.disconnect();
   console.log("\n✅ Disconnected cleanly. Done!");
