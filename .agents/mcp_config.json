@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hostinger": {
+      "serverUrl": "https://mcp.hostinger.com",
+      "url": "https://mcp.hostinger.com"
+    }
+  }
+}
