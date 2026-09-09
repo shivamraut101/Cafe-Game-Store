@@ -25,6 +25,7 @@ export const viewport: Viewport = {
 };
 
 import EnvironmentBanner from "../components/EnvironmentBanner";
+import DemoOnboardingFab from "../components/DemoOnboardingFab";
 
 export default function RootLayout({
   children,
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans bg-[#F6F3EB] text-[#1A1A1A]">
         <EnvironmentBanner />
         {children}
+        <DemoOnboardingFab />
       </body>
     </html>
   );

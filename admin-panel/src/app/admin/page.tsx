@@ -27,6 +27,8 @@ import {
 } from "../actions/adminActions";
 
 import AdminLoginGuard from "../../components/AdminLoginGuard";
+import DemoOnboardingModal from "../../components/DemoOnboardingModal";
+import { isClientProd } from "../../lib/appEnv";
 
 export default function AdminPortal() {
   const [role, setRole] = useState<UserRole>("store_admin");
@@ -146,6 +148,7 @@ export default function AdminPortal() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [settingsGameId, setSettingsGameId] = useState<string | null>(null);
   const [newGameName, setNewGameName] = useState("");
   const [newGameIcon, setNewGameIcon] = useState("🎡");
@@ -443,6 +446,33 @@ export default function AdminPortal() {
                     </div>
                   </div>
 
+                  {/* Subtle Context Note for Prospective Clients */}
+                  {!isClientProd() && (
+                    <div className="bg-white border-2 border-black/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-300 flex items-center justify-center text-base shrink-0">
+                          💡
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-black/80">
+                            <strong>Demo preview:</strong> You are exploring sample data for <em>Brew & Bites Cafe</em>.
+                          </div>
+                          <p className="text-[11px] text-black/50">
+                            Every minigame, reward threshold, and printable table standee can be tailored to your cafe's brand.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowOnboardingModal(true)}
+                        className="w-full sm:w-auto py-2 px-3.5 bg-black text-white rounded-xl font-bold text-xs hover:bg-[#FF4C29] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        Set up for your cafe →
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white rounded-2xl p-5 border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29]">
                       <p className="text-sm font-bold text-black/50">Active Campaigns</p>
@@ -541,6 +571,11 @@ export default function AdminPortal() {
         isOpen={showCreateStoreModal}
         onClose={() => setShowCreateStoreModal(false)}
         onStoreCreated={handleStoreCreated}
+      />
+
+      <DemoOnboardingModal
+        isOpen={showOnboardingModal}
+        onClose={() => setShowOnboardingModal(false)}
       />
     </div>
   </AdminLoginGuard>
