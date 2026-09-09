@@ -1,77 +1,80 @@
 const fs = require("fs");
 const path = require("path");
 
-function copyDirSync(src, dest) {
-  if (!fs.existsSync(src)) return;
-  if (!fs.existsSync(dest)) {
-    fs.mkdirSync(dest, { recursive: true });
-  }
-  const entries = fs.readdirSync(src, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDirSync(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
-}
-
 try {
   const adminPanelDir = path.resolve(__dirname, "..");
   const dotNextDir = path.join(adminPanelDir, ".next");
   const standaloneDir = path.join(dotNextDir, "standalone");
 
-  console.log("[prepare-hostinger] Ensuring .next has production node_modules and server.js for Hostinger...");
+  console.log("[prepare-hostinger] Preparing production deployment bundle...");
 
-  // 1. Copy standalone node_modules into .next/node_modules if present
+  if (!fs.existsSync(standaloneDir)) {
+    console.error("[prepare-hostinger] Error: .next/standalone does not exist. Did next build run?");
+    process.exit(1);
+  }
+
+  // 1. If Next.js placed server.js in a subfolder (due to workspace inference), hoist it to standalone root
+  let rootServer = path.join(standaloneDir, "server.js");
+  if (!fs.existsSync(rootServer)) {
+    function findServer(dir, depth = 0) {
+      if (depth > 4) return null;
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.name === "node_modules") continue;
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          const res = findServer(full, depth + 1);
+          if (res) return res;
+        } else if (entry.name === "server.js") {
+          return full;
+        }
+      }
+      return null;
+    }
+
+    const nestedServer = findServer(standaloneDir);
+    if (nestedServer) {
+      const nestedDir = path.dirname(nestedServer);
+      console.log(`[prepare-hostinger] Found nested standalone server at ${nestedDir}, hoisting to ${standaloneDir}...`);
+      fs.cpSync(nestedDir, standaloneDir, { recursive: true, force: true, dereference: true });
+    }
+  }
+
+  // 2. Copy public directory into standalone/public
+  const publicDir = path.join(adminPanelDir, "public");
+  if (fs.existsSync(publicDir)) {
+    console.log("[prepare-hostinger] Copying public/ into .next/standalone/public...");
+    fs.cpSync(publicDir, path.join(standaloneDir, "public"), { recursive: true, force: true });
+  }
+
+  // 3. Copy .next/static into standalone/.next/static
+  const staticDir = path.join(dotNextDir, "static");
+  if (fs.existsSync(staticDir)) {
+    console.log("[prepare-hostinger] Copying .next/static into .next/standalone/.next/static...");
+    fs.cpSync(staticDir, path.join(standaloneDir, ".next", "static"), { recursive: true, force: true });
+  }
+
+  // 4. For dual-compatibility (whether Hostinger points to .next or .next/standalone):
+  // Copy the standalone server.js and node_modules into .next root
+  if (fs.existsSync(rootServer)) {
+    fs.copyFileSync(rootServer, path.join(dotNextDir, "server.js"));
+    console.log("[prepare-hostinger] Synced standalone server.js into .next/server.js");
+  }
+
   const standaloneModules = path.join(standaloneDir, "node_modules");
   const dotNextModules = path.join(dotNextDir, "node_modules");
   if (fs.existsSync(standaloneModules)) {
-    console.log("[prepare-hostinger] Copying standalone node_modules into .next/node_modules...");
-    copyDirSync(standaloneModules, dotNextModules);
-  } else {
-    // Fallback: copy from admin-panel/node_modules for key production packages
-    const localModules = path.join(adminPanelDir, "node_modules");
-    const requiredPkgs = ["next", "react", "react-dom", "mongoose"];
-    for (const pkg of requiredPkgs) {
-      const srcPkg = path.join(localModules, pkg);
-      const destPkg = path.join(dotNextModules, pkg);
-      if (fs.existsSync(srcPkg)) {
-        console.log(`[prepare-hostinger] Copying ${pkg} into .next/node_modules/${pkg}...`);
-        copyDirSync(srcPkg, destPkg);
-      }
-    }
+    console.log("[prepare-hostinger] Linking/copying node_modules into .next/node_modules...");
+    fs.cpSync(standaloneModules, dotNextModules, { recursive: true, force: true, dereference: true });
   }
 
-  // 2. Copy server.js into .next/server.js
-  const customServer = path.join(adminPanelDir, "server.js");
-  const dotNextServer = path.join(dotNextDir, "server.js");
-  if (fs.existsSync(customServer)) {
-    fs.copyFileSync(customServer, dotNextServer);
-    console.log("[prepare-hostinger] Copied custom server.js into .next/server.js");
-  }
-
-  // 3. Copy package.json into .next/package.json
-  const pkgJson = path.join(adminPanelDir, "package.json");
-  const dotNextPkg = path.join(dotNextDir, "package.json");
-  if (fs.existsSync(pkgJson)) {
-    fs.copyFileSync(pkgJson, dotNextPkg);
-    console.log("[prepare-hostinger] Copied package.json into .next/package.json");
-  }
-
-  // 4. Copy public folder into .next/standalone/public and .next/public
-  const publicDir = path.join(adminPanelDir, "public");
   if (fs.existsSync(publicDir)) {
-    copyDirSync(publicDir, path.join(dotNextDir, "public"));
-    if (fs.existsSync(standaloneDir)) {
-      copyDirSync(publicDir, path.join(standaloneDir, "public"));
-      copyDirSync(path.join(dotNextDir, "static"), path.join(standaloneDir, ".next", "static"));
-    }
+    fs.cpSync(publicDir, path.join(dotNextDir, "public"), { recursive: true, force: true });
   }
 
-  console.log("[prepare-hostinger] Successfully prepared Hostinger deployment bundle in .next!");
+  console.log("[prepare-hostinger] Production bundle successfully prepared!");
 } catch (err) {
-  console.warn("[prepare-hostinger] Warning during post-build preparation:", err.message);
+  console.error("[prepare-hostinger] Error during post-build preparation:", err);
+  process.exit(1);
 }
+

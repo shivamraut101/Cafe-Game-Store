@@ -1,8 +1,22 @@
-const { createServer } = require("http");
-const { parse } = require("url");
 const path = require("path");
 const fs = require("fs");
-const next = require("next");
+
+// In production, delegate to standalone server if available
+const adminStandalone = path.join(__dirname, "admin-panel", ".next", "standalone", "server.js");
+if (process.env.NODE_ENV === "production" && fs.existsSync(adminStandalone)) {
+  require(adminStandalone);
+  return;
+}
+
+const { createServer } = require("http");
+const { parse } = require("url");
+let next;
+try {
+  next = require("next");
+} catch (e) {
+  console.error("Next.js runtime module not found:", e.message);
+  process.exit(1);
+}
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";

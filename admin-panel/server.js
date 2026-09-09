@@ -1,6 +1,22 @@
+const fs = require("fs");
+const path = require("path");
+
+// In production, if standalone server is present, run it directly
+const standaloneServer = path.join(__dirname, ".next", "standalone", "server.js");
+if (process.env.NODE_ENV === "production" && fs.existsSync(standaloneServer)) {
+  require(standaloneServer);
+  return;
+}
+
 const { createServer } = require("http");
 const { parse } = require("url");
-const next = require("next");
+let next;
+try {
+  next = require("next");
+} catch (e) {
+  console.error("Next.js runtime module not found in local node_modules:", e.message);
+  process.exit(1);
+}
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
