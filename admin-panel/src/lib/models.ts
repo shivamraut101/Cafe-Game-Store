@@ -411,3 +411,84 @@ export const TopUpRequest: Model<ITopUpRequest> =
   mongoose.models.TopUpRequest ||
   mongoose.model<ITopUpRequest>("TopUpRequest", TopUpRequestSchema);
 
+// ─── ProspectSession (Demo Client Engagement & Analytics) ────
+export interface IProspectGameStat {
+  gameSlug: string;
+  plays: number;
+  totalSeconds: number;
+  highScore: number;
+}
+
+export interface IProspectIntentSignal {
+  action: string; // e.g. "whatsapp_click", "email_click", "onboarding_modal_open", "callback_submitted"
+  timestamp: Date;
+  metadata?: string;
+}
+
+export interface IProspectSession extends Document {
+  prospectTag: string; // e.g. "Blue Tokai", "Third Wave Coffee", "Visitor-489"
+  visitorId: string;
+  deviceInfo?: string;
+  totalTimeSeconds: number;
+  firstSeenAt: Date;
+  lastSeenAt: Date;
+  featureTimes: Record<string, number>; // { "QR Studio": 120, "Game Manager": 95, ... }
+  gamesPlayed: IProspectGameStat[];
+  intentSignals: IProspectIntentSignal[];
+  walkthroughRequest?: {
+    cafeName?: string;
+    contact?: string;
+    requestedAt?: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const ProspectSessionSchema = new Schema<IProspectSession>(
+  {
+    prospectTag: { type: String, required: true, trim: true, index: true },
+    visitorId: { type: String, required: true, trim: true, index: true },
+    deviceInfo: { type: String, default: "" },
+    totalTimeSeconds: { type: Number, default: 0 },
+    firstSeenAt: { type: Date, default: Date.now },
+    lastSeenAt: { type: Date, default: Date.now },
+    featureTimes: { type: Schema.Types.Mixed, default: {} },
+    gamesPlayed: {
+      type: [
+        {
+          gameSlug: { type: String, required: true },
+          plays: { type: Number, default: 0 },
+          totalSeconds: { type: Number, default: 0 },
+          highScore: { type: Number, default: 0 },
+        },
+      ],
+      default: [],
+    },
+    intentSignals: {
+      type: [
+        {
+          action: { type: String, required: true },
+          timestamp: { type: Date, default: Date.now },
+          metadata: { type: String },
+        },
+      ],
+      default: [],
+    },
+    walkthroughRequest: {
+      cafeName: { type: String },
+      contact: { type: String },
+      requestedAt: { type: Date },
+    },
+  },
+  { timestamps: true }
+);
+
+ProspectSessionSchema.index({ prospectTag: 1 });
+ProspectSessionSchema.index({ visitorId: 1 });
+ProspectSessionSchema.index({ lastSeenAt: -1 });
+ProspectSessionSchema.index({ totalTimeSeconds: -1 });
+
+export const ProspectSession: Model<IProspectSession> =
+  mongoose.models.ProspectSession ||
+  mongoose.model<IProspectSession>("ProspectSession", ProspectSessionSchema);
+

@@ -6,19 +6,20 @@ import GlobalAnalyticsTab from "../../components/tabs/super-admin/GlobalAnalytic
 import BillingPayoutsTab from "../../components/tabs/super-admin/BillingPayoutsTab";
 import GlobalTemplatesTab from "../../components/tabs/super-admin/GlobalTemplatesTab";
 import AuditLogsTab from "../../components/tabs/AuditLogsTab";
+import ProspectTrackerTab from "../../components/tabs/super-admin/ProspectTrackerTab";
 import CreateStoreModal from "../../components/CreateStoreModal";
 import { getSessionAction, loginAction, logoutAction } from "../actions/authActions";
 import { getClientAppEnvironment } from "../../lib/appEnv";
 import { TierLevel } from "../../types";
 
-type SuperAdminTabType = "merchants" | "global-analytics" | "billing" | "global-templates" | "audit-logs";
+type SuperAdminTabType = "prospects" | "merchants" | "global-analytics" | "billing" | "global-templates" | "audit-logs";
 
 export default function SuperAdminPage() {
   const [env, setEnv] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [activeTab, setActiveTab] = useState<SuperAdminTabType>("merchants");
+  const [activeTab, setActiveTab] = useState<SuperAdminTabType>("prospects");
 
   // Login form states
   const [email, setEmail] = useState("");
@@ -237,6 +238,7 @@ export default function SuperAdminPage() {
 
   // Authenticated as Super Admin: Render full Super Admin Dashboard
   const superAdminTabs: { id: SuperAdminTabType; label: string; icon: string; badge?: string }[] = [
+    { id: "prospects", label: "Demo Client Tracker", icon: "🎯", badge: "Live" },
     { id: "merchants", label: "Merchants", icon: "👑" },
     { id: "global-analytics", label: "Global Analytics", icon: "📈" },
     { id: "billing", label: "Billing & Payouts", icon: "💳" },
@@ -321,6 +323,7 @@ export default function SuperAdminPage() {
 
         {/* Tab Content Section */}
         <section className="flex-1 min-w-0 bg-[#161B26] border border-white/10 rounded-3xl p-6 shadow-xl">
+          {activeTab === "prospects" && <ProspectTrackerTab />}
           {activeTab === "merchants" && (
             <SuperAdminDashboard
               onImpersonateStore={handleImpersonateStore}

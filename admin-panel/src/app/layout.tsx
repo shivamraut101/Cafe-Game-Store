@@ -24,8 +24,10 @@ export const viewport: Viewport = {
   themeColor: "#111111",
 };
 
+import { Suspense } from "react";
 import EnvironmentBanner from "../components/EnvironmentBanner";
 import DemoOnboardingFab from "../components/DemoOnboardingFab";
+import ProspectTelemetryTracker from "../components/ProspectTelemetryTracker";
 
 export default function RootLayout({
   children,
@@ -35,6 +37,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans bg-[#F6F3EB] text-[#1A1A1A]">
+        <Suspense fallback={null}>
+          <ProspectTelemetryTracker />
+        </Suspense>
         <EnvironmentBanner />
         {children}
         <DemoOnboardingFab />
