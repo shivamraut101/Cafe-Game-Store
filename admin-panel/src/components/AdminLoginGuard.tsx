@@ -43,7 +43,7 @@ export default function AdminLoginGuard({
       if (p.get("tab") === "register" || p.get("mode") === "register") {
         setAuthMode("register");
       }
-      if (!isClientProd() && (p.get("demo") === "true" || p.get("pin"))) {
+      if (!isClientProd()) {
         setShowDemoAuth(true);
       }
     }
@@ -312,31 +312,38 @@ export default function AdminLoginGuard({
               {/* Quick Demo Sign-in Divider (Strictly blocked in production) */}
               {showDemoAuth && !isClientProd() && (
                 <>
-                  <div className="w-full flex items-center my-5">
+                  <div className="w-full flex items-center my-4">
                     <div className="flex-1 border-t-2 border-black/10" />
-                    <span className="px-3 text-[10px] font-black uppercase tracking-wider text-black/40">
-                      OR QUICK 1-CLICK AUTH
+                    <span className="px-3 text-[10px] font-black uppercase tracking-wider text-black/50 font-mono">
+                      ⚡ 1-CLICK DEMO ACCESS
                     </span>
                     <div className="flex-1 border-t-2 border-black/10" />
                   </div>
 
-                  <div className="w-full grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      disabled={isLoggingIn}
-                      onClick={() => handleQuickDemoFill("store_admin")}
-                      className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-emerald-100 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      Merchant Admin 🏪
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isLoggingIn}
-                      onClick={() => handleQuickDemoFill("super_admin")}
-                      className="py-2.5 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#000] hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      Super Admin HQ ⚡
-                    </button>
+                  <div className="w-full flex flex-col gap-2.5">
+                    <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-2.5 text-[11px] font-bold text-amber-900 text-left">
+                      💡 <span className="font-black">Demo Sandbox:</span> Pre-loaded with 100 Free Plays (1,000 Credits), active minigames & sample cafe data.
+                    </div>
+                    <div className="w-full grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        disabled={isLoggingIn}
+                        onClick={() => handleQuickDemoFill("store_admin")}
+                        className="py-2.5 px-2 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#10B981] hover:bg-emerald-50 hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50 flex flex-col items-center justify-center gap-0.5"
+                      >
+                        <span className="text-sm">🏪 Store Admin</span>
+                        <span className="text-[9px] font-semibold text-black/50">Brew & Bites Cafe</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLoggingIn}
+                        onClick={() => handleQuickDemoFill("super_admin")}
+                        className="py-2.5 px-2 bg-[#FBF9F4] text-black border-2 border-black rounded-xl font-bold text-xs shadow-[2px_2px_0px_0px_#332FD0] hover:bg-blue-50 hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50 flex flex-col items-center justify-center gap-0.5"
+                      >
+                        <span className="text-sm">⚡ Super Admin</span>
+                        <span className="text-[9px] font-semibold text-black/50">ForStore HQ</span>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
