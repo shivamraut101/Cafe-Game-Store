@@ -92,8 +92,8 @@ export default function StoreAnalytics({
 
         <div className="bg-white rounded-2xl p-5 border-2 border-black shadow-[4px_4px_0px_0px_#F59E0B]">
           <p className="text-xs font-bold text-black/50 tracking-wider">EST. REVENUE GENERATED</p>
-          <h3 className="font-serif text-3xl font-black mt-1 text-black">$4,870</h3>
-          <span className="text-emerald-700 text-xs font-bold block mt-2">Net Wallet Credit Cost: $131.20</span>
+          <h3 className="font-serif text-3xl font-black mt-1 text-black">₹48,700</h3>
+          <span className="text-emerald-700 text-xs font-bold block mt-2">Net Wallet Credit Cost: ₹1,312</span>
         </div>
       </div>
 

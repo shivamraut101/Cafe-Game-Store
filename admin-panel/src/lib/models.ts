@@ -19,6 +19,15 @@ export interface IStore extends Document {
   rewardCooldownDays?: number;
   dynamicDifficultyScaling?: boolean;
   adminPin?: string;
+  staffPin?: string;
+  staffMembers?: {
+    id: string;
+    name: string;
+    role: string;
+    shift?: string;
+    pin?: string;
+    active: boolean;
+  }[];
   joinedDate: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +52,24 @@ const StoreSchema = new Schema<IStore>(
     rewardCooldownDays: { type: Number, default: 7 },
     dynamicDifficultyScaling: { type: Boolean, default: true },
     adminPin: { type: String, default: "9900" },
+    staffPin: { type: String, default: "1234" },
+    staffMembers: {
+      type: [
+        {
+          id: { type: String, required: true },
+          name: { type: String, required: true },
+          role: { type: String, default: "Cashier" },
+          shift: { type: String, default: "Counter #1" },
+          pin: { type: String, default: "1234" },
+          active: { type: Boolean, default: true },
+        },
+      ],
+      default: [
+        { id: "stf-1", name: "Rohan Sharma", role: "Head Barista", shift: "Morning Counter #1", pin: "1234", active: true },
+        { id: "stf-2", name: "Priya Verma", role: "Cashier", shift: "Afternoon Counter #2", pin: "1234", active: true },
+        { id: "stf-3", name: "Aman Gupta", role: "Floor Lead", shift: "Evening Counter #1", pin: "1234", active: true },
+      ],
+    },
     joinedDate: { type: Date, default: Date.now },
   },
   { timestamps: true }
@@ -428,7 +455,12 @@ export interface IProspectIntentSignal {
 export interface IProspectSession extends Document {
   prospectTag: string; // e.g. "Blue Tokai", "Third Wave Coffee", "Visitor-489"
   visitorId: string;
+  deviceId?: string; // Persistent device-specific identifier
   deviceInfo?: string;
+  clientName?: string; // Subtle onboarding entered name
+  clientEmail?: string; // Subtle onboarding entered email
+  onboardingStatus?: "both" | "name_only" | "email_only" | "skipped" | "dismissed" | "pending";
+  visitCount: number; // Device visit frequency
   totalTimeSeconds: number;
   firstSeenAt: Date;
   lastSeenAt: Date;
@@ -448,7 +480,17 @@ const ProspectSessionSchema = new Schema<IProspectSession>(
   {
     prospectTag: { type: String, required: true, trim: true, index: true },
     visitorId: { type: String, required: true, trim: true, index: true },
+    deviceId: { type: String, trim: true, index: true, default: "" },
     deviceInfo: { type: String, default: "" },
+    clientName: { type: String, trim: true, default: "" },
+    clientEmail: { type: String, trim: true, default: "" },
+    onboardingStatus: {
+      type: String,
+      enum: ["both", "name_only", "email_only", "skipped", "dismissed", "pending"],
+      default: "pending",
+      index: true,
+    },
+    visitCount: { type: Number, default: 1 },
     totalTimeSeconds: { type: Number, default: 0 },
     firstSeenAt: { type: Date, default: Date.now },
     lastSeenAt: { type: Date, default: Date.now },

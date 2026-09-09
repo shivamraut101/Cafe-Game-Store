@@ -82,13 +82,6 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handlePreloadedFill = async () => {
-    const defaultEmail = "koushik@forstore.app";
-    const defaultPass = "super123";
-    setEmail(defaultEmail);
-    setPassword(defaultPass);
-    await handleLogin(undefined, defaultEmail, defaultPass);
-  };
 
   const handleLogout = async () => {
     try {
@@ -204,27 +197,6 @@ export default function SuperAdminPage() {
             </button>
           </form>
 
-          {/* Preloaded Credentials for Quick Super Admin Access */}
-          <div className="mt-6 pt-5 border-t border-white/10">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-white/40 block mb-2 font-bold">
-              ⚡ ForStore HQ Operator Shortcut:
-            </span>
-            <button
-              type="button"
-              disabled={isLoggingIn}
-              onClick={handlePreloadedFill}
-              className="w-full py-2.5 px-4 bg-white/5 hover:bg-white/10 border border-white/15 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer disabled:opacity-50"
-            >
-              <div className="flex items-center gap-2">
-                <span>⚡</span>
-                <div className="text-left">
-                  <span className="block font-bold">Quick Fill Super Admin</span>
-                  <span className="text-[10px] text-white/50 font-mono">koushik@forstore.app</span>
-                </div>
-              </div>
-              <span className="text-[11px] text-[#FF4C29] font-mono">Auto Login →</span>
-            </button>
-          </div>
 
           <div className="mt-6 text-center">
             <a href="/admin" className="text-xs text-white/40 hover:text-white transition-colors">

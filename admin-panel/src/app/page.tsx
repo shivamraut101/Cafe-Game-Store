@@ -5,10 +5,10 @@ import Link from "next/link";
 
 export default function MarketingHomePage() {
   const [scansPerMonth, setScansPerMonth] = useState(1500);
-  const [avgTicket, setAvgTicket] = useState(12);
+  const [avgTicket, setAvgTicket] = useState(250);
 
-  // Credit calculation ($0.02 or 1 credit per scan)
-  const creditCost = (scansPerMonth * 0.02).toFixed(2);
+  // Credit calculation (₹1 or 1 credit per scan)
+  const creditCost = scansPerMonth * 1;
   // Estimated repeat visit revenue generated (assuming 18% repeat visit lift)
   const estimatedRevenue = Math.round(scansPerMonth * 0.18 * avgTicket);
 
@@ -153,7 +153,7 @@ export default function MarketingHomePage() {
                 See how much repeat revenue your cafe generates.
               </h2>
               <p className="text-sm text-black/70 leading-relaxed">
-                Our Pay-Per-Play wallet model charges only 1 credit ($0.02) per game play, capped at 10 plays/user/day. Plays 11+ on the same day are 100% on us!
+                Our Pay-Per-Play wallet model charges only 1 credit (₹1) per game play, capped at 10 plays/user/day. Plays 11+ on the same day are 100% on us!
               </p>
 
               {/* Slider 1: Monthly Scans */}
@@ -176,14 +176,14 @@ export default function MarketingHomePage() {
               {/* Slider 2: Average Ticket Size */}
               <div className="bg-[#F6F3EB] rounded-2xl p-5 border-2 border-black flex flex-col gap-3">
                 <div className="flex justify-between items-center font-bold text-sm">
-                  <span>Average Customer Ticket Spend ($)</span>
-                  <span className="text-[#FF4C29] text-lg font-black">${avgTicket}</span>
+                  <span>Average Customer Ticket Spend (₹)</span>
+                  <span className="text-[#FF4C29] text-lg font-black">₹{avgTicket}</span>
                 </div>
                 <input
                   type="range"
-                  min="5"
-                  max="50"
-                  step="1"
+                  min="50"
+                  max="1500"
+                  step="25"
                   value={avgTicket}
                   onChange={e => setAvgTicket(Number(e.target.value))}
                   className="w-full accent-[#FF4C29] cursor-pointer"
@@ -198,14 +198,14 @@ export default function MarketingHomePage() {
               <div className="grid grid-cols-2 gap-4 border-b border-white/10 pb-6">
                 <div>
                   <span className="text-xs text-white/60 font-semibold block">Wallet Play Cost</span>
-                  <span className="font-serif text-3xl font-black text-white mt-1 block">${creditCost}</span>
+                  <span className="font-serif text-3xl font-black text-white mt-1 block">₹{creditCost.toLocaleString()}</span>
                   <span className="text-[10px] text-emerald-400 font-bold block mt-1">({scansPerMonth} credits used)</span>
                 </div>
 
                 <div>
                   <span className="text-xs text-white/60 font-semibold block">Est. Additional Repeat Revenue</span>
                   <span className="font-serif text-3xl font-black text-emerald-400 mt-1 block">
-                    +${estimatedRevenue.toLocaleString()}
+                    +₹{estimatedRevenue.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-white/60 block mt-1">Based on 18% repeat visit lift</span>
                 </div>
@@ -243,7 +243,7 @@ export default function MarketingHomePage() {
             <div className="bg-white rounded-3xl p-8 border-2 border-black shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
               <div>
                 <span className="text-xs font-bold text-black/50 uppercase">STARTER MERCHANT</span>
-                <h3 className="font-serif text-3xl font-black text-black mt-2">$0</h3>
+                <h3 className="font-serif text-3xl font-black text-black mt-2">₹0</h3>
                 <span className="text-xs text-black/60 font-semibold block">Free Forever</span>
 
                 <div className="bg-[#F6F3EB] rounded-xl p-3 border border-black/10 my-6 text-xs font-bold">
@@ -274,7 +274,7 @@ export default function MarketingHomePage() {
 
               <div>
                 <span className="text-xs font-bold text-black/50 uppercase">PRO STORE TIER</span>
-                <h3 className="font-serif text-3xl font-black text-black mt-2">$29</h3>
+                <h3 className="font-serif text-3xl font-black text-black mt-2">₹2,499</h3>
                 <span className="text-xs text-black/60 font-semibold block">per month</span>
 
                 <div className="bg-orange-50 rounded-xl p-3 border border-orange-200 my-6 text-xs font-bold text-orange-900">
@@ -302,7 +302,7 @@ export default function MarketingHomePage() {
             <div className="bg-white rounded-3xl p-8 border-2 border-black shadow-[4px_4px_0px_0px_#8B5CF6] flex flex-col justify-between">
               <div>
                 <span className="text-xs font-bold text-black/50 uppercase">ENTERPRISE WHITE-LABEL</span>
-                <h3 className="font-serif text-3xl font-black text-black mt-2">$99</h3>
+                <h3 className="font-serif text-3xl font-black text-black mt-2">₹7,999</h3>
                 <span className="text-xs text-black/60 font-semibold block">per month</span>
 
                 <div className="bg-purple-50 rounded-xl p-3 border border-purple-200 my-6 text-xs font-bold text-purple-900">

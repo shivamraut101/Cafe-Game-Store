@@ -138,8 +138,8 @@ export default function ArcadeLandingPage() {
   const [guestPlayerId, setGuestPlayerId] = useState<string>("");
   const [showNameModal, setShowNameModal] = useState(false);
   const [dismissedNamePrompt, setDismissedNamePrompt] = useState(false);
-  const [games, setGames] = useState<GameCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [games, setGames] = useState<GameCard[]>(DEFAULT_ARCADE_GAMES);
+  const [loading, setLoading] = useState(false);
 
   const [claimedRewardNames, setClaimedRewardNames] = useState<string[]>([]);
   const [claimedGameSlugs, setClaimedGameSlugs] = useState<string[]>([]);

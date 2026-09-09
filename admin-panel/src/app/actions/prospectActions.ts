@@ -6,29 +6,39 @@ import { ProspectSession, IProspectSession } from "../../lib/models";
 /**
  * Server Action: Heartbeat & Active Feature Time Tracker
  * Increments total time and specific feature duration for a prospective client.
+ * Tracks device persistence and return visits.
  */
 export async function recordProspectHeartbeatAction(data: {
   visitorId: string;
+  deviceId?: string;
   prospectTag?: string;
   activeFeature?: string;
   secondsDelta: number;
   deviceInfo?: string;
+  isNewVisit?: boolean;
 }) {
   try {
     await connectDB();
-    const { visitorId, prospectTag, activeFeature, secondsDelta, deviceInfo } = data;
+    const { visitorId, deviceId, prospectTag, activeFeature, secondsDelta, deviceInfo, isNewVisit } = data;
     if (!visitorId) return { success: false, error: "Visitor ID required" };
 
     const cleanTag = prospectTag?.trim() || `Visitor-${visitorId.substring(0, 6)}`;
     const delta = Math.max(1, Math.min(secondsDelta, 120)); // cap delta between 1-120s
 
-    let session = await ProspectSession.findOne({ visitorId });
+    let session = await ProspectSession.findOne({
+      $or: [
+        { visitorId },
+        ...(deviceId ? [{ deviceId }] : []),
+      ],
+    });
 
     if (!session) {
       session = new ProspectSession({
         visitorId,
+        deviceId: deviceId || "",
         prospectTag: cleanTag,
         deviceInfo: deviceInfo || "Browser",
+        visitCount: 1,
         totalTimeSeconds: delta,
         firstSeenAt: new Date(),
         lastSeenAt: new Date(),
@@ -40,11 +50,27 @@ export async function recordProspectHeartbeatAction(data: {
       return { success: true, isNew: true };
     }
 
+    // Check if returning visit (explicit flag or returning after 30 mins)
+    const timeSinceLastSeen = Date.now() - new Date(session.lastSeenAt).getTime();
+    if (isNewVisit || timeSinceLastSeen > 30 * 60 * 1000) {
+      session.visitCount = (session.visitCount || 1) + 1;
+      session.intentSignals.push({
+        action: "return_visit",
+        timestamp: new Date(),
+        metadata: `Visit #${session.visitCount} on ${deviceInfo || "Device"}`,
+      });
+      session.markModified("intentSignals");
+    }
+
     // Update existing prospect session
     session.totalTimeSeconds = (session.totalTimeSeconds || 0) + delta;
     session.lastSeenAt = new Date();
 
-    if (deviceInfo && !session.deviceInfo) {
+    if (deviceId && !session.deviceId) {
+      session.deviceId = deviceId;
+    }
+
+    if (deviceInfo) {
       session.deviceInfo = deviceInfo;
     }
 
@@ -68,6 +94,104 @@ export async function recordProspectHeartbeatAction(data: {
     return { success: true };
   } catch (err: any) {
     console.error("Error in recordProspectHeartbeatAction:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Server Action: Records the subtle onboarding prompt entry (Name, Email, or Skip)
+ * Tracks whether client entered both, name_only, email_only, or skipped/dismissed
+ */
+export async function recordProspectOnboardingAction(data: {
+  visitorId: string;
+  deviceId?: string;
+  name?: string;
+  email?: string;
+  status: "both" | "name_only" | "email_only" | "skipped" | "dismissed";
+  prospectTag?: string;
+  deviceInfo?: string;
+}) {
+  try {
+    await connectDB();
+    const { visitorId, deviceId, name, email, status, prospectTag, deviceInfo } = data;
+    if (!visitorId) return { success: false, error: "Visitor ID required" };
+
+    const cleanName = name?.trim() || "";
+    const cleanEmail = email?.trim() || "";
+    const determinedTag =
+      cleanName ||
+      cleanEmail ||
+      (prospectTag && !prospectTag.startsWith("Visitor-") ? prospectTag.trim() : null) ||
+      `Visitor-${visitorId.substring(0, 6)}`;
+
+    let session = await ProspectSession.findOne({
+      $or: [
+        { visitorId },
+        ...(deviceId ? [{ deviceId }] : []),
+      ],
+    });
+
+    const statusAction = `onboarding_gate_${status}`;
+    const statusMetadata =
+      status === "both"
+        ? `Entered Name: "${cleanName}" & Email: "${cleanEmail}"`
+        : status === "name_only"
+        ? `Entered Name only: "${cleanName}"`
+        : status === "email_only"
+        ? `Entered Email only: "${cleanEmail}"`
+        : status === "skipped"
+        ? "Skipped onboarding prompt"
+        : "Dismissed (Closed X) onboarding prompt";
+
+    if (!session) {
+      session = new ProspectSession({
+        visitorId,
+        deviceId: deviceId || "",
+        prospectTag: determinedTag,
+        clientName: cleanName,
+        clientEmail: cleanEmail,
+        onboardingStatus: status,
+        deviceInfo: deviceInfo || "Browser",
+        visitCount: 1,
+        totalTimeSeconds: 5,
+        firstSeenAt: new Date(),
+        lastSeenAt: new Date(),
+        featureTimes: { "Demo Welcome": 5 },
+        gamesPlayed: [],
+        intentSignals: [
+          {
+            action: statusAction,
+            timestamp: new Date(),
+            metadata: statusMetadata,
+          },
+        ],
+      });
+      await session.save();
+      return { success: true };
+    }
+
+    // Update existing session
+    session.clientName = cleanName || session.clientName || "";
+    session.clientEmail = cleanEmail || session.clientEmail || "";
+    session.onboardingStatus = status;
+    if (deviceId && !session.deviceId) session.deviceId = deviceId;
+    if (cleanName) {
+      session.prospectTag = cleanName;
+    } else if (cleanEmail && session.prospectTag.startsWith("Visitor-")) {
+      session.prospectTag = cleanEmail;
+    }
+
+    session.intentSignals.push({
+      action: statusAction,
+      timestamp: new Date(),
+      metadata: statusMetadata,
+    });
+    session.markModified("intentSignals");
+    session.lastSeenAt = new Date();
+    await session.save();
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error in recordProspectOnboardingAction:", err);
     return { success: false, error: err.message };
   }
 }
@@ -254,6 +378,13 @@ export async function getProspectAnalyticsAction() {
     let highIntentLeadsCount = 0;
     let activeNowCount = 0;
 
+    let gateBothCount = 0;
+    let gateNameOnlyCount = 0;
+    let gateEmailOnlyCount = 0;
+    let gateSkippedCount = 0;
+    let gateDismissedCount = 0;
+    let gatePendingCount = 0;
+
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
 
     const formattedSessions = sessions.map((s: any) => {
@@ -263,6 +394,15 @@ export async function getProspectAnalyticsAction() {
       if (new Date(s.lastSeenAt) > twoMinutesAgo) {
         activeNowCount += 1;
       }
+
+      // Track onboarding gate choices
+      const obStatus = s.onboardingStatus || "pending";
+      if (obStatus === "both") gateBothCount += 1;
+      else if (obStatus === "name_only") gateNameOnlyCount += 1;
+      else if (obStatus === "email_only") gateEmailOnlyCount += 1;
+      else if (obStatus === "skipped") gateSkippedCount += 1;
+      else if (obStatus === "dismissed") gateDismissedCount += 1;
+      else gatePendingCount += 1;
 
       // Aggregate feature times
       if (s.featureTimes) {
@@ -286,22 +426,29 @@ export async function getProspectAnalyticsAction() {
       // Compute engagement score
       const hasIntent = s.intentSignals && s.intentSignals.length > 0;
       const hasCallback = !!s.walkthroughRequest?.contact;
-      if (hasIntent || hasCallback || totalSec > 300) {
+      const hasContact = !!(s.clientEmail || s.clientName);
+      if (hasIntent || hasCallback || hasContact || totalSec > 300) {
         highIntentLeadsCount += 1;
       }
 
       const score = Math.min(
         100,
-        (hasCallback ? 50 : 0) +
-          (hasIntent ? 30 : 0) +
-          Math.min(30, Math.floor(totalSec / 20)) +
-          Math.min(20, (s.gamesPlayed?.length || 0) * 10)
+        (hasCallback ? 40 : 0) +
+          (obStatus === "both" ? 30 : obStatus === "name_only" || obStatus === "email_only" ? 20 : 0) +
+          (hasIntent ? 20 : 0) +
+          Math.min(25, Math.floor(totalSec / 20)) +
+          Math.min(15, (s.gamesPlayed?.length || 0) * 5)
       );
 
       return {
         id: s._id.toString(),
         prospectTag: s.prospectTag,
         visitorId: s.visitorId,
+        deviceId: s.deviceId || "",
+        clientName: s.clientName || "",
+        clientEmail: s.clientEmail || "",
+        onboardingStatus: obStatus,
+        visitCount: s.visitCount || 1,
         deviceInfo: s.deviceInfo || "Desktop",
         totalTimeSeconds: totalSec,
         firstSeenAt: s.firstSeenAt ? new Date(s.firstSeenAt).toISOString() : null,
@@ -325,6 +472,10 @@ export async function getProspectAnalyticsAction() {
       .map(([slug, data]) => ({ slug, ...data }))
       .sort((a, b) => b.plays - a.plays);
 
+    const totalGateInteractions = gateBothCount + gateNameOnlyCount + gateEmailOnlyCount + gateSkippedCount + gateDismissedCount;
+    const leadsProvidedCount = gateBothCount + gateNameOnlyCount + gateEmailOnlyCount;
+    const conversionRatePct = totalGateInteractions > 0 ? Math.round((leadsProvidedCount / totalGateInteractions) * 100) : 0;
+
     return {
       success: true,
       data: {
@@ -332,6 +483,16 @@ export async function getProspectAnalyticsAction() {
         activeNowCount,
         highIntentLeadsCount,
         averageTimeSeconds: sessions.length ? Math.round(totalSecondsAcrossAll / sessions.length) : 0,
+        gateMetrics: {
+          totalInteractions: totalGateInteractions,
+          conversionRatePct,
+          both: gateBothCount,
+          nameOnly: gateNameOnlyCount,
+          emailOnly: gateEmailOnlyCount,
+          skipped: gateSkippedCount,
+          dismissed: gateDismissedCount,
+          pending: gatePendingCount,
+        },
         rankedFeatures,
         rankedGames,
         prospects: formattedSessions,

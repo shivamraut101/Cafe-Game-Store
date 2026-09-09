@@ -27,6 +27,8 @@ export const viewport: Viewport = {
 import { Suspense } from "react";
 import EnvironmentBanner from "../components/EnvironmentBanner";
 import DemoOnboardingFab from "../components/DemoOnboardingFab";
+import DemoWelcomeModal from "../components/DemoWelcomeModal";
+import DemoBuyoutModal from "../components/DemoBuyoutModal";
 import ProspectTelemetryTracker from "../components/ProspectTelemetryTracker";
 
 export default function RootLayout({
@@ -39,6 +41,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans bg-[#F6F3EB] text-[#1A1A1A]">
         <Suspense fallback={null}>
           <ProspectTelemetryTracker />
+          <DemoWelcomeModal />
+          <DemoBuyoutModal />
         </Suspense>
         <EnvironmentBanner />
         {children}

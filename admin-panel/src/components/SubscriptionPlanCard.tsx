@@ -21,7 +21,7 @@ const plans: Plan[] = [
   {
     id: "Starter",
     name: "Starter Merchant",
-    price: "$0",
+    price: "₹0",
     billingPeriod: "Free Forever",
     monthlyCredits: 200,
     maxGames: "1 Game",
@@ -38,8 +38,8 @@ const plans: Plan[] = [
   {
     id: "Pro Store",
     name: "Pro Store Tier",
-    price: "$29",
-    billingPeriod: "per month, billed annually",
+    price: "₹2,499",
+    billingPeriod: "per month",
     badge: "MOST POPULAR",
     monthlyCredits: 1000,
     maxGames: "5 Games",
@@ -57,7 +57,7 @@ const plans: Plan[] = [
   {
     id: "Enterprise",
     name: "Enterprise White-Label",
-    price: "$99",
+    price: "₹7,999",
     billingPeriod: "per month",
     badge: "UNLIMITED BRANDING",
     monthlyCredits: 3500,

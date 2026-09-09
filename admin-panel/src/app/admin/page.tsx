@@ -24,7 +24,9 @@ import {
 
 import AdminLoginGuard from "../../components/AdminLoginGuard";
 import DemoOnboardingModal from "../../components/DemoOnboardingModal";
+import StaffTab from "../../components/tabs/StaffTab";
 import { isClientProd } from "../../lib/appEnv";
+import { triggerBuyoutModal } from "../../components/DemoBuyoutModal";
 
 export default function AdminPortal() {
   const [role, setRole] = useState<UserRole>("store_admin");
@@ -34,7 +36,7 @@ export default function AdminPortal() {
   const [impersonatedStore, setImpersonatedStore] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<
-    "overview" | "analytics" | "branding" | "wallet" | "subscription" | "qr-studio" | "audit-logs" | "game-manager"
+    "overview" | "analytics" | "branding" | "wallet" | "subscription" | "qr-studio" | "audit-logs" | "game-manager" | "staff"
   >("overview");
 
   const [games, setGames] = useState<Game[]>([]);
@@ -43,29 +45,33 @@ export default function AdminPortal() {
   const [currentStore, setCurrentStore] = useState<string>("");
   const [loadingDb, setLoadingDb] = useState(true);
 
-  // Fetch live DB data on mount
+  // Fetch live DB data in parallel on mount
   useEffect(() => {
     async function loadDataFromDb() {
       try {
         setLoadingDb(true);
-        // Load Campaigns
-        const campaignsRes = await getCampaignsAction();
+        const activeStore = currentStore || (typeof window !== "undefined" ? sessionStorage.getItem("selectedStore") : "") || "Brew & Bites Cafe (Main Branch)";
+        
+        const [campaignsRes, configsRes, merchantsRes] = await Promise.all([
+          getCampaignsAction(),
+          getMiniGameConfigsAction(undefined, activeStore),
+          getSuperAdminMerchantsAction(),
+        ]);
+
         if (campaignsRes.success && campaignsRes.campaigns) {
           setGames(campaignsRes.campaigns as any);
         }
 
-        // Load MiniGameConfigs
-        const configsRes = await getMiniGameConfigsAction();
         if (configsRes.success && configsRes.configs) {
           setMiniGameConfigs(configsRes.configs as any);
         }
 
-        // Load Merchants/Stores List
-        const merchantsRes = await getSuperAdminMerchantsAction();
         if (merchantsRes.success && merchantsRes.merchants) {
           const names = merchantsRes.merchants.map((m) => m.storeName);
           setStoresList(names);
-          if (names.length > 0) setCurrentStore(names[0]);
+          if (!currentStore && names.length > 0) {
+            setCurrentStore(names[0]);
+          }
         }
       } catch (e) {
         console.error("Failed to load dashboard data from DB", e);
@@ -227,12 +233,13 @@ export default function AdminPortal() {
 
   const storeAdminTabs = [
     { id: "overview", label: "Overview", icon: "📊" },
+    { id: "game-manager", label: "Game Manager", icon: "🎮", badge: "Games" },
+    { id: "qr-studio", label: "QR Studio", icon: "📱", badge: "Standees" },
+    { id: "staff", label: "Staff & Claim", icon: "👥", badge: "Counter" },
     { id: "analytics", label: "Analytics", icon: "📈" },
-    { id: "branding", label: "Branding", icon: "🎨" },
     { id: "wallet", label: "Wallet", icon: "💳" },
     { id: "subscription", label: "Subscription", icon: "⭐" },
-    { id: "qr-studio", label: "QR Studio", icon: "📱", badge: "New" },
-    { id: "game-manager", label: "Game Manager", icon: "🎮", badge: "New" },
+    { id: "branding", label: "Branding", icon: "🎨" },
     { id: "audit-logs", label: "Audit Logs", icon: "📜" },
   ];
 
@@ -280,7 +287,18 @@ export default function AdminPortal() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {!isClientProd() && (
+              <button
+                type="button"
+                onClick={() => triggerBuyoutModal({ plan: "Pro Store", source: "store_admin_header" })}
+                className="bg-[#FF4C29] text-white hover:bg-[#ff360e] px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-y-[1px] flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>🚀</span>
+                <span>Deploy in Your Venue ↗</span>
+              </button>
+            )}
+
             <div className="flex items-center gap-2 bg-[#FBF9F4] text-black px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_0px_#000]">
               <span>🏪</span>
               <span>{currentStore || "My Store"}</span>
@@ -477,6 +495,9 @@ export default function AdminPortal() {
                   onUpdateConfig={handleUpdateMiniGameConfig}
                   currentStore={currentStore}
                 />
+              )}
+              {activeTab === "staff" && (
+                <StaffTab currentStore={currentStore} />
               )}
               {activeTab === "audit-logs" && <AuditLogsTab />}
         </section>

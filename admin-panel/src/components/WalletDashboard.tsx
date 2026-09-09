@@ -23,13 +23,13 @@ export default function WalletDashboard() {
   const [balance, setBalance] = useState(1455);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
-  const [selectedTopUpAmount, setSelectedTopUpAmount] = useState(25);
+  const [selectedTopUpAmount, setSelectedTopUpAmount] = useState(500);
   const [autoRecharge, setAutoRecharge] = useState(true);
   const [lowBalanceThreshold, setLowBalanceThreshold] = useState(200);
 
   const handleTopUp = () => {
-    // $1 = 50 credits
-    const addedCredits = selectedTopUpAmount * 50;
+    // 1 Credit = ₹1
+    const addedCredits = selectedTopUpAmount;
     const newBal = balance + addedCredits;
     const newTx: Transaction = {
       id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -45,7 +45,7 @@ export default function WalletDashboard() {
     setShowTopUpModal(false);
   };
 
-  const costPerScan = 0.02; // $0.02 or 1 credit per scan
+  const costPerScan = 1; // ₹1 or 1 credit per scan
 
   return (
     <div className="flex flex-col gap-8">
@@ -66,13 +66,13 @@ export default function WalletDashboard() {
           <div className="flex items-baseline gap-4">
             <span className="font-serif text-5xl font-black text-[#F6F3EB]">{balance.toLocaleString()}</span>
             <span className="text-sm font-semibold text-white/70">
-              Credits Remaining (~${(balance * costPerScan).toFixed(2)})
+              Credits Remaining (~₹{(balance * costPerScan).toLocaleString()})
             </span>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/10">
             <div className="text-xs text-white/70">
-              <span className="font-bold text-white">Rate: 1 Scan = 1 Credit</span> (${costPerScan}/scan)
+              <span className="font-bold text-white">Rate: 1 Scan = 1 Credit</span> (₹{costPerScan}/scan)
             </div>
             <button
               onClick={() => setShowTopUpModal(true)}
@@ -105,9 +105,9 @@ export default function WalletDashboard() {
                 onChange={e => setLowBalanceThreshold(Number(e.target.value))}
                 className="p-1.5 rounded-lg border-2 border-black bg-[#FBF9F4]"
               >
-                <option value={100}>100 Credits ($2.00)</option>
-                <option value={200}>200 Credits ($4.00)</option>
-                <option value={500}>500 Credits ($10.00)</option>
+                <option value={100}>100 Credits (₹100)</option>
+                <option value={200}>200 Credits (₹200)</option>
+                <option value={500}>500 Credits (₹500)</option>
               </select>
             </div>
 
@@ -208,10 +208,10 @@ export default function WalletDashboard() {
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               {[
-                { amount: 10, credits: 500, label: "Starter Pack" },
-                { amount: 25, credits: 1300, label: "Popular (+50 Bonus)" },
-                { amount: 50, credits: 2800, label: "Pro Store (+300 Bonus)" },
-                { amount: 100, credits: 6000, label: "Enterprise (+1k Bonus)" },
+                { amount: 500, credits: 500, label: "Starter Pack" },
+                { amount: 1600, credits: 2000, label: "Popular (+400 Bonus)" },
+                { amount: 3500, credits: 5000, label: "Pro Store (+1.5k Bonus)" },
+                { amount: 7000, credits: 11000, label: "Enterprise (+4k Bonus)" },
               ].map(pkg => (
                 <button
                   key={pkg.amount}
@@ -225,9 +225,9 @@ export default function WalletDashboard() {
                 >
                   <span className="text-xs font-extrabold text-black/60 uppercase">{pkg.label}</span>
                   <div className="my-2">
-                    <span className="text-2xl font-black text-black">${pkg.amount}</span>
+                    <span className="text-2xl font-black text-black">₹{pkg.amount.toLocaleString()}</span>
                   </div>
-                  <span className="text-xs font-bold text-emerald-700">+{pkg.credits} Credits</span>
+                  <span className="text-xs font-bold text-emerald-700">+{pkg.credits.toLocaleString()} Credits</span>
                 </button>
               ))}
             </div>
@@ -245,7 +245,7 @@ export default function WalletDashboard() {
                 onClick={handleTopUp}
                 className="flex-1 py-3 bg-[#111111] text-white rounded-xl font-bold text-sm border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all"
               >
-                Pay ${selectedTopUpAmount} & Add Credits
+                Pay ₹{selectedTopUpAmount.toLocaleString()} & Add Credits
               </button>
             </div>
           </div>
