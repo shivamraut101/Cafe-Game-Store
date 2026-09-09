@@ -13,14 +13,33 @@ export default function ProspectTelemetryTracker() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1. Resolve or Generate Visitor ID
+    // 1. Resolve or Generate Persistent Device ID (persists across visits)
+    let deviceId = localStorage.getItem("forstore_device_id");
+    if (!deviceId) {
+      const match = document.cookie.match(/forstore_device_id=([^;]+)/);
+      if (match && match[1]) deviceId = match[1];
+    }
+    if (!deviceId) {
+      deviceId = `dev_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+    localStorage.setItem("forstore_device_id", deviceId);
+    document.cookie = `forstore_device_id=${deviceId};path=/;max-age=31536000`;
+
+    // 2. Resolve or Generate Visitor ID
     let visitorId = localStorage.getItem("forstore_visitor_id");
     if (!visitorId) {
       visitorId = `vis_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
       localStorage.setItem("forstore_visitor_id", visitorId);
     }
 
-    // 2. Resolve Prospect Name from URL parameter (?prospect=... or ?client=...)
+    // 3. Detect New Session Visit on this device
+    let isNewVisit = false;
+    if (!sessionStorage.getItem("forstore_session_active")) {
+      isNewVisit = true;
+      sessionStorage.setItem("forstore_session_active", "true");
+    }
+
+    // 4. Resolve Prospect Name from URL parameter (?prospect=... or ?client=...)
     const prospectParam =
       searchParams.get("prospect") ||
       searchParams.get("client") ||
@@ -30,7 +49,7 @@ export default function ProspectTelemetryTracker() {
       localStorage.setItem("forstore_prospect_tag", prospectParam.trim());
     }
 
-    // 3. Resolve Device Info
+    // 5. Resolve Device Info
     const ua = navigator.userAgent;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
     const platform = navigator.platform || "Device";
@@ -127,6 +146,7 @@ export default function ProspectTelemetryTracker() {
 
         recordProspectHeartbeatAction({
           visitorId: visitorId!,
+          deviceId,
           prospectTag: currentTag,
           activeFeature: currentFeature,
           secondsDelta: deltaSec,
@@ -139,10 +159,12 @@ export default function ProspectTelemetryTracker() {
     const initialTag = localStorage.getItem("forstore_prospect_tag") || undefined;
     recordProspectHeartbeatAction({
       visitorId,
+      deviceId,
       prospectTag: initialTag,
       activeFeature: getActiveFeatureName(),
       secondsDelta: 2,
       deviceInfo,
+      isNewVisit,
     });
 
     return () => {

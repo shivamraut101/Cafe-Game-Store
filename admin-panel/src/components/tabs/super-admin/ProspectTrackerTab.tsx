@@ -20,6 +20,11 @@ interface ProspectSessionData {
   id: string;
   prospectTag: string;
   visitorId: string;
+  deviceId: string;
+  clientName: string;
+  clientEmail: string;
+  onboardingStatus: string;
+  visitCount: number;
   deviceInfo: string;
   totalTimeSeconds: number;
   firstSeenAt: string | null;
@@ -38,6 +43,16 @@ export default function ProspectTrackerTab() {
     activeNowCount: number;
     highIntentLeadsCount: number;
     averageTimeSeconds: number;
+    gateMetrics?: {
+      totalInteractions: number;
+      conversionRatePct: number;
+      both: number;
+      nameOnly: number;
+      emailOnly: number;
+      skipped: number;
+      dismissed: number;
+      pending: number;
+    };
     rankedFeatures: { name: string; totalSecs: number }[];
     rankedGames: { slug: string; plays: number; seconds: number }[];
     prospects: ProspectSessionData[];
@@ -107,6 +122,9 @@ export default function ProspectTrackerTab() {
     const term = filterSearch.toLowerCase();
     return (
       p.prospectTag.toLowerCase().includes(term) ||
+      (p.clientName && p.clientName.toLowerCase().includes(term)) ||
+      (p.clientEmail && p.clientEmail.toLowerCase().includes(term)) ||
+      (p.deviceId && p.deviceId.toLowerCase().includes(term)) ||
       p.visitorId.toLowerCase().includes(term) ||
       p.deviceInfo.toLowerCase().includes(term) ||
       (p.walkthroughRequest?.contact && p.walkthroughRequest.contact.toLowerCase().includes(term))
@@ -222,6 +240,101 @@ export default function ProspectTrackerTab() {
         )}
       </div>
 
+      {/* Onboarding Gate Analytics: "decide to keep this wall or not" */}
+      <div className="bg-[#111622] border border-white/10 rounded-3xl p-6 shadow-xl text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-4 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 bg-blue-500/20 text-blue-300 font-mono text-[9px] font-black uppercase rounded tracking-wider border border-blue-500/30">
+                GATE EVALUATION
+              </span>
+              <h3 className="font-serif text-lg font-black text-white">
+                Demo Welcome Prompt: Keep or Remove Wall?
+              </h3>
+            </div>
+            <p className="text-xs text-white/60 font-semibold mt-1">
+              Data on whether prospective clients share Name, Email, both, or skip the optional welcome prompt.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-right">
+              <span className="text-[10px] font-mono uppercase text-white/40 block">Contact Share Rate</span>
+              <span className="text-base font-mono font-black text-emerald-400">
+                {data?.gateMetrics?.conversionRatePct ?? 0}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Outcome Columns */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Entered Both */}
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-mono font-bold uppercase text-emerald-400">🟢 Name & Email</span>
+              <span className="text-xs font-mono font-black text-emerald-300">
+                {data?.gateMetrics?.totalInteractions
+                  ? Math.round(((data.gateMetrics.both || 0) / data.gateMetrics.totalInteractions) * 100)
+                  : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-mono font-black text-white">{data?.gateMetrics?.both || 0}</div>
+            <span className="text-[10px] text-white/50 block mt-0.5 font-semibold">High-quality verified leads</span>
+          </div>
+
+          {/* Entered Name Only */}
+          <div className="p-3.5 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-mono font-bold uppercase text-cyan-400">🟡 Name Only</span>
+              <span className="text-xs font-mono font-black text-cyan-300">
+                {data?.gateMetrics?.totalInteractions
+                  ? Math.round(((data.gateMetrics.nameOnly || 0) / data.gateMetrics.totalInteractions) * 100)
+                  : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-mono font-black text-white">{data?.gateMetrics?.nameOnly || 0}</div>
+            <span className="text-[10px] text-white/50 block mt-0.5 font-semibold">Brand / cafe identified</span>
+          </div>
+
+          {/* Entered Email Only */}
+          <div className="p-3.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-mono font-bold uppercase text-indigo-400">🟡 Email Only</span>
+              <span className="text-xs font-mono font-black text-indigo-300">
+                {data?.gateMetrics?.totalInteractions
+                  ? Math.round(((data.gateMetrics.emailOnly || 0) / data.gateMetrics.totalInteractions) * 100)
+                  : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-mono font-black text-white">{data?.gateMetrics?.emailOnly || 0}</div>
+            <span className="text-[10px] text-white/50 block mt-0.5 font-semibold">Direct contact channel</span>
+          </div>
+
+          {/* Skipped / Dismissed */}
+          <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-mono font-bold uppercase text-white/50">⚪ Skipped / Dismissed</span>
+              <span className="text-xs font-mono font-black text-white/60">
+                {data?.gateMetrics?.totalInteractions
+                  ? Math.round(
+                      (((data.gateMetrics.skipped || 0) + (data.gateMetrics.dismissed || 0)) /
+                        data.gateMetrics.totalInteractions) *
+                        100
+                    )
+                  : 0}%
+              </span>
+            </div>
+            <div className="text-2xl font-mono font-black text-white">
+              {(data?.gateMetrics?.skipped || 0) + (data?.gateMetrics?.dismissed || 0)}
+            </div>
+            <span className="text-[10px] text-white/40 block mt-0.5 font-semibold">
+              {data?.gateMetrics?.skipped || 0} skipped, {data?.gateMetrics?.dismissed || 0} closed (X)
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Feature & Game Popularity Insights: "What clients are liking and what not" */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Most Engaging Features */}
@@ -330,10 +443,11 @@ export default function ProspectTrackerTab() {
               <tr className="border-b border-white/10 text-white/50 font-mono text-[10px] uppercase">
                 <th className="py-3 px-3">Client / Prospect</th>
                 <th className="py-3 px-3">Live Status</th>
+                <th className="py-3 px-3">Welcome Prompt Choice</th>
+                <th className="py-3 px-3">Visits & Device</th>
                 <th className="py-3 px-3">Time Spent</th>
                 <th className="py-3 px-3">Lead Intent</th>
                 <th className="py-3 px-3">Games Tested</th>
-                <th className="py-3 px-3">Device</th>
                 <th className="py-3 px-3 text-right">Details</th>
               </tr>
             </thead>
@@ -351,16 +465,22 @@ export default function ProspectTrackerTab() {
                     >
                       <td className="py-3.5 px-3">
                         <div className="font-bold text-white text-xs flex items-center gap-2">
-                          <span>{p.prospectTag}</span>
+                          <span>{p.clientName || p.prospectTag}</span>
                           {p.leadScore >= 70 && (
                             <span className="px-1.5 py-0.5 bg-[#FF4C29]/20 text-[#FF4C29] text-[9px] font-mono uppercase font-black rounded">
                               HOT 🔥
                             </span>
                           )}
                         </div>
-                        <span className="text-[10px] font-mono text-white/40 block mt-0.5">
-                          ID: {p.visitorId.substring(0, 12)}
-                        </span>
+                        {p.clientEmail ? (
+                          <span className="text-[10px] font-mono text-emerald-300 block mt-0.5">
+                            ✉️ {p.clientEmail}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono text-white/40 block mt-0.5">
+                            ID: {p.visitorId.substring(0, 10)}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-3">
@@ -376,6 +496,47 @@ export default function ProspectTrackerTab() {
                         )}
                       </td>
 
+                      {/* Onboarding Wall Choice */}
+                      <td className="py-3.5 px-3">
+                        {p.onboardingStatus === "both" ? (
+                          <span className="inline-block px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold rounded-lg text-[10px]">
+                            🟢 Both (Name + Email)
+                          </span>
+                        ) : p.onboardingStatus === "name_only" ? (
+                          <span className="inline-block px-2 py-0.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold rounded-lg text-[10px]">
+                            🟡 Name Only
+                          </span>
+                        ) : p.onboardingStatus === "email_only" ? (
+                          <span className="inline-block px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold rounded-lg text-[10px]">
+                            🟡 Email Only
+                          </span>
+                        ) : p.onboardingStatus === "skipped" ? (
+                          <span className="inline-block px-2 py-0.5 bg-white/10 text-white/60 font-semibold rounded-lg text-[10px]">
+                            ⚪ Skipped Wall
+                          </span>
+                        ) : p.onboardingStatus === "dismissed" ? (
+                          <span className="inline-block px-2 py-0.5 bg-white/10 text-white/40 font-semibold rounded-lg text-[10px]">
+                            ⚪ Closed (X)
+                          </span>
+                        ) : (
+                          <span className="text-white/30 text-[10px] italic">Legacy / Direct</span>
+                        )}
+                      </td>
+
+                      {/* Visits & Device */}
+                      <td className="py-3.5 px-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {p.visitCount > 1 && (
+                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 font-mono font-bold text-[10px] rounded-lg border border-purple-500/30">
+                              🔁 {p.visitCount} visits
+                            </span>
+                          )}
+                          <span className="text-white/60 text-[11px] font-mono block">
+                            {p.deviceInfo || "Device"}
+                          </span>
+                        </div>
+                      </td>
+
                       <td className="py-3.5 px-3 font-mono font-bold text-purple-300">
                         {formatSeconds(p.totalTimeSeconds)}
                       </td>
@@ -389,7 +550,7 @@ export default function ProspectTrackerTab() {
                           )}
                           {hasWhatsApp && (
                             <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold rounded-lg border border-emerald-500/30">
-                              💬 Clicked WhatsApp
+                              💬 WhatsApp
                             </span>
                           )}
                           {!hasCallback && !hasWhatsApp && (
@@ -408,10 +569,6 @@ export default function ProspectTrackerTab() {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-3 text-white/50 text-[11px] font-mono">
-                        {p.deviceInfo}
-                      </td>
-
                       <td className="py-3.5 px-3 text-right">
                         <button className="py-1 px-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[11px] font-bold cursor-pointer">
                           Inspect →
@@ -422,7 +579,7 @@ export default function ProspectTrackerTab() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-white/40 font-mono text-xs">
+                  <td colSpan={8} className="py-8 text-center text-white/40 font-mono text-xs">
                     No prospect sessions matching the filter. Send out a demo link to start tracking!
                   </td>
                 </tr>
@@ -443,18 +600,65 @@ export default function ProspectTrackerTab() {
               ✕
             </button>
 
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-0.5 bg-[#FF4C29] text-white font-mono text-[9px] font-black uppercase rounded">
                 PROSPECT DEEP-DIVE
               </span>
               <span className="text-xs text-white/50 font-mono">ID: {selectedProspect.visitorId}</span>
+              {selectedProspect.deviceId && (
+                <span className="text-[10px] text-purple-300 font-mono bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
+                  Device: {selectedProspect.deviceId.substring(0, 14)}
+                </span>
+              )}
             </div>
 
-            <h3 className="font-serif text-2xl font-black text-white">{selectedProspect.prospectTag}</h3>
+            <h3 className="font-serif text-2xl font-black text-white">
+              {selectedProspect.clientName || selectedProspect.prospectTag}
+            </h3>
             <p className="text-xs text-white/60 font-semibold mt-1">
               Device: {selectedProspect.deviceInfo} • Total Active Demo Time:{" "}
               <strong className="text-purple-300 font-mono">{formatSeconds(selectedProspect.totalTimeSeconds)}</strong>
             </p>
+
+            {/* Onboarding & Device Identity Box */}
+            <div className="my-4 p-4 bg-white/5 border border-white/10 rounded-2xl grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div>
+                <span className="text-[10px] font-mono uppercase font-bold text-white/40 block">Client Contact</span>
+                <span className="font-bold text-white block mt-0.5">
+                  {selectedProspect.clientEmail || "Not provided"}
+                </span>
+                {selectedProspect.clientName && (
+                  <span className="text-[11px] text-white/60 block">Name: {selectedProspect.clientName}</span>
+                )}
+              </div>
+
+              <div>
+                <span className="text-[10px] font-mono uppercase font-bold text-white/40 block">Welcome Prompt Choice</span>
+                <span className="font-mono font-bold text-emerald-300 block mt-0.5">
+                  {selectedProspect.onboardingStatus === "both"
+                    ? "🟢 Provided Both (Name & Email)"
+                    : selectedProspect.onboardingStatus === "name_only"
+                    ? "🟡 Provided Name Only"
+                    : selectedProspect.onboardingStatus === "email_only"
+                    ? "🟡 Provided Email Only"
+                    : selectedProspect.onboardingStatus === "skipped"
+                    ? "⚪ Skipped Prompt"
+                    : selectedProspect.onboardingStatus === "dismissed"
+                    ? "⚪ Dismissed Prompt (X)"
+                    : "⚪ Legacy / Direct"}
+                </span>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-mono uppercase font-bold text-white/40 block">Device Return Visits</span>
+                <span className="font-mono font-bold text-purple-300 block mt-0.5">
+                  🔁 {selectedProspect.visitCount || 1} visit(s) recorded
+                </span>
+                <span className="text-[10px] text-white/40 block font-mono">
+                  First: {selectedProspect.firstSeenAt ? new Date(selectedProspect.firstSeenAt).toLocaleDateString() : "N/A"}
+                </span>
+              </div>
+            </div>
 
             {/* Callback Request Info if available */}
             {selectedProspect.walkthroughRequest && (

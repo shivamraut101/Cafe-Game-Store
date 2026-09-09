@@ -263,7 +263,25 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
     }
 
     if (!storeObjId) {
-      const defaultStore = await Store.findOne({ status: "Active" });
+      let defaultStore = await Store.findOne({ status: "Active" });
+      if (!defaultStore) defaultStore = await Store.findOne();
+      if (!defaultStore) {
+        defaultStore = await Store.create({
+          storeName: "Brew & Bites Cafe (Main Branch)",
+          slug: "brew-bites-main",
+          ownerName: "Cafe Manager",
+          ownerEmail: "manager@brewbites.com",
+          adminPin: "9900",
+          status: "Active",
+          plan: "Pro Store",
+          walletBalance: 1000,
+          staffPin: "1234",
+          staffMembers: [
+            { id: "staff-1", name: "Rohan", role: "Barista", shift: "Morning", pin: "1234", active: true },
+            { id: "staff-2", name: "Priya", role: "Cashier", shift: "Evening", pin: "1234", active: true },
+          ],
+        });
+      }
       if (defaultStore) storeObjId = defaultStore._id as mongoose.Types.ObjectId;
     }
 

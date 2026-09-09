@@ -163,9 +163,9 @@ export default function CreateStoreModal({
           {/* Plan Selection */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { id: "Starter", label: "Starter", price: "$0/mo" },
-              { id: "Pro Store", label: "Pro Store", price: "$29/mo" },
-              { id: "Enterprise", label: "Enterprise", price: "$99/mo" },
+              { id: "Starter", label: "Starter", price: "₹0/mo" },
+              { id: "Pro Store", label: "Pro Store", price: "₹2,499/mo" },
+              { id: "Enterprise", label: "Enterprise", price: "₹7,999/mo" },
             ].map(p => (
               <button
                 key={p.id}

@@ -23,10 +23,9 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
 
   // Top Up Modal State
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState<{ credits: number; inr: number; usd: number }>({
+  const [selectedPackage, setSelectedPackage] = useState<{ credits: number; inr: number }>({
     credits: 2000,
     inr: 1600,
-    usd: 32,
   });
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "bank_transfer">("upi");
   const [referenceId, setReferenceId] = useState("");
@@ -230,7 +229,7 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => {
-                  setSelectedPackage({ credits: 500, inr: 500, usd: 10 });
+                  setSelectedPackage({ credits: 500, inr: 500 });
                   setIsTopUpModalOpen(true);
                 }}
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-[#FBF9F4] transition-colors group cursor-pointer"
@@ -239,13 +238,13 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
                   <span>🪙</span> 500 Plays
                 </div>
                 <span className="font-bold bg-black text-white px-3 py-1 rounded-lg text-xs group-hover:bg-[#FF4C29] transition-colors">
-                  ₹500 ($10)
+                  ₹500
                 </span>
               </button>
 
               <button
                 onClick={() => {
-                  setSelectedPackage({ credits: 2000, inr: 1600, usd: 32 });
+                  setSelectedPackage({ credits: 2000, inr: 1600 });
                   setIsTopUpModalOpen(true);
                 }}
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-amber-50 transition-colors group cursor-pointer"
@@ -256,14 +255,14 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Save 20%</span>
                   <span className="font-bold bg-black text-white px-3 py-1 rounded-lg text-xs group-hover:bg-[#FF4C29] transition-colors">
-                    ₹1,600 ($32)
+                    ₹1,600
                   </span>
                 </div>
               </button>
 
               <button
                 onClick={() => {
-                  setSelectedPackage({ credits: 5000, inr: 3500, usd: 70 });
+                  setSelectedPackage({ credits: 5000, inr: 3500 });
                   setIsTopUpModalOpen(true);
                 }}
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-purple-50 transition-colors group cursor-pointer"
@@ -274,7 +273,7 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">Save 30%</span>
                   <span className="font-bold bg-black text-white px-3 py-1 rounded-lg text-xs group-hover:bg-[#FF4C29] transition-colors">
-                    ₹3,500 ($70)
+                    ₹3,500
                   </span>
                 </div>
               </button>
@@ -442,9 +441,9 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { credits: 500, inr: 500, usd: 10, label: "Starter" },
-                  { credits: 2000, inr: 1600, usd: 32, label: "Popular", highlight: true },
-                  { credits: 5000, inr: 3500, usd: 70, label: "Pro Value" },
+                  { credits: 500, inr: 500, label: "Starter" },
+                  { credits: 2000, inr: 1600, label: "Popular", highlight: true },
+                  { credits: 5000, inr: 3500, label: "Pro Value" },
                 ].map((pkg) => (
                   <button
                     key={pkg.credits}

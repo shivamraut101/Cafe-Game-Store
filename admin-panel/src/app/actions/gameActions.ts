@@ -48,6 +48,24 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
       if (storeSlug) store = await Store.findOne({ slug: storeSlug });
       if (!store && storeName) store = await Store.findOne({ storeName });
       if (!store) store = await Store.findOne({ status: "Active" });
+      if (!store) store = await Store.findOne();
+      if (!store) {
+        store = await Store.create({
+          storeName: "Brew & Bites Cafe (Main Branch)",
+          slug: "brew-bites-main",
+          ownerName: "Cafe Manager",
+          ownerEmail: "manager@brewbites.com",
+          adminPin: "9900",
+          status: "Active",
+          plan: "Pro Store",
+          walletBalance: 1000,
+          staffPin: "1234",
+          staffMembers: [
+            { id: "staff-1", name: "Rohan", role: "Barista", shift: "Morning", pin: "1234", active: true },
+            { id: "staff-2", name: "Priya", role: "Cashier", shift: "Evening", pin: "1234", active: true },
+          ],
+        });
+      }
       if (store) storeId = store._id.toString();
     }
 

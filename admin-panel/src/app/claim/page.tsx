@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { redeemRewardVoucherAction } from "../actions/gameActions";
 import { getSessionAction, loginAction, logoutAction } from "../actions/authActions";
+import { verifyStoreStaffPinAction, getStoreStaffConfigAction } from "../actions/staffActions";
 import { downloadCSV } from "../../lib/csvExport";
 import { isClientProd } from "../../lib/appEnv";
 
@@ -20,7 +21,13 @@ export default function StaffVoucherLookupPortal() {
   const [session, setSession] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Login form state for unauthenticated staff
+  // Auth Mode: Staff Counter PIN vs Store Manager Login
+  const [authMode, setAuthMode] = useState<"staff_pin" | "manager_login">("staff_pin");
+  const [staffPinInput, setStaffPinInput] = useState("");
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [selectedStaffName, setSelectedStaffName] = useState("Rohan Sharma");
+
+  // Login form state for unauthenticated manager
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -49,11 +56,41 @@ export default function StaffVoucherLookupPortal() {
   // 1. Check active session on mount
   useEffect(() => {
     checkSession();
+    async function loadStaff() {
+      try {
+        const res = await getStoreStaffConfigAction();
+        if (res.success && res.staffMembers) {
+          setStaffList(res.staffMembers);
+          if (res.staffMembers.length > 0) {
+            setSelectedStaffName(res.staffMembers[0].name);
+          }
+        }
+      } catch {}
+    }
+    loadStaff();
   }, []);
 
   const checkSession = async () => {
     try {
       setCheckingAuth(true);
+
+      // Check stored staff session
+      const savedStaff = sessionStorage.getItem("forstore_active_staff_session");
+      if (savedStaff) {
+        try {
+          const parsed = JSON.parse(savedStaff);
+          if (parsed && parsed.staffName) {
+            setSession({
+              authenticated: true,
+              user: { role: "store_staff", name: parsed.staffName, storeName: parsed.storeName },
+            });
+            setActiveStaffName(parsed.staffName);
+            setCheckingAuth(false);
+            return;
+          }
+        } catch {}
+      }
+
       const res = await getSessionAction();
       if (res.authenticated && res.user) {
         setSession(res);
@@ -131,6 +168,45 @@ export default function StaffVoucherLookupPortal() {
     }
   };
 
+  const handleStaffPinLogin = async (customPin?: string, customStaffName?: string) => {
+    const pin = (customPin || staffPinInput).trim();
+    const staffName = customStaffName || selectedStaffName || "Counter Cashier #01";
+    if (!pin) {
+      setLoginError("Please enter your 4-digit Staff PIN.");
+      return;
+    }
+
+    setIsLoggingIn(true);
+    setLoginError(null);
+    try {
+      const res = await verifyStoreStaffPinAction({
+        enteredPin: pin,
+        staffMemberName: staffName,
+      });
+
+      if (!res.success) {
+        setLoginError(res.error || "Invalid Counter Staff PIN.");
+        return;
+      }
+
+      const staffSessionObj = {
+        staffName: res.activeStaffName || staffName,
+        storeName: res.storeName || "Brew & Bites Cafe",
+      };
+      sessionStorage.setItem("forstore_active_staff_session", JSON.stringify(staffSessionObj));
+
+      setSession({
+        authenticated: true,
+        user: { role: "store_staff", name: staffSessionObj.staffName, storeName: staffSessionObj.storeName },
+      });
+      setActiveStaffName(staffSessionObj.staffName);
+    } catch (e: any) {
+      setLoginError("Failed to verify PIN. Check your connection.");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   const handleQuickDemoLogin = async () => {
     if (isClientProd()) return;
     setIsLoggingIn(true);
@@ -153,6 +229,7 @@ export default function StaffVoucherLookupPortal() {
   };
 
   const handleLogout = async () => {
+    sessionStorage.removeItem("forstore_active_staff_session");
     await logoutAction();
     setSession(null);
     setClaimData(null);
@@ -313,12 +390,44 @@ export default function StaffVoucherLookupPortal() {
         ) : !session?.authenticated ? (
           /* ─── AUTH GUARD: STORE MANAGER & STAFF LOGIN ───────────────────── */
           <div className="w-full flex flex-col items-center my-2 text-left">
-            <div className="w-full text-center mb-5">
+            <div className="w-full text-center mb-4">
               <span className="text-4xl mb-2 inline-block">🔐</span>
-              <h2 className="font-serif text-2xl font-black text-black">Store Manager Sign-In</h2>
+              <h2 className="font-serif text-2xl font-black text-black">Counter Staff Access</h2>
               <p className="text-xs font-semibold text-black/60 max-w-xs mx-auto mt-1">
-                Authenticate to access the counter claim portal, authorize customer vouchers, and record staff attribution.
+                Enter your counter PIN to redeem customer vouchers and record staff attribution.
               </p>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="w-full flex p-1 bg-[#F0ECE1] rounded-2xl border-2 border-black mb-5">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode("staff_pin");
+                  setLoginError(null);
+                }}
+                className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  authMode === "staff_pin"
+                    ? "bg-black text-white shadow-[2px_2px_0px_0px_#FF4C29]"
+                    : "text-black/60 hover:text-black"
+                }`}
+              >
+                👤 Staff Counter PIN
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode("manager_login");
+                  setLoginError(null);
+                }}
+                className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  authMode === "manager_login"
+                    ? "bg-black text-white shadow-[2px_2px_0px_0px_#FF4C29]"
+                    : "text-black/60 hover:text-black"
+                }`}
+              >
+                👔 Manager Sign-In
+              </button>
             </div>
 
             {loginError && (
@@ -327,53 +436,135 @@ export default function StaffVoucherLookupPortal() {
               </div>
             )}
 
-            <form onSubmit={handleLoginSubmit} className="w-full flex flex-col gap-3">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-black/60 block mb-1">
-                  Manager Email
-                </label>
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="manager@yourstore.com"
-                  className="w-full p-3 rounded-xl border-2 border-black font-semibold text-sm bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29]"
-                />
-              </div>
+            {authMode === "staff_pin" ? (
+              /* ─── STAFF PIN LOGIN ─── */
+              <div className="w-full flex flex-col gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-black/60 block mb-1">
+                    Select Staff Member On Duty
+                  </label>
+                  <select
+                    value={selectedStaffName}
+                    onChange={(e) => setSelectedStaffName(e.target.value)}
+                    className="w-full p-3 rounded-xl border-2 border-black font-black text-xs bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29] shadow-[2px_2px_0px_0px_#000]"
+                  >
+                    {staffList.length > 0 ? (
+                      staffList.map((m) => (
+                        <option key={m.id} value={m.name}>
+                          {m.name} ({m.role} · {m.shift || "Counter"})
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Rohan Sharma">Rohan Sharma (Head Barista · Counter #1)</option>
+                        <option value="Priya Verma">Priya Verma (Cashier · Counter #2)</option>
+                        <option value="Aman Gupta">Aman Gupta (Floor Lead · Counter #1)</option>
+                      </>
+                    )}
+                  </select>
+                </div>
 
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-black/60 block mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-3 rounded-xl border-2 border-black font-semibold text-sm bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29]"
-                />
-              </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-black/60 block">
+                      Counter Staff PIN
+                    </label>
+                    <span className="text-[10px] font-mono font-bold text-black/40">Demo PIN: 1234</span>
+                  </div>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={staffPinInput}
+                    onChange={(e) => setStaffPinInput(e.target.value)}
+                    placeholder="•••• (Enter 1234)"
+                    className="w-full p-3 rounded-xl border-2 border-black font-mono font-black text-center text-lg tracking-widest bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29] shadow-[2px_2px_0px_0px_#000]"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full py-3.5 bg-black text-white border-2 border-black rounded-xl font-black text-sm shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all cursor-pointer mt-2 disabled:opacity-50"
-              >
-                {isLoggingIn ? "AUTHENTICATING..." : "SIGN IN AS STORE MANAGER 🔑"}
-              </button>
-            </form>
-
-            {!isClientProd() && (
-              <div className="w-full mt-4 pt-4 border-t-2 border-dashed border-black/10 text-center">
                 <button
                   type="button"
-                  onClick={handleQuickDemoLogin}
                   disabled={isLoggingIn}
-                  className="w-full py-2.5 bg-amber-400 text-black border-2 border-black rounded-xl font-black text-xs shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
+                  onClick={() => handleStaffPinLogin()}
+                  className="w-full py-3.5 bg-[#FF4C29] hover:bg-[#E03E1D] text-white border-2 border-black rounded-xl font-black text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50 mt-1"
                 >
-                  ⚡ 1-CLICK QUICK DEMO MANAGER ACCESS
+                  {isLoggingIn ? "VERIFYING PIN..." : `UNLOCK TERMINAL AS ${selectedStaffName.toUpperCase()} 🚀`}
                 </button>
+
+                {/* Quick 1-Click Staff Fill for Demo */}
+                {!isClientProd() && (
+                  <div className="mt-2 pt-3 border-t-2 border-dashed border-black/10">
+                    <span className="text-[10px] font-mono uppercase font-bold text-black/40 block mb-2 text-center">
+                      ⚡ 1-Click Instant Staff Access (Demo Sandbox):
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleStaffPinLogin("1234", "Rohan Sharma (Barista)")}
+                        className="py-2 px-2.5 bg-amber-200 hover:bg-amber-300 border-2 border-black rounded-xl font-bold text-[11px] text-black shadow-[2px_2px_0px_0px_#000] cursor-pointer text-left truncate"
+                      >
+                        ☕ Rohan (Barista)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStaffPinLogin("1234", "Priya Verma (Cashier)")}
+                        className="py-2 px-2.5 bg-emerald-200 hover:bg-emerald-300 border-2 border-black rounded-xl font-bold text-[11px] text-black shadow-[2px_2px_0px_0px_#000] cursor-pointer text-left truncate"
+                      >
+                        🧾 Priya (Cashier)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+            ) : (
+              /* ─── MANAGER SIGN-IN FORM ─── */
+              <form onSubmit={handleLoginSubmit} className="w-full flex flex-col gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-black/60 block mb-1">
+                    Manager Email
+                  </label>
+                  <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="manager@yourstore.com"
+                    className="w-full p-3 rounded-xl border-2 border-black font-semibold text-sm bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-wider text-black/60 block mb-1">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full p-3 rounded-xl border-2 border-black font-semibold text-sm bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29]"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full py-3.5 bg-black text-white border-2 border-black rounded-xl font-black text-sm shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all cursor-pointer mt-2 disabled:opacity-50"
+                >
+                  {isLoggingIn ? "AUTHENTICATING..." : "SIGN IN AS STORE MANAGER 🔑"}
+                </button>
+
+                {!isClientProd() && (
+                  <div className="w-full mt-2 pt-3 border-t-2 border-dashed border-black/10 text-center">
+                    <button
+                      type="button"
+                      onClick={handleQuickDemoLogin}
+                      disabled={isLoggingIn}
+                      className="w-full py-2.5 bg-amber-400 text-black border-2 border-black rounded-xl font-black text-xs shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer"
+                    >
+                      ⚡ 1-CLICK QUICK DEMO MANAGER ACCESS
+                    </button>
+                  </div>
+                )}
+              </form>
             )}
           </div>
         ) : (
