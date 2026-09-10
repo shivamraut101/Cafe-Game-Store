@@ -244,89 +244,153 @@ export default function MarketingHomePage() {
         </section>
 
         {/* SECTION: PRICING TIERS & WALLET CREDITS */}
-        <section id="pricing" className="max-w-7xl mx-auto w-full px-6 py-20 flex flex-col gap-12">
-          <div className="text-center max-w-2xl mx-auto flex flex-col gap-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#FF4C29]">SUBSCRIPTION & WALLET PRICING</span>
-            <h2 className="font-serif text-4xl font-black text-black">Flexible plans for cafes of any size.</h2>
-            <p className="text-sm text-black/70">
-              Combine fixed monthly subscription tiers with our Pay-Per-Play wallet model (Capped at 10 plays/user/day — plays 11+ same day are 100% on us).
+        <section id="pricing" className="max-w-7xl mx-auto w-full px-6 py-20 flex flex-col gap-10">
+          <div className="text-center max-w-3xl mx-auto flex flex-col gap-3">
+            <span className="text-xs font-black uppercase tracking-wider text-[#FF4C29] bg-[#FF4C29]/10 px-3 py-1 rounded-full border border-[#FF4C29]/30 inline-block self-center">
+              PROMOTIONAL LAUNCH OFFER · PURE PAY-PER-PLAY
+            </span>
+            <h2 className="font-serif text-4xl sm:text-5xl font-black text-black">
+              Zero Monthly Subscription Fees.
+            </h2>
+            <p className="text-sm sm:text-base text-black/70 font-medium">
+              We eliminated fixed monthly software fees for our launch cohort! All plans are unlocked at <strong className="text-emerald-700 underline decoration-2">₹0 /mo</strong> on a pure Pay-Per-Play model (₹1 per game play, capped at 10 plays/user/day — plays 11+ same day are 100% on us).
             </p>
+          </div>
+
+          {/* High Urgency Founder Launch Banner */}
+          <div className="bg-gradient-to-r from-amber-400 via-orange-500 to-emerald-500 p-1 rounded-3xl border-3 border-black shadow-[6px_6px_0px_0px_#000]">
+            <div className="bg-[#111111] text-white rounded-[22px] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-left flex flex-col gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-red-500 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full animate-pulse border border-white">
+                    ⚡ FOUNDER LAUNCH EXEMPTION
+                  </span>
+                  <span className="text-xs font-bold text-amber-300">
+                    🔥 42 / 50 Cafe Venues Claimed
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
+                    8 Slots Remaining
+                  </span>
+                </div>
+                <h3 className="font-serif text-2xl sm:text-3xl font-black text-white leading-tight">
+                  Lock in <span className="text-emerald-400">₹0 /mo Fixed Cost</span> for Life
+                </h3>
+                <p className="text-xs sm:text-sm text-white/70 max-w-xl font-medium">
+                  Normally ₹2,499/mo to ₹7,999/mo. Claim your venue slot today to waive all fixed monthly subscription fees permanently. You only pay ₹1 when a customer actually plays!
+                </p>
+              </div>
+              <Link
+                href="/admin?mode=register"
+                className="whitespace-nowrap px-8 py-4 bg-emerald-400 text-black font-black text-sm rounded-xl border-2 border-white shadow-[4px_4px_0px_0px_#FF4C29] hover:bg-emerald-300 transition-all hover:scale-105 cursor-pointer text-center"
+              >
+                Claim ₹0/mo Exemption Now ➔
+              </Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Starter Plan */}
             <div className="bg-white rounded-3xl p-8 border-2 border-black shadow-[4px_4px_0px_0px_#000000] flex flex-col justify-between">
               <div>
-                <span className="text-xs font-bold text-black/50 uppercase">STARTER MERCHANT</span>
-                <h3 className="font-serif text-3xl font-black text-black mt-2">₹0</h3>
-                <span className="text-xs text-black/60 font-semibold block">Free Forever</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-black/50 uppercase">STARTER MERCHANT</span>
+                  <span className="text-[10px] font-black bg-black/5 text-black px-2 py-0.5 rounded border border-black/20">
+                    FREE TIER
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <h3 className="font-serif text-4xl font-black text-black">₹0</h3>
+                  <span className="text-xs text-black/60 font-bold">/month</span>
+                </div>
+                <span className="text-xs text-black/60 font-semibold block mt-0.5">Free Forever • Pay-Per-Play</span>
 
-                <div className="bg-[#F6F3EB] rounded-xl p-3 border border-black/10 my-6 text-xs font-bold">
+                <div className="bg-[#F6F3EB] rounded-xl p-3 border border-black/10 my-6 text-xs font-bold text-black/80">
                   🎁 Includes 100 Free Trial Game Plays
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
                   <li className="flex items-center gap-2">✓ 1 Active Game Campaign</li>
                   <li className="flex items-center gap-2">✓ Standard Printable QR Codes</li>
-                  <li className="flex items-center gap-2">✓ Pay-Per-Play (Capped at 10 plays/user/day)</li>
+                  <li className="flex items-center gap-2">✓ Pay-Per-Play (₹1/play, max 10/day)</li>
                   <li className="flex items-center gap-2">✓ Plays 11+ same day are 100% on us!</li>
                 </ul>
               </div>
 
               <Link
                 href="/admin?mode=register"
-                className="w-full mt-8 py-3.5 text-center font-bold border-2 border-black rounded-xl text-xs hover:bg-black/5 block"
+                className="w-full mt-8 py-3.5 text-center font-bold border-2 border-black rounded-xl text-xs hover:bg-black/5 block transition-colors"
               >
-                Get Started Free
+                Get Started Free ➔
               </Link>
             </div>
 
             {/* Pro Store Plan */}
-            <div className="bg-white rounded-3xl p-8 border-2 border-black shadow-[6px_6px_0px_0px_#FF4C29] flex flex-col justify-between relative">
-              <span className="absolute -top-3.5 right-6 bg-[#FF4C29] text-white text-[10px] font-black px-3.5 py-1 rounded-full border border-black tracking-widest uppercase">
-                MOST POPULAR
-              </span>
+            <div className="bg-white rounded-3xl p-8 border-3 border-black shadow-[6px_6px_0px_0px_#FF4C29] flex flex-col justify-between relative">
+              <div className="absolute -top-3.5 right-6 flex items-center gap-2">
+                <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full border border-black uppercase tracking-wider">
+                  100% WAIVED
+                </span>
+                <span className="bg-[#FF4C29] text-white text-[10px] font-black px-3 py-1 rounded-full border border-black tracking-widest uppercase">
+                  POPULAR
+                </span>
+              </div>
 
               <div>
                 <span className="text-xs font-bold text-black/50 uppercase">PRO STORE TIER</span>
-                <h3 className="font-serif text-3xl font-black text-black mt-2">₹2,499</h3>
-                <span className="text-xs text-black/60 font-semibold block">per month</span>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="font-serif text-2xl font-bold line-through text-black/40">₹2,499</span>
+                  <h3 className="font-serif text-4xl font-black text-emerald-600">₹0</h3>
+                  <span className="text-xs text-black/60 font-bold">/month</span>
+                </div>
+                <span className="text-[11px] font-bold text-amber-600 block mt-0.5">
+                  ⚡ Founder Exemption: ₹2,499/mo waived! Pure ₹1 Pay-Per-Play.
+                </span>
 
                 <div className="bg-orange-50 rounded-xl p-3 border border-orange-200 my-6 text-xs font-bold text-orange-900">
                   🎁 Includes 1,000 Monthly Bonus Game Plays
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
-                  <li className="flex items-center gap-2">✓ Up to 8 Active Minigames</li>
-                  <li className="flex items-center gap-2">✓ Custom Cafe Brand Theme & Colors</li>
+                  <li className="flex items-center gap-2 font-bold text-black">✓ Up to 8 Active Minigames</li>
+                  <li className="flex items-center gap-2 font-bold text-black">✓ Custom Cafe Brand Theme & Colors</li>
                   <li className="flex items-center gap-2">✓ Printable Table QR Stand PDF Studio</li>
                   <li className="flex items-center gap-2">✓ Counter Staff Attribution & Shifts</li>
-                  <li className="flex items-center gap-2">✓ Priority Support</li>
+                  <li className="flex items-center gap-2">✓ Priority WhatsApp & Email Support</li>
                 </ul>
               </div>
 
               <Link
                 href="/admin?mode=register"
-                className="w-full mt-8 py-3.5 text-center font-bold bg-[#111111] text-white rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] text-xs hover:translate-y-[1px] block"
+                className="w-full mt-8 py-3.5 text-center font-black bg-[#111111] text-white rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] text-xs hover:bg-black transition-transform active:translate-y-[1px] block"
               >
-                Start Pro 14-Day Trial
+                Claim Pro at ₹0/mo (Lock In Exemption) ➔
               </Link>
             </div>
 
             {/* Enterprise Plan */}
-            <div className="bg-white rounded-3xl p-8 border-2 border-black shadow-[4px_4px_0px_0px_#8B5CF6] flex flex-col justify-between">
+            <div className="bg-white rounded-3xl p-8 border-2 border-black shadow-[4px_4px_0px_0px_#8B5CF6] flex flex-col justify-between relative">
+              <span className="absolute -top-3.5 right-6 bg-purple-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full border border-black uppercase tracking-wider">
+                100% WAIVED
+              </span>
+
               <div>
                 <span className="text-xs font-bold text-black/50 uppercase">ENTERPRISE WHITE-LABEL</span>
-                <h3 className="font-serif text-3xl font-black text-black mt-2">₹7,999</h3>
-                <span className="text-xs text-black/60 font-semibold block">per month</span>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <span className="font-serif text-2xl font-bold line-through text-black/40">₹7,999</span>
+                  <h3 className="font-serif text-4xl font-black text-purple-700">₹0</h3>
+                  <span className="text-xs text-black/60 font-bold">/month</span>
+                </div>
+                <span className="text-[11px] font-bold text-purple-700 block mt-0.5">
+                  ⚡ Founder Exemption: ₹7,999/mo waived! Pure ₹1 Pay-Per-Play.
+                </span>
 
                 <div className="bg-purple-50 rounded-xl p-3 border border-purple-200 my-6 text-xs font-bold text-purple-900">
                   🎁 Includes 3,500 Monthly Bonus Game Plays
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
-                  <li className="flex items-center gap-2">✓ Unlimited Active Game Campaigns</li>
-                  <li className="flex items-center gap-2">✓ 100% Clean White-Label (No Watermarks)</li>
+                  <li className="flex items-center gap-2 font-bold text-black">✓ Unlimited Active Game Campaigns</li>
+                  <li className="flex items-center gap-2 font-bold text-black">✓ 100% Clean White-Label (No Watermarks)</li>
                   <li className="flex items-center gap-2">✓ Multi-Location Account Switcher</li>
                   <li className="flex items-center gap-2">✓ Custom Domain + Free SSL</li>
                   <li className="flex items-center gap-2">✓ Dedicated Success Manager</li>
@@ -335,9 +399,9 @@ export default function MarketingHomePage() {
 
               <Link
                 href="/admin?mode=register"
-                className="w-full mt-8 py-3.5 text-center font-bold border-2 border-black rounded-xl text-xs hover:bg-black/5 block"
+                className="w-full mt-8 py-3.5 text-center font-black bg-purple-900 text-white rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_#8B5CF6] text-xs hover:bg-purple-950 transition-transform active:translate-y-[1px] block"
               >
-                Contact Enterprise Sales
+                Claim Enterprise at ₹0/mo (Lock In Exemption) ➔
               </Link>
             </div>
           </div>

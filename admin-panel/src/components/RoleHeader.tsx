@@ -107,8 +107,8 @@ export default function RoleHeader({
               <CustomDropdown
                 options={[
                   { label: "Starter Plan (₹0 - Features Locked)", value: "Starter" },
-                  { label: "Pro Store Plan (₹2,499 - White-Label Unlocked)", value: "Pro Store" },
-                  { label: "Enterprise Plan (₹7,999 - No Watermark)", value: "Enterprise" },
+                  { label: "Pro Store (₹0/mo Promo - White-Label)", value: "Pro Store" },
+                  { label: "Enterprise (₹0/mo Promo - No Watermark)", value: "Enterprise" },
                 ]}
                 value={currentTier}
                 onChange={(val) => onTierChange(val as TierLevel)}

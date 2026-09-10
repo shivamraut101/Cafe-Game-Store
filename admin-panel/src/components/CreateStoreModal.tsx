@@ -163,22 +163,32 @@ export default function CreateStoreModal({
           {/* Plan Selection */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { id: "Starter", label: "Starter", price: "₹0/mo" },
-              { id: "Pro Store", label: "Pro Store", price: "₹2,499/mo" },
-              { id: "Enterprise", label: "Enterprise", price: "₹7,999/mo" },
+              { id: "Starter", label: "Starter", price: "₹0/mo", strike: "" },
+              { id: "Pro Store", label: "Pro Store", price: "₹0/mo", strike: "₹2,499" },
+              { id: "Enterprise", label: "Enterprise", price: "₹0/mo", strike: "₹7,999" },
             ].map(p => (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => setPlan(p.id as TierLevel)}
-                className={`p-3 rounded-xl border-2 text-left flex flex-col justify-between transition-all ${
+                className={`p-3 rounded-xl border-2 text-left flex flex-col justify-between transition-all relative ${
                   plan === p.id
                     ? "border-black bg-[#111111] text-white shadow-[2px_2px_0px_0px_#FF4C29]"
                     : "border-black/20 bg-white text-black hover:border-black/40"
                 }`}
               >
+                {p.strike && (
+                  <span className="absolute -top-2 right-1.5 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.2 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
+                    WAIVED
+                  </span>
+                )}
                 <span className="text-xs font-bold">{p.label}</span>
-                <span className="text-[10px] opacity-70 font-semibold">{p.price}</span>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  {p.strike && <span className="text-[9px] line-through opacity-50">{p.strike}</span>}
+                  <span className={`text-[10px] font-black ${plan === p.id ? "text-emerald-400" : "text-emerald-600"}`}>
+                    {p.price}
+                  </span>
+                </div>
               </button>
             ))}
           </div>
