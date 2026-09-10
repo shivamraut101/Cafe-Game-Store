@@ -39,7 +39,7 @@ export default function EnvironmentBanner() {
           </span>
           <span className="text-black/40 hidden sm:inline">·</span>
           <span className="text-black/80 font-medium">
-            Currently previewing sample cafe: <strong className="font-bold text-black">Brew & Bites</strong> (100 free plays pre-loaded)
+            Currently previewing sample cafe: <strong className="font-bold text-black">Brew & Bites</strong> (8,500 fuel credits pre-loaded)
           </span>
         </div>
 

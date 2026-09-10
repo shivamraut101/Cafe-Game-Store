@@ -39,7 +39,7 @@ export default function DemoOnboardingModal({ isOpen, onClose }: DemoOnboardingM
   };
 
   const whatsappMessage = encodeURIComponent(
-    `Hi Shivam! I'm testing the demo on demo.curaflowstudio.com and would love to onboard my cafe with the 100 Free Plays trial.`
+    `Hi Shivam! I'm testing the demo on demo.curaflowstudio.com and would love to onboard my cafe with the 1,500 Welcome Credits trial.`
   );
 
   return (
@@ -67,7 +67,7 @@ export default function DemoOnboardingModal({ isOpen, onClose }: DemoOnboardingM
           Bring Gamified Loyalty To <span className="underline decoration-[#FF4C29] decoration-wavy">Your Cafe</span>
         </h2>
         <p className="text-xs sm:text-sm text-black/70 font-semibold mt-2 leading-relaxed">
-          Transform table wait time into customer retention. Get custom-branded games, reward tiers, and printable QR standees with <strong>100 free plays</strong> pre-loaded.
+          Transform table wait time into customer retention. Get custom-branded games, reward tiers, and printable QR standees with <strong>1,500 welcome credits</strong> pre-loaded.
         </p>
 
         {/* 3 Value Pillars */}
@@ -122,7 +122,7 @@ export default function DemoOnboardingModal({ isOpen, onClose }: DemoOnboardingM
               href="/admin?mode=register"
               className="w-full py-3.5 bg-black text-white border-2 border-black rounded-xl font-bold text-sm shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Get started (100 free plays included)</span>
+              <span>Get started (1,500 bonus credits included)</span>
               <span className="text-xs text-white/60">→</span>
             </a>
 
@@ -183,7 +183,7 @@ export default function DemoOnboardingModal({ isOpen, onClose }: DemoOnboardingM
             <span className="text-3xl mb-1 block">🎉</span>
             <h3 className="font-serif text-xl font-black text-emerald-900">Request Received!</h3>
             <p className="text-xs text-emerald-800 font-semibold mt-1 max-w-sm mx-auto">
-              We will message you on WhatsApp or Email (+91 97496 94882 / shivam@primexmeta.com) within 15 minutes with a personalized setup and your 100 Free Plays grant.
+              We will message you on WhatsApp or Email (+91 97496 94882 / shivam@primexmeta.com) within 15 minutes with a personalized setup and your 1,500 Welcome Credits grant.
             </p>
             <div className="mt-4 flex justify-center gap-3">
               <a

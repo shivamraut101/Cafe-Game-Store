@@ -91,11 +91,11 @@ export default function DemoStoryboardModal() {
       realityHeadline: "Traditional marketing is an expensive black hole.",
       realityBody:
         "Printing paper flyers, billboard ads, and Instagram boosts cost thousands with zero trackable footfall or measurable repeat visits.",
-      forstoreHeadline: "Pay ₹1 Per Play • Reap ₹14,200 in Upsells",
+      forstoreHeadline: "Dynamic Fuel Credits • Reap ₹14,200 in Upsells",
       forstoreBody:
-        "At 11 PM closing, open /admin. See: 84 games played today, 32 dessert upsells generated, ₹14,200 added ticket revenue. You only paid ₹84 in wallet credits. Plus, 42 customer phone numbers collected for weekend WhatsApp campaigns.",
-      highlightStat: "₹1/Play Economics",
-      statDetail: "Only pay when customers actually play. High-margin upsells (desserts and sides) drive instant cafe profit.",
+        "At 11 PM closing, open /admin. See: 84 games played today, 32 dessert upsells generated, ₹14,200 added ticket revenue. You only paid ~₹120 in dynamic wallet credits. Plus, 42 customer phone numbers collected for weekend WhatsApp campaigns.",
+      highlightStat: "Fuel Credit Economics",
+      statDetail: "Only pay micro fuel credits when customers actually play. High-margin upsells (desserts and sides) drive instant cafe profit.",
       actionLabel: "Test Step 3: Open Owner Dashboard (/admin) 🚀",
       actionHref: "/admin",
       badgeColor: "bg-emerald-600 text-white",

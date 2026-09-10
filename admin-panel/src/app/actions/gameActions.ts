@@ -18,6 +18,33 @@ function generateCode(): string {
 import { validateGameScore } from "../../lib/antiCheat";
 import { isProd } from "../../lib/appEnv";
 
+function resolveDefaultCreditCost(gameSlug: string): number {
+  switch (gameSlug) {
+    case "barista-catch":
+      return 10;
+    case "drop-merge":
+      return 12;
+    case "coffee-tower":
+    case "flappy-barista":
+      return 15;
+    case "brick-breaker":
+      return 20;
+    case "helix-drop":
+    case "sky-hopper":
+      return 25;
+    case "tap-war":
+      return 35;
+    case "air-hockey":
+      return 40;
+    default:
+      return 20;
+  }
+}
+
+export async function getGameCreditCost(gameSlug: string): Promise<number> {
+  return resolveDefaultCreditCost(gameSlug);
+}
+
 export interface SubmitSessionInput {
   storeId?: string;
   storeSlug?: string;
@@ -58,7 +85,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
           adminPin: "9900",
           status: "Active",
           plan: "Pro Store",
-          walletBalance: 1000,
+          walletBalance: 8500,
           staffPin: "1234",
           staffMembers: [
             { id: "staff-1", name: "Rohan", role: "Barista", shift: "Morning", pin: "1234", active: true },
@@ -307,12 +334,18 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
     let billingStatus: "billed" | "platform_sponsored" = "billed";
     let creditsToDeduct = 0;
 
-    // PAY-PER-PLAY POLICY:
-    // Plays 1 to 10 per customer per day: 1 credit deducted from store wallet.
-    // Play 11+ for same customer on same day: 100% on us (Platform Sponsored / Free courtesy).
+    // DYNAMIC GAME CREDIT PER-PLAY POLICY:
+    // Different games have different credit costs based on game category:
+    // - Casual/Quick: 10-12 credits (Prize Catcher, Drop & Merge)
+    // - Skill/Arcade: 15-25 credits (Tower Stack, Flappy, Brick Breaker, Helix, Sky Hopper)
+    // - 2-Player Tabletop: 35-40 credits (Tap War 2P, Air Hockey 2P)
+    // Plays 1 to 10 per customer per day: Game-specific credits deducted from store wallet.
+    // Play 11+ for same customer on same day: 100% platform-sponsored courtesy (0 credits deducted).
+    const gameCreditCost = (config as any)?.creditCost || resolveDefaultCreditCost(gameSlug);
+
     if (playIndexToday <= 10) {
       billingStatus = "billed";
-      creditsToDeduct = 1;
+      creditsToDeduct = gameCreditCost;
     } else {
       billingStatus = "platform_sponsored";
       creditsToDeduct = 0;
@@ -323,7 +356,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
       const storeDoc = await Store.findById(storeObjId);
       if (storeDoc) {
         if (billingStatus === "billed") {
-          // Store pays 1 credit
+          // Store pays game-specific credits
           storeDoc.walletBalance = Math.max(0, (storeDoc.walletBalance || 0) - creditsToDeduct);
           storeDoc.aiCreditsUsed = (storeDoc.aiCreditsUsed || 0) + creditsToDeduct;
           storeDoc.totalPlays = (storeDoc.totalPlays || 0) + 1;
@@ -340,7 +373,7 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
               actionCategory: "BILLING",
               targetType: "GameSession",
               targetName: gameSlug,
-              details: `Pay-Per-Play: 1 credit deducted for "${gameSlug}" (Play #${playIndexToday}/10 today for customer). Remaining wallet balance: ${storeDoc.walletBalance} credits.`,
+              details: `Pay-Per-Play: ${creditsToDeduct} credits deducted for "${gameSlug}" (Play #${playIndexToday}/10 today for customer). Remaining wallet balance: ${storeDoc.walletBalance} credits.`,
               timestamp: new Date(),
             });
           } catch {}

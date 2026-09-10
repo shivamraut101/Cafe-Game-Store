@@ -330,7 +330,7 @@ export default function DemoQuestWidget() {
                   </a>
                 </div>
                 <p className="text-[11px] text-black/60 font-semibold mt-0.5 leading-snug">
-                  Inspect ₹48,700 live sales lift, customer phones & ₹1/play wallet.
+                  Inspect ₹48,700 live sales lift, customer phones & dynamic credit fuel wallet.
                 </p>
               </div>
             </div>

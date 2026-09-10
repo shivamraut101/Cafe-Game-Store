@@ -144,6 +144,7 @@ export interface IMiniGameConfig extends Document {
   maxDailyPlays: number;
   difficultyParams: Record<string, Record<string, number>>;
   rewardTiers: IRewardTier[];
+  creditCost?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -170,6 +171,7 @@ const MiniGameConfigSchema = new Schema<IMiniGameConfig>(
     enabled: { type: Boolean, default: true },
     difficulty: { type: String, enum: ["easy", "medium", "hard", "insane"], default: "medium" },
     maxDailyPlays: { type: Number, default: 0 },
+    creditCost: { type: Number, default: 20 },
     difficultyParams: { type: Schema.Types.Mixed, default: {} },
     rewardTiers: { type: [RewardTierSchema], default: [] },
   },

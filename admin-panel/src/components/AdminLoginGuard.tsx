@@ -288,7 +288,7 @@ export default function AdminLoginGuard({
 
                   <div className="w-full flex flex-col gap-2.5">
                     <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-2.5 text-[11px] font-bold text-amber-900 text-left">
-                      💡 <span className="font-black">Demo Sandbox:</span> Pre-loaded with 100 Free Plays (1,000 Credits), active minigames & sample cafe data.
+                      💡 <span className="font-black">Demo Sandbox:</span> Pre-loaded with 8,500 Credits, active minigames & sample cafe data.
                     </div>
                     <button
                       type="button"
@@ -300,7 +300,7 @@ export default function AdminLoginGuard({
                         <span className="text-xl">🏪</span>
                         <div>
                           <span className="text-xs font-black block">1-Click Demo Login</span>
-                          <span className="text-[10px] font-semibold text-black/50">Brew & Bites Cafe (Pre-loaded with 100 Free Plays)</span>
+                          <span className="text-[10px] font-semibold text-black/50">Brew & Bites Cafe (Pre-loaded with 8,500 Credits)</span>
                         </div>
                       </div>
                       <span className="text-xs font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-1 rounded-lg">
@@ -325,11 +325,11 @@ export default function AdminLoginGuard({
             <>
               <h1 className="font-serif text-2xl font-black text-black mb-1">Turn Wait Time Into Revenue</h1>
               <p className="text-xs font-semibold text-black/60 mb-3">
-                Get started in 30 seconds with 100 free plays for your business.
+                Get started in 30 seconds with 1,500 welcome bonus credits for your business.
               </p>
 
               <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-900 rounded-xl p-2.5 text-xs font-bold mb-4 w-full text-left">
-                🎁 <span className="font-black">Trial Perks:</span> 100 Free Plays • 9 Ready-to-Play Minigames • Custom Printable QR Studio
+                🎁 <span className="font-black">Trial Perks:</span> 1,500 Welcome Credits • 9 Ready-to-Play Minigames • Custom Printable QR Studio
               </div>
 
               <form onSubmit={handleRegister} className="w-full flex flex-col gap-3 text-left">

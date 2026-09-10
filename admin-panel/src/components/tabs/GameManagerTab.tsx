@@ -399,6 +399,9 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
                     <span className="text-xs font-bold text-black/40">
                       {config.rewardTiers.length} reward tier{config.rewardTiers.length !== 1 ? "s" : ""}
                     </span>
+                    <span className="text-xs font-black bg-purple-100 text-purple-900 border border-purple-300 px-2 py-0.5 rounded-md font-mono">
+                      ⚡ {config.creditCost || 20} Credits/play
+                    </span>
                     <span className="text-xs font-bold text-black/40">
                       {config.stats.totalPlaysToday} plays today
                     </span>
@@ -499,6 +502,30 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
                     />
                     <span className="text-sm font-bold text-black/50">
                       {config.maxDailyPlays === 0 ? "Unlimited plays" : `${config.maxDailyPlays} plays / day`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* ─── Credit Fuel Cost per Play ─────────────────────── */}
+                <div>
+                  <label className="text-xs font-black uppercase tracking-wider text-black/50 mb-1 block">
+                    Game Fuel Credit Cost per Play
+                  </label>
+                  <p className="text-xs text-black/60 mb-3 font-semibold">
+                    Deducted from store wallet per customer play (first 10 plays/user/day; plays 11+ are 100% platform-sponsored).
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={5}
+                      max={100}
+                      step={5}
+                      value={config.creditCost || 20}
+                      onChange={(e) => updateField(config, "creditCost" as any, Math.max(5, parseInt(e.target.value) || 20))}
+                      className="w-24 px-3 py-2 rounded-xl border-2 border-black font-mono font-black text-center text-lg bg-white shadow-[2px_2px_0px_0px_#000] focus:outline-none focus:shadow-[3px_3px_0px_0px_#FF4C29]"
+                    />
+                    <span className="text-sm font-bold text-black/60">
+                      Credits / Play (~₹{((config.creditCost || 20) * 0.11).toFixed(2)} blended est.)
                     </span>
                   </div>
                 </div>

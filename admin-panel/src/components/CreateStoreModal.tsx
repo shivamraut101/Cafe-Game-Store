@@ -26,7 +26,7 @@ export default function CreateStoreModal({
   const [ownerName, setOwnerName] = useState("");
   const [category, setCategory] = useState("General Business & Lounge");
   const [plan, setPlan] = useState<TierLevel>("Pro Store");
-  const [initialCredits, setInitialCredits] = useState(500);
+  const [initialCredits, setInitialCredits] = useState(5000);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -193,15 +193,15 @@ export default function CreateStoreModal({
             ))}
           </div>
 
-          {/* Initial Scan Bonus Credits */}
+          {/* Initial Bonus Game Fuel Credits */}
           <div>
             <label className="block text-xs font-bold uppercase text-black/70 tracking-wider mb-1">
-              Initial Bonus Scan Credits
+              Initial Bonus Game Fuel Credits
             </label>
             <input
               type="number"
-              min="100"
-              step="100"
+              min="500"
+              step="500"
               value={initialCredits}
               onChange={e => setInitialCredits(Number(e.target.value))}
               className="w-full p-3 rounded-xl border-2 border-black bg-white text-xs font-bold focus:outline-none"

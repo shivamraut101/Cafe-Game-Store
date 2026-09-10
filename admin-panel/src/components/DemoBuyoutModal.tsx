@@ -164,7 +164,7 @@ export default function DemoBuyoutModal() {
               </span>
             </div>
             <span className="text-amber-900 font-medium">
-              Fixed subscription fees are completely waived (normally ₹2,499/mo to ₹7,999/mo)! You only pay ₹1 per game play, capped at 10 plays/user/day.
+              Fixed subscription fees are completely waived (normally ₹2,499/mo to ₹7,999/mo)! You only pay dynamic fuel credits per play (from ~₹0.11/credit), capped at 10 billed plays/user/day.
             </span>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function DemoBuyoutModal() {
               </span>
               <span className="text-base font-black text-emerald-600">₹0 /mo</span>
               <span className="text-xs text-black/60 font-semibold">
-                • {plan === "Enterprise" ? "Unlimited Locations & Support" : plan === "Starter" ? "1 Active Game" : "Custom Branding & 1,000 Plays"}
+                • {plan === "Enterprise" ? "Unlimited Locations & 45,000 Credits" : plan === "Starter" ? "1 Active Game & 1,500 Credits" : "Custom Branding & 12,500 Credits"}
               </span>
             </div>
           </div>
