@@ -13,29 +13,28 @@ export interface Transaction {
 }
 
 const initialTransactions: Transaction[] = [
-  { id: "TX-1092", date: "2026-07-31 14:22", type: "Scan Deduction", amount: -45, credits: 1455, status: "Completed" },
-  { id: "TX-1091", date: "2026-07-30 09:15", type: "Top-Up", amount: 500, credits: 1500, status: "Completed", invoiceUrl: "#" },
-  { id: "TX-1090", date: "2026-07-28 18:00", type: "Scan Deduction", amount: -120, credits: 1000, status: "Completed" },
-  { id: "TX-1089", date: "2026-07-25 10:00", type: "Monthly Bonus", amount: 1000, credits: 1120, status: "Completed" },
+  { id: "TX-1092", date: "2026-07-31 14:22", type: "Scan Deduction", amount: -40, credits: 8460, status: "Completed" },
+  { id: "TX-1091", date: "2026-07-30 09:15", type: "Top-Up", amount: 999, credits: 8500, status: "Completed", invoiceUrl: "#" },
+  { id: "TX-1090", date: "2026-07-28 18:00", type: "Scan Deduction", amount: -150, credits: 5000, status: "Completed" },
+  { id: "TX-1089", date: "2026-07-25 10:00", type: "Monthly Bonus", amount: 12500, credits: 12500, status: "Completed" },
 ];
 
 export default function WalletDashboard() {
-  const [balance, setBalance] = useState(1455);
+  const [balance, setBalance] = useState(8500);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
-  const [selectedTopUpAmount, setSelectedTopUpAmount] = useState(500);
+  const [selectedTopUp, setSelectedTopUp] = useState<{ amount: number; credits: number }>({ amount: 999, credits: 9000 });
   const [autoRecharge, setAutoRecharge] = useState(true);
-  const [lowBalanceThreshold, setLowBalanceThreshold] = useState(200);
+  const [lowBalanceThreshold, setLowBalanceThreshold] = useState(1500);
 
   const handleTopUp = () => {
-    // 1 Credit = ₹1
-    const addedCredits = selectedTopUpAmount;
+    const addedCredits = selectedTopUp.credits;
     const newBal = balance + addedCredits;
     const newTx: Transaction = {
       id: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
       date: new Date().toISOString().replace("T", " ").substring(0, 16),
       type: "Top-Up",
-      amount: addedCredits,
+      amount: selectedTopUp.amount,
       credits: newBal,
       status: "Completed",
       invoiceUrl: "#",
@@ -44,8 +43,6 @@ export default function WalletDashboard() {
     setTransactions([newTx, ...transactions]);
     setShowTopUpModal(false);
   };
-
-  const costPerScan = 1; // ₹1 or 1 credit per scan
 
   return (
     <div className="flex flex-col gap-8">
@@ -59,24 +56,24 @@ export default function WalletDashboard() {
               <h2 className="font-serif text-xl font-bold">Pay-As-You-Go Store Wallet</h2>
             </div>
             <span className="bg-[#FF4C29] text-white text-xs font-black px-3 py-1 rounded-full border border-black uppercase tracking-wider">
-              Scan Credits
+              Arcade Fuel
             </span>
           </div>
 
           <div className="flex items-baseline gap-4">
             <span className="font-serif text-5xl font-black text-[#F6F3EB]">{balance.toLocaleString()}</span>
             <span className="text-sm font-semibold text-white/70">
-              Credits Remaining (~₹{(balance * costPerScan).toLocaleString()})
+              Credits Remaining (~{Math.round(balance / 20).toLocaleString()} Plays)
             </span>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/10">
             <div className="text-xs text-white/70">
-              <span className="font-bold text-white">Rate: 1 Scan = 1 Credit</span> (₹{costPerScan}/scan)
+              <span className="font-bold text-white">Dynamic Fuel: 10 - 40 Credits / Play</span> (Plays 11+ on us!)
             </div>
             <button
               onClick={() => setShowTopUpModal(true)}
-              className="bg-[#FF4C29] text-white px-6 py-2.5 rounded-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#FFFFFF] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#FFFFFF] transition-all text-sm"
+              className="bg-[#FF4C29] text-white px-6 py-2.5 rounded-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#FFFFFF] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#FFFFFF] transition-all text-sm cursor-pointer"
             >
               + Top-Up Credits Now
             </button>
@@ -105,9 +102,9 @@ export default function WalletDashboard() {
                 onChange={e => setLowBalanceThreshold(Number(e.target.value))}
                 className="p-1.5 rounded-lg border-2 border-black bg-[#FBF9F4]"
               >
-                <option value={100}>100 Credits (₹100)</option>
-                <option value={200}>200 Credits (₹200)</option>
-                <option value={500}>500 Credits (₹500)</option>
+                <option value={500}>500 Credits (~25 Plays)</option>
+                <option value={1500}>1,500 Credits (~75 Plays)</option>
+                <option value={3000}>3,000 Credits (~150 Plays)</option>
               </select>
             </div>
 
@@ -208,17 +205,17 @@ export default function WalletDashboard() {
 
             <div className="grid grid-cols-2 gap-4 mb-6">
               {[
-                { amount: 500, credits: 500, label: "Starter Pack" },
-                { amount: 1600, credits: 2000, label: "Popular (+400 Bonus)" },
-                { amount: 3500, credits: 5000, label: "Pro Store (+1.5k Bonus)" },
-                { amount: 7000, credits: 11000, label: "Enterprise (+4k Bonus)" },
+                { amount: 499, credits: 3500, label: "Starter Pack" },
+                { amount: 999, credits: 9000, label: "Popular (+1.2k Bonus)" },
+                { amount: 1999, credits: 22000, label: "Power (+4.5k Bonus)" },
+                { amount: 4499, credits: 60000, label: "Mega (+15k Bonus)" },
               ].map(pkg => (
                 <button
                   key={pkg.amount}
                   type="button"
-                  onClick={() => setSelectedTopUpAmount(pkg.amount)}
-                  className={`p-4 rounded-xl border-2 text-left flex flex-col justify-between transition-all ${
-                    selectedTopUpAmount === pkg.amount
+                  onClick={() => setSelectedTopUp({ amount: pkg.amount, credits: pkg.credits })}
+                  className={`p-4 rounded-xl border-2 text-left flex flex-col justify-between transition-all cursor-pointer ${
+                    selectedTopUp.amount === pkg.amount
                       ? "border-[#FF4C29] bg-white shadow-[3px_3px_0px_0px_#FF4C29] scale-[1.02]"
                       : "border-black bg-white/70 hover:bg-white"
                   }`}
@@ -236,16 +233,16 @@ export default function WalletDashboard() {
               <button
                 type="button"
                 onClick={() => setShowTopUpModal(false)}
-                className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-sm bg-white hover:bg-black/5"
+                className="flex-1 py-3 border-2 border-black rounded-xl font-bold text-sm bg-white hover:bg-black/5 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleTopUp}
-                className="flex-1 py-3 bg-[#111111] text-white rounded-xl font-bold text-sm border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all"
+                className="flex-1 py-3 bg-[#111111] text-white rounded-xl font-bold text-sm border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all cursor-pointer"
               >
-                Pay ₹{selectedTopUpAmount.toLocaleString()} & Add Credits
+                Pay ₹{selectedTopUp.amount.toLocaleString()} & Add Credits
               </button>
             </div>
           </div>

@@ -307,7 +307,7 @@ export async function registerMerchantAction(input: RegisterMerchantInput) {
       counter++;
     }
 
-    // Create Store in MongoDB Atlas with Starter Plan & 100 Trial Scan Credits
+    // Create Store in MongoDB Atlas with Starter Plan & 1,500 Trial Scan Credits
     const store = await Store.create({
       storeName,
       slug,
@@ -315,7 +315,7 @@ export async function registerMerchantAction(input: RegisterMerchantInput) {
       ownerName,
       plan: "Starter",
       status: "Active",
-      walletBalance: 100, // 100 Free Plays credited on sign-up
+      walletBalance: 1500, // 1,500 Free Credits credited on sign-up
       totalScans: 0,
       churnRisk: "Low",
       aiCreditsUsed: 0,

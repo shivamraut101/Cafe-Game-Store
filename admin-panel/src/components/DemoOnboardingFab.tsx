@@ -28,7 +28,7 @@ export default function DemoOnboardingFab() {
           <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
           <span>Launch for your cafe</span>
           <span className="text-white/40 text-[11px]">·</span>
-          <span className="text-emerald-400 font-semibold">100 free plays</span>
+          <span className="text-emerald-400 font-semibold">1,500 welcome credits</span>
           <span className="text-xs group-hover:translate-x-0.5 transition-transform text-white/60">→</span>
         </button>
       </aside>

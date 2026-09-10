@@ -8,8 +8,10 @@ export default function MarketingHomePage() {
   const [scansPerMonth, setScansPerMonth] = useState(1500);
   const [avgTicket, setAvgTicket] = useState(250);
 
-  // Credit calculation (₹1 or 1 credit per scan)
-  const creditCost = scansPerMonth * 1;
+  // Dynamic game credit calculation (average ~22 credits per play across 10-40 credit game tiers)
+  const estimatedCredits = scansPerMonth * 22;
+  // Blended credit cost using volume packs (e.g. ₹999 for 9,000 credits = ~11 paise/credit)
+  const creditCost = Math.round(estimatedCredits * 0.111);
   // Estimated repeat visit revenue generated (assuming 18% repeat visit lift)
   const estimatedRevenue = Math.round(scansPerMonth * 0.18 * avgTicket);
 
@@ -80,7 +82,7 @@ export default function MarketingHomePage() {
                 href="/admin?mode=register"
                 className="bg-[#111111] text-white text-center py-4 px-8 rounded-2xl font-bold border-2 border-black shadow-[4px_4px_0px_0px_#FF4C29] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all flex items-center justify-center gap-2 text-sm"
               >
-                Start Free Trial (100 Free Plays) <span>→</span>
+                Start Free Trial (1,500 Welcome Credits) <span>→</span>
               </Link>
               <a
                 href="#calculator"
@@ -98,7 +100,7 @@ export default function MarketingHomePage() {
             </div>
 
             <div className="flex flex-wrap gap-4 mt-2 text-xs font-bold text-black/70">
-              <span className="flex items-center gap-1.5">✓ 100 Free Plays on Sign-up</span>
+              <span className="flex items-center gap-1.5">✓ 1,500 Welcome Credits on Sign-up</span>
               <span className="flex items-center gap-1.5">✓ Capped at 10 plays/user/day</span>
               <span className="flex items-center gap-1.5">✓ Custom Printable QR Table Stands</span>
             </div>
@@ -168,7 +170,7 @@ export default function MarketingHomePage() {
                 See how much repeat revenue your cafe generates.
               </h2>
               <p className="text-sm text-black/70 leading-relaxed">
-                Our Pay-Per-Play wallet model charges only 1 credit (₹1) per game play, capped at 10 plays/user/day. Plays 11+ on the same day are 100% on us!
+                Our Pay-Per-Play model uses dynamic game fuel (10 to 40 credits per play depending on game type). Fair-play cap limits billed plays to 10 plays/user/day; plays 11+ on the same day are 100% on us!
               </p>
 
               {/* Slider 1: Monthly Scans */}
@@ -212,9 +214,9 @@ export default function MarketingHomePage() {
 
               <div className="grid grid-cols-2 gap-4 border-b border-white/10 pb-6">
                 <div>
-                  <span className="text-xs text-white/60 font-semibold block">Wallet Play Cost</span>
+                  <span className="text-xs text-white/60 font-semibold block">Est. Wallet Fuel Cost</span>
                   <span className="font-serif text-3xl font-black text-white mt-1 block">₹{creditCost.toLocaleString()}</span>
-                  <span className="text-[10px] text-emerald-400 font-bold block mt-1">({scansPerMonth} credits used)</span>
+                  <span className="text-[10px] text-emerald-400 font-bold block mt-1">({estimatedCredits.toLocaleString()} credits across ~{scansPerMonth} plays)</span>
                 </div>
 
                 <div>
@@ -253,7 +255,7 @@ export default function MarketingHomePage() {
               Zero Monthly Subscription Fees.
             </h2>
             <p className="text-sm sm:text-base text-black/70 font-medium">
-              We eliminated fixed monthly software fees for our launch cohort! All plans are unlocked at <strong className="text-emerald-700 underline decoration-2">₹0 /mo</strong> on a pure Pay-Per-Play model (₹1 per game play, capped at 10 plays/user/day — plays 11+ same day are 100% on us).
+              We eliminated fixed monthly software fees for our launch cohort! All plans are unlocked at <strong className="text-emerald-700 underline decoration-2">₹0 /mo</strong> on our dynamic Pay-Per-Play model (10 to 40 credits per game play, capped at 10 plays/user/day — plays 11+ same day are 100% on us).
             </p>
           </div>
 
@@ -276,7 +278,7 @@ export default function MarketingHomePage() {
                   Lock in <span className="text-emerald-400">₹0 /mo Fixed Cost</span> for Life
                 </h3>
                 <p className="text-xs sm:text-sm text-white/70 max-w-xl font-medium">
-                  Normally ₹2,499/mo to ₹7,999/mo. Claim your venue slot today to waive all fixed monthly subscription fees permanently. You only pay ₹1 when a customer actually plays!
+                  Normally ₹2,499/mo to ₹7,999/mo. Claim your venue slot today to waive all fixed monthly subscription fees permanently. You only pay via dynamic game fuel credits (10 to 40 credits/play)!
                 </p>
               </div>
               <Link
@@ -302,16 +304,16 @@ export default function MarketingHomePage() {
                   <h3 className="font-serif text-4xl font-black text-black">₹0</h3>
                   <span className="text-xs text-black/60 font-bold">/month</span>
                 </div>
-                <span className="text-xs text-black/60 font-semibold block mt-0.5">Free Forever • Pay-Per-Play</span>
+                <span className="text-xs text-black/60 font-semibold block mt-0.5">Free Forever • Dynamic Fuel</span>
 
                 <div className="bg-[#F6F3EB] rounded-xl p-3 border border-black/10 my-6 text-xs font-bold text-black/80">
-                  🎁 Includes 100 Free Trial Game Plays
+                  🎁 Includes 1,500 Welcome Game Credits (~75-150 Plays)
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
                   <li className="flex items-center gap-2">✓ 1 Active Game Campaign</li>
                   <li className="flex items-center gap-2">✓ Standard Printable QR Codes</li>
-                  <li className="flex items-center gap-2">✓ Pay-Per-Play (₹1/play, max 10/day)</li>
+                  <li className="flex items-center gap-2">✓ Pay-Per-Play (10 to 40 credits/play, max 10/day)</li>
                   <li className="flex items-center gap-2">✓ Plays 11+ same day are 100% on us!</li>
                 </ul>
               </div>
@@ -343,19 +345,19 @@ export default function MarketingHomePage() {
                   <span className="text-xs text-black/60 font-bold">/month</span>
                 </div>
                 <span className="text-[11px] font-bold text-amber-600 block mt-0.5">
-                  ⚡ Founder Exemption: ₹2,499/mo waived! Pure ₹1 Pay-Per-Play.
+                  ⚡ Founder Exemption: ₹2,499/mo waived! Dynamic Game Fuel.
                 </span>
 
                 <div className="bg-orange-50 rounded-xl p-3 border border-orange-200 my-6 text-xs font-bold text-orange-900">
-                  🎁 Includes 1,000 Monthly Bonus Game Plays
+                  🎁 Includes 12,500 Monthly Bonus Game Credits
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">
                   <li className="flex items-center gap-2 font-bold text-black">✓ Up to 8 Active Minigames</li>
                   <li className="flex items-center gap-2 font-bold text-black">✓ Custom Cafe Brand Theme & Colors</li>
-                  <li className="flex items-center gap-2">✓ Printable Table QR Stand PDF Studio</li>
-                  <li className="flex items-center gap-2">✓ Counter Staff Attribution & Shifts</li>
-                  <li className="flex items-center gap-2">✓ Priority WhatsApp & Email Support</li>
+                  <li className="flex items-center gap-2 font-bold text-black">✓ Printable Table QR Stand PDF Studio</li>
+                  <li className="flex items-center gap-2 font-bold text-black">✓ Counter Staff Attribution & Shifts</li>
+                  <li className="flex items-center gap-2 font-bold text-black">✓ Priority WhatsApp & Email Support</li>
                 </ul>
               </div>
 
@@ -381,11 +383,11 @@ export default function MarketingHomePage() {
                   <span className="text-xs text-black/60 font-bold">/month</span>
                 </div>
                 <span className="text-[11px] font-bold text-purple-700 block mt-0.5">
-                  ⚡ Founder Exemption: ₹7,999/mo waived! Pure ₹1 Pay-Per-Play.
+                  ⚡ Founder Exemption: ₹7,999/mo waived! Dynamic Game Fuel.
                 </span>
 
                 <div className="bg-purple-50 rounded-xl p-3 border border-purple-200 my-6 text-xs font-bold text-purple-900">
-                  🎁 Includes 3,500 Monthly Bonus Game Plays
+                  🎁 Includes 45,000 Monthly Bonus Game Credits
                 </div>
 
                 <ul className="flex flex-col gap-3 text-xs text-black/80 font-medium">

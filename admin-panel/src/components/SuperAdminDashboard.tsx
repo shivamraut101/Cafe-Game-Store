@@ -272,7 +272,7 @@ export default function SuperAdminDashboard({
   };
 
   // Computations directly from active MongoDB database state
-  const totalMRR = merchants.reduce((sum, m) => sum + (m.plan === "Enterprise" ? 99 : m.plan === "Pro Store" ? 29 : 0), 0);
+  const totalMRR = merchants.reduce((sum, m) => sum + (m.plan === "Enterprise" ? 7999 : m.plan === "Pro Store" ? 2499 : 0), 0);
   const totalWalletCredits = merchants.reduce((sum, m) => sum + (m.walletBalance || 0), 0);
   const highRiskStore = merchants.find(m => m.churnRisk === "High" || m.status === "Suspended");
   const healthScore = Math.max(75, 100 - merchants.filter(m => m.churnRisk === "High").length * 8);
@@ -340,7 +340,7 @@ export default function SuperAdminDashboard({
           {loading ? (
             <div className="h-8 w-24 bg-black/10 animate-pulse rounded-lg mt-1" />
           ) : (
-            <h3 className="font-serif text-3xl font-black mt-1 text-black">${totalMRR.toLocaleString()}.00</h3>
+            <h3 className="font-serif text-3xl font-black mt-1 text-black">₹{totalMRR.toLocaleString()}</h3>
           )}
           <span className="text-emerald-700 text-xs font-bold block mt-2">Live from DB Merchant Plans</span>
         </div>
@@ -375,7 +375,7 @@ export default function SuperAdminDashboard({
           {loading ? (
             <div className="h-8 w-24 bg-black/10 animate-pulse rounded-lg mt-1" />
           ) : (
-            <h3 className="font-serif text-3xl font-black mt-1 text-black">${totalWalletCredits.toLocaleString()}</h3>
+            <h3 className="font-serif text-3xl font-black mt-1 text-black">⚡ {totalWalletCredits.toLocaleString()}</h3>
           )}
           <span className="text-black/60 text-xs font-bold block mt-2">Total prepaid balances in DB</span>
         </div>

@@ -24,8 +24,8 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
   // Top Up Modal State
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<{ credits: number; inr: number }>({
-    credits: 2000,
-    inr: 1600,
+    credits: 9000,
+    inr: 999,
   });
   const [paymentMethod, setPaymentMethod] = useState<"upi" | "bank_transfer">("upi");
   const [referenceId, setReferenceId] = useState("");
@@ -180,8 +180,9 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
               Never Overpay for Addictive Gamers
             </h3>
             <p className="text-xs text-black/70 font-semibold mt-1 max-w-2xl leading-relaxed">
-              Your store only pays <strong>1 credit per customer game play</strong> for the first <strong>10 plays per customer each day</strong>.
-              From play 11 onwards for that same customer on the same day, <strong>the cost is 100% on us (Platform Courtesy)</strong>! Your store wallet is never drained.
+              Games consume <strong>10 to 40 credits per play</strong> depending on game complexity (10-15 credits for casual tap games, 35-40 credits for 2-player tabletop duels).
+              Your store only pays for the first <strong>10 plays per customer each day</strong>.
+              From play 11 onwards for that same customer on the same day, <strong>the cost is 100% on us (Platform Courtesy)</strong>!
             </p>
           </div>
         </div>
@@ -214,8 +215,8 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
               )}
             </div>
             <p className="text-sm font-semibold text-black/60 mt-1">
-              Supports roughly <span className="text-black font-black">~{walletBalance.toLocaleString()}</span> customer game plays.
-              ({aiCreditsUsed} credits billed • {sponsoredPlays} platform sponsored plays on us)
+              Supports roughly <span className="text-black font-black">~{Math.round(walletBalance / 20).toLocaleString()}</span> customer game plays across games (10-40 credits/play).
+              ({aiCreditsUsed.toLocaleString()} credits used • {sponsoredPlays} platform sponsored plays on us)
             </p>
           </div>
 
@@ -229,51 +230,51 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => {
-                  setSelectedPackage({ credits: 500, inr: 500 });
+                  setSelectedPackage({ credits: 3500, inr: 499 });
                   setIsTopUpModalOpen(true);
                 }}
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-[#FBF9F4] transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <span>🪙</span> 500 Plays
+                  <span>🪙</span> 3,500 Credits
                 </div>
                 <span className="font-bold bg-black text-white px-3 py-1 rounded-lg text-xs group-hover:bg-[#FF4C29] transition-colors">
-                  ₹500
+                  ₹499
                 </span>
               </button>
 
               <button
                 onClick={() => {
-                  setSelectedPackage({ credits: 2000, inr: 1600 });
+                  setSelectedPackage({ credits: 9000, inr: 999 });
                   setIsTopUpModalOpen(true);
                 }}
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-amber-50 transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <span>💰</span> 2,000 Plays
+                  <span>💰</span> 9,000 Credits
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">Save 20%</span>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">+1.2k Bonus</span>
                   <span className="font-bold bg-black text-white px-3 py-1 rounded-lg text-xs group-hover:bg-[#FF4C29] transition-colors">
-                    ₹1,600
+                    ₹999
                   </span>
                 </div>
               </button>
 
               <button
                 onClick={() => {
-                  setSelectedPackage({ credits: 5000, inr: 3500 });
+                  setSelectedPackage({ credits: 22000, inr: 1999 });
                   setIsTopUpModalOpen(true);
                 }}
                 className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-black/10 hover:border-black hover:bg-purple-50 transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <span>🚀</span> 5,000 Plays
+                  <span>🚀</span> 22,000 Credits
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">Save 30%</span>
+                  <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">+4.5k Bonus</span>
                   <span className="font-bold bg-black text-white px-3 py-1 rounded-lg text-xs group-hover:bg-[#FF4C29] transition-colors">
-                    ₹3,500
+                    ₹1,999
                   </span>
                 </div>
               </button>
@@ -431,7 +432,7 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
               <h2 className="font-serif text-2xl font-black text-black">Top Up Game Play Credits</h2>
             </div>
             <p className="text-xs text-black/60 mb-5">
-              Direct transfer via UPI or NEFT/IMPS Bank Wire. 1 Credit = 1 Game Play (Plays 11+ per user/day are free on us!). Enter your UTR reference ID below to activate credits immediately.
+              Recharge your store wallet with Arcade Fuel Credits. Different games consume 10 to 40 credits per play. Plays 11+ per user/day are 100% free on us!
             </p>
 
             {/* Step 1: Package Selector */}
@@ -439,25 +440,31 @@ export default function WalletTab({ storeName: currentStoreName }: WalletTabProp
               <label className="block text-xs font-bold uppercase tracking-wider text-black/70 mb-2">
                 1. Select Credit Package
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
-                  { credits: 500, inr: 500, label: "Starter" },
-                  { credits: 2000, inr: 1600, label: "Popular", highlight: true },
-                  { credits: 5000, inr: 3500, label: "Pro Value" },
+                  { credits: 3500, inr: 499, label: "Starter", bonus: "" },
+                  { credits: 9000, inr: 999, label: "Popular", bonus: "+1.2k Bonus", highlight: true },
+                  { credits: 22000, inr: 1999, label: "Power", bonus: "+4.5k Bonus" },
+                  { credits: 60000, inr: 4499, label: "Mega Chain", bonus: "+15k Bonus" },
                 ].map((pkg) => (
                   <button
                     key={pkg.credits}
                     type="button"
                     onClick={() => setSelectedPackage(pkg)}
-                    className={`p-3 rounded-2xl border-2 font-bold text-left transition-all cursor-pointer ${
+                    className={`p-3 rounded-2xl border-2 font-bold text-left transition-all cursor-pointer relative ${
                       selectedPackage.credits === pkg.credits
                         ? "bg-black text-white border-black shadow-[2px_2px_0px_0px_#FF4C29]"
                         : "bg-white text-black border-black hover:bg-black/5"
                     }`}
                   >
-                    <div className="text-xs opacity-70">{pkg.label}</div>
-                    <div className="text-sm font-black">{pkg.credits} Credits</div>
-                    <div className="text-xs font-mono mt-0.5">₹{pkg.inr}</div>
+                    {pkg.bonus && (
+                      <span className="absolute -top-2 right-1.5 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.2 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
+                        {pkg.bonus}
+                      </span>
+                    )}
+                    <div className="text-[10px] opacity-70 uppercase tracking-wider">{pkg.label}</div>
+                    <div className="text-xs font-black">{pkg.credits.toLocaleString()} Cr</div>
+                    <div className="text-xs font-mono font-bold mt-0.5 text-emerald-500">₹{pkg.inr}</div>
                   </button>
                 ))}
               </div>

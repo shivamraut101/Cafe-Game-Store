@@ -19,6 +19,7 @@ interface GameCard {
   shadowColor: string;
   totalPlays?: number;
   popular?: boolean;
+  creditCost: number;
 }
 
 const DEFAULT_ARCADE_GAMES: GameCard[] = [
@@ -33,6 +34,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#2563EB]",
     shadowColor: "shadow-[4px_4px_0px_0px_#2563EB]",
     popular: true,
+    creditCost: 40,
   },
   {
     slug: "tap-war",
@@ -45,6 +47,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#D946EF]",
     shadowColor: "shadow-[4px_4px_0px_0px_#D946EF]",
     popular: true,
+    creditCost: 35,
   },
   {
     slug: "brick-breaker",
@@ -57,6 +60,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#6366F1]",
     shadowColor: "shadow-[4px_4px_0px_0px_#6366F1]",
     popular: true,
+    creditCost: 20,
   },
   {
     slug: "coffee-tower",
@@ -69,6 +73,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#FF4C29]",
     shadowColor: "shadow-[4px_4px_0px_0px_#FF4C29]",
     popular: true,
+    creditCost: 15,
   },
   {
     slug: "flappy-barista",
@@ -81,6 +86,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#F59E0B]",
     shadowColor: "shadow-[4px_4px_0px_0px_#F59E0B]",
     popular: true,
+    creditCost: 15,
   },
   {
     slug: "barista-catch",
@@ -93,6 +99,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#10B981]",
     shadowColor: "shadow-[4px_4px_0px_0px_#10B981]",
     popular: true,
+    creditCost: 10,
   },
   {
     slug: "drop-merge",
@@ -105,6 +112,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#EC4899]",
     shadowColor: "shadow-[4px_4px_0px_0px_#EC4899]",
     popular: true,
+    creditCost: 12,
   },
   {
     slug: "helix-drop",
@@ -117,6 +125,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#06B6D4]",
     shadowColor: "shadow-[4px_4px_0px_0px_#06B6D4]",
     popular: true,
+    creditCost: 25,
   },
   {
     slug: "sky-hopper",
@@ -129,6 +138,7 @@ const DEFAULT_ARCADE_GAMES: GameCard[] = [
     color: "bg-[#14B8A6]",
     shadowColor: "shadow-[4px_4px_0px_0px_#14B8A6]",
     popular: true,
+    creditCost: 25,
   },
 ];
 
@@ -282,6 +292,7 @@ export default function ArcadeLandingPage() {
                 : `Play ${c.name} to beat boredom, unlock streaks & claim perks!`;
 
               const totalPlays = c.stats?.totalPlays || 0;
+              const creditCost = (c as any).creditCost || DEFAULT_ARCADE_GAMES.find((g) => g.slug === c.slug)?.creditCost || 20;
 
               return {
                 slug: c.slug,
@@ -295,6 +306,7 @@ export default function ArcadeLandingPage() {
                 shadowColor,
                 totalPlays,
                 popular: false,
+                creditCost,
               };
             });
 
@@ -467,6 +479,9 @@ export default function ArcadeLandingPage() {
                   <div className="flex items-center gap-2 flex-wrap mt-0.5">
                     <span className="text-[10px] font-black text-black/40 uppercase tracking-wider block">
                       {game.type}
+                    </span>
+                    <span className="text-[10px] font-black bg-purple-100 text-purple-900 border border-purple-300 px-2 py-0.2 rounded-md font-mono">
+                      ⚡ {game.creditCost || 20} Credits
                     </span>
                     {typeof game.totalPlays === "number" && game.totalPlays > 0 && (
                       <span className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.2 rounded-md font-mono">

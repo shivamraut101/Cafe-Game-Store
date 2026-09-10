@@ -78,7 +78,7 @@ export default function SubscriptionTab({ storeName: currentStoreName, currentTi
                 Zero Monthly Subscription Fee • All Plans on Pure Pay-Per-Play
               </h3>
               <p className="text-xs sm:text-sm text-black/80 font-semibold mt-1 max-w-2xl leading-relaxed">
-                During this promotional launch, both <strong>Pro Store (normally ₹2,499/mo)</strong> and <strong>Enterprise (normally ₹7,999/mo)</strong> monthly subscription fees are reduced to <strong className="text-emerald-700 underline decoration-2">₹0 /month</strong>! You never pay fixed software fees—you only pay ₹1 when an actual customer at your tables plays a game.
+                During this promotional launch, both <strong>Pro Store (normally ₹2,499/mo)</strong> and <strong>Enterprise (normally ₹7,999/mo)</strong> monthly subscription fees are reduced to <strong className="text-emerald-700 underline decoration-2">₹0 /month</strong>! You never pay fixed software fees—you only pay dynamic credits (from ~₹0.11/credit) when an actual customer at your tables plays a game.
               </p>
               <div className="mt-2 text-xs font-black text-red-600 flex items-center gap-1.5">
                 <span>⏳</span>
@@ -111,7 +111,7 @@ export default function SubscriptionTab({ storeName: currentStoreName, currentTi
               <span className="text-sm font-bold text-black/50">/mo</span>
             </div>
             <p className="text-[11px] font-bold text-emerald-700 mb-6">
-              100% Pure Pay-Per-Play (₹1/play)
+              100% Pure Pay-Per-Play (Dynamic Fuel Credits)
             </p>
             
             <div className="flex flex-col gap-3.5 mb-8">
@@ -122,7 +122,7 @@ export default function SubscriptionTab({ storeName: currentStoreName, currentTi
                 <span className="text-emerald-500 font-bold">✓</span> Basic Scan Analytics
               </div>
               <div className="flex items-center gap-3 text-sm font-semibold text-black/80">
-                <span className="text-emerald-500 font-bold">✓</span> 100 Trial Plays Included
+                <span className="text-emerald-500 font-bold">✓</span> 1,500 Welcome Bonus Credits Included
               </div>
               <div className="flex items-center gap-3 text-sm font-semibold text-black/80">
                 <span className="text-emerald-500 font-bold">✓</span> Anti-Abuse Shield (Cap 10/day)
@@ -160,7 +160,7 @@ export default function SubscriptionTab({ storeName: currentStoreName, currentTi
               <span className="text-sm font-bold text-white/70">/mo</span>
             </div>
             <p className="text-[11px] font-bold text-amber-300 mb-6">
-              ⚡ Limited Cohort: Monthly fee waived! Pure Pay-Per-Play (₹1/play).
+              ⚡ Limited Cohort: Monthly fee waived! Pure Pay-Per-Play (Dynamic Credits).
             </p>
             
             <div className="flex flex-col gap-3.5 mb-8">
@@ -177,7 +177,7 @@ export default function SubscriptionTab({ storeName: currentStoreName, currentTi
                 <span className="text-[#FF4C29] font-bold">✓</span> Staff Counter PIN Access (/claim)
               </div>
               <div className="flex items-center gap-3 text-sm font-semibold text-white">
-                <span className="text-[#FF4C29] font-bold">✓</span> 1,000 Bonus Game Plays Included
+                <span className="text-[#FF4C29] font-bold">✓</span> 12,500 Bonus Game Fuel Credits Included
               </div>
             </div>
           </div>
@@ -209,7 +209,7 @@ export default function SubscriptionTab({ storeName: currentStoreName, currentTi
               <span className="text-sm font-bold text-black/50">/mo</span>
             </div>
             <p className="text-[11px] font-bold text-purple-700 mb-6">
-              ⚡ Limited Cohort: Monthly fee waived! Pure Pay-Per-Play (₹1/play).
+              ⚡ Limited Cohort: Monthly fee waived! Pure Pay-Per-Play (Dynamic Credits).
             </p>
             
             <div className="flex flex-col gap-3.5 mb-8">
@@ -226,7 +226,7 @@ export default function SubscriptionTab({ storeName: currentStoreName, currentTi
                 <span className="text-emerald-500 font-bold">✓</span> Custom Domain & Dedicated SSL
               </div>
               <div className="flex items-center gap-3 text-sm font-semibold text-black/80">
-                <span className="text-emerald-500 font-bold">✓</span> 3,500 Bonus Game Plays Included
+                <span className="text-emerald-500 font-bold">✓</span> 45,000 Bonus Game Fuel Credits Included
               </div>
             </div>
           </div>

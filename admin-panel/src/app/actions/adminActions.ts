@@ -60,7 +60,7 @@ export async function getSuperAdminMerchantsAction() {
           ownerName: "Alex Rivera",
           plan: "Pro Store",
           status: "Active",
-          walletBalance: 850,
+          walletBalance: 8500,
           totalScans: 1420,
           joinedDate: "2026-01-15",
           whiteLabelOverride: true,
@@ -76,7 +76,7 @@ export async function getSuperAdminMerchantsAction() {
           ownerName: "Carlos Mendoza",
           plan: "Enterprise",
           status: "Active",
-          walletBalance: 2400,
+          walletBalance: 24000,
           totalScans: 4890,
           joinedDate: "2025-11-20",
           whiteLabelOverride: true,
@@ -102,7 +102,7 @@ export async function getSuperAdminMerchantsAction() {
           ownerName: "Alex Rivera",
           plan: "Pro Store",
           status: "Active",
-          walletBalance: 850,
+          walletBalance: 8500,
           totalScans: 1420,
           joinedDate: "2026-01-15",
           whiteLabelOverride: true,
@@ -274,7 +274,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
           adminPin: "9900",
           status: "Active",
           plan: "Pro Store",
-          walletBalance: 1000,
+          walletBalance: 12500,
           staffPin: "1234",
           staffMembers: [
             { id: "staff-1", name: "Rohan", role: "Barista", shift: "Morning", pin: "1234", active: true },
@@ -299,6 +299,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "medium",
         maxDailyPlays: 0,
+        creditCost: 15,
         rewardTiers: [
           { id: "t1", pointThreshold: 5, rewardName: "10% Off Discount", rewardDescription: "10% off your bill or service" },
           { id: "t2", pointThreshold: 15, rewardName: "Special Perk Upgrade", rewardDescription: "Complimentary upgrade or add-on" },
@@ -312,6 +313,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "medium",
         maxDailyPlays: 5,
+        creditCost: 15,
         rewardTiers: [
           { id: "t4", pointThreshold: 10, rewardName: "Instant 5% Off", rewardDescription: "5% off total bill" },
           { id: "t5", pointThreshold: 25, rewardName: "Buy 1 Get 1 Special", rewardDescription: "Special 2-for-1 offer" },
@@ -324,6 +326,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "easy",
         maxDailyPlays: 0,
+        creditCost: 10,
         rewardTiers: [
           { id: "t6", pointThreshold: 100, rewardName: "15% Off Voucher", rewardDescription: "15% off today's visit" },
           { id: "t7", pointThreshold: 300, rewardName: "VIP Surprise Gift", rewardDescription: "Special surprise gift or top-tier perk" },
@@ -336,6 +339,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "easy",
         maxDailyPlays: 0,
+        creditCost: 12,
         rewardTiers: [
           { id: "t8", pointThreshold: 200, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
           { id: "t9", pointThreshold: 600, rewardName: "Crown Master Perk", rewardDescription: "Top-tier upgrade reward" },
@@ -348,6 +352,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "medium",
         maxDailyPlays: 0,
+        creditCost: 20,
         rewardTiers: [
           { id: "t10", pointThreshold: 15, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
           { id: "t11", pointThreshold: 40, rewardName: "Breaker Star Perk", rewardDescription: "Special combo reward" },
@@ -360,6 +365,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "medium",
         maxDailyPlays: 0,
+        creditCost: 25,
         rewardTiers: [
           { id: "t12", pointThreshold: 20, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
           { id: "t13", pointThreshold: 50, rewardName: "Helix Smash Perk", rewardDescription: "Special store reward" },
@@ -372,6 +378,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "easy",
         maxDailyPlays: 0,
+        creditCost: 25,
         rewardTiers: [
           { id: "t14", pointThreshold: 15, rewardName: "10% Off Reward", rewardDescription: "10% off bill or service" },
           { id: "t15", pointThreshold: 45, rewardName: "High Altitude Perk", rewardDescription: "Top customer reward" },
@@ -384,6 +391,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "easy",
         maxDailyPlays: 0,
+        creditCost: 40,
         rewardTiers: [
           { id: "t16", pointThreshold: 5, rewardName: "Table Winner Perk", rewardDescription: "10% off for match winner" },
           { id: "t17", pointThreshold: 10, rewardName: "Arcade Champion Perk", rewardDescription: "Special champion treat" },
@@ -396,6 +404,7 @@ export async function getMiniGameConfigsAction(storeId?: string, storeName?: str
         enabled: true,
         difficulty: "easy",
         maxDailyPlays: 0,
+        creditCost: 35,
         rewardTiers: [
           { id: "t18", pointThreshold: 2, rewardName: "Rapid Tap Perk", rewardDescription: "10% off for round winner" },
           { id: "t19", pointThreshold: 5, rewardName: "Lightning Master Perk", rewardDescription: "Special table reward" },
@@ -780,7 +789,7 @@ export async function getGlobalBillingAction() {
     await connectDB();
 
     const stores = await Store.find({});
-    const totalMRR = stores.reduce((sum, s) => sum + (s.plan === "Enterprise" ? 99 : s.plan === "Pro Store" ? 29 : 0), 0);
+    const totalMRR = stores.reduce((sum, s) => sum + (s.plan === "Enterprise" ? 7999 : s.plan === "Pro Store" ? 2499 : 0), 0);
     const totalWalletBalance = stores.reduce((sum, s) => sum + (s.walletBalance || 0), 0);
     const totalAiCreditsUsed = stores.reduce((sum, s) => sum + (s.aiCreditsUsed || 0), 0);
 

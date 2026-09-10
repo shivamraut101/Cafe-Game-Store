@@ -31,6 +31,7 @@ export interface MiniGameConfig {
   difficulty: GameDifficulty;
   maxDailyPlays: number; // 0 = unlimited
   rewardTiers: GameRewardTier[];
+  creditCost?: number;
   stats: {
     totalPlays?: number;
     totalPlaysToday: number;

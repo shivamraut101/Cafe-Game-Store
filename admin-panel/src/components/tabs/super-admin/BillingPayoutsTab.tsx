@@ -52,14 +52,14 @@ export default function BillingPayoutsTab() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-[#111111] text-white p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_0px_#FF4C29] flex flex-col gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-white/60">Estimated Monthly MRR</span>
-          <span className="text-4xl font-black">${metrics.totalMRR.toLocaleString()}.00</span>
+          <span className="text-4xl font-black">₹{metrics.totalMRR.toLocaleString()}</span>
           <span className="text-xs font-bold text-emerald-400 mt-2">Live from DB Merchant Plans</span>
         </div>
 
         <div className="bg-white text-black p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_0px_#000000] flex flex-col gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-black/50">Total Merchant Wallet Balances</span>
-          <span className="text-4xl font-black text-emerald-600">${metrics.totalWalletBalance.toLocaleString()}.00</span>
-          <span className="text-xs font-bold text-black/50 mt-2">Prepaid scan credits</span>
+          <span className="text-4xl font-black text-emerald-600">⚡ {metrics.totalWalletBalance.toLocaleString()}</span>
+          <span className="text-xs font-bold text-black/50 mt-2">Total prepaid fuel credits in DB</span>
         </div>
 
         <div className="bg-white text-black p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_0px_#000000] flex flex-col gap-2">
