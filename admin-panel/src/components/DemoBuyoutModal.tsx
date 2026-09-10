@@ -151,6 +151,24 @@ export default function DemoBuyoutModal() {
           Turn customer dwell time into repeat footfall, 5-star Google reviews, and higher average order value.
         </p>
 
+        {/* Founder Launch Promotion Callout Banner */}
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3.5 mb-5 flex items-center gap-3 shadow-[2px_2px_0px_0px_#000]">
+          <span className="text-2xl">⚡</span>
+          <div className="text-xs">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="font-black text-amber-950 uppercase tracking-wide">
+                Founder Launch Promotion
+              </span>
+              <span className="bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded">
+                100% MONTHLY WAIVER
+              </span>
+            </div>
+            <span className="text-amber-900 font-medium">
+              Fixed subscription fees are completely waived (normally ₹2,499/mo to ₹7,999/mo)! You only pay ₹1 per game play, capped at 10 plays/user/day.
+            </span>
+          </div>
+        </div>
+
         {/* Selected Tier Pill */}
         <div className="bg-white border-2 border-black rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[3px_3px_0px_0px_#000]">
           <div>
@@ -161,9 +179,15 @@ export default function DemoBuyoutModal() {
               <span>☕</span>
               <span>{plan === "Enterprise" ? "Enterprise White-Label" : plan === "Starter" ? "Starter Plan" : "Pro Store Tier"}</span>
             </div>
-            <span className="text-xs text-black/60 font-semibold">
-              {plan === "Enterprise" ? "₹7,999/mo • Unlimited Locations & Dedicated Support" : plan === "Starter" ? "₹0 Free Forever • 1 Active Game" : "₹2,499/mo • Custom Branding & 1,000 Bonus Plays"}
-            </span>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="text-sm font-bold line-through text-black/40">
+                {plan === "Enterprise" ? "₹7,999/mo" : plan === "Starter" ? "₹0/mo" : "₹2,499/mo"}
+              </span>
+              <span className="text-base font-black text-emerald-600">₹0 /mo</span>
+              <span className="text-xs text-black/60 font-semibold">
+                • {plan === "Enterprise" ? "Unlimited Locations & Support" : plan === "Starter" ? "1 Active Game" : "Custom Branding & 1,000 Plays"}
+              </span>
+            </div>
           </div>
           <span className="text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-1 rounded-full whitespace-nowrap">
             Includes 14-Day Free Pilot

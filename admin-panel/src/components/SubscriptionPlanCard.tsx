@@ -8,6 +8,8 @@ export interface Plan {
   id: TierLevel;
   name: string;
   price: string;
+  originalPrice?: string;
+  promoBadge?: string;
   billingPeriod: string;
   badge?: string;
   monthlyCredits: number;
@@ -38,7 +40,9 @@ const plans: Plan[] = [
   {
     id: "Pro Store",
     name: "Pro Store Tier",
-    price: "₹2,499",
+    price: "₹0",
+    originalPrice: "₹2,499",
+    promoBadge: "100% WAIVED",
     billingPeriod: "per month",
     badge: "MOST POPULAR",
     monthlyCredits: 1000,
@@ -57,7 +61,9 @@ const plans: Plan[] = [
   {
     id: "Enterprise",
     name: "Enterprise White-Label",
-    price: "₹7,999",
+    price: "₹0",
+    originalPrice: "₹7,999",
+    promoBadge: "100% WAIVED",
     billingPeriod: "per month",
     badge: "UNLIMITED BRANDING",
     monthlyCredits: 3500,
@@ -122,18 +128,36 @@ export default function SubscriptionPlanCard({
                   : "shadow-[4px_4px_0px_0px_#000000]"
               } ${isCurrent ? "ring-2 ring-black" : ""}`}
             >
-              {plan.badge && (
-                <span className="absolute -top-3 right-4 bg-[#FF4C29] text-white text-[10px] font-black px-3 py-1 rounded-full border border-black tracking-wider uppercase">
-                  {plan.badge}
-                </span>
-              )}
+              <div className="absolute -top-3 right-4 flex items-center gap-1.5">
+                {plan.promoBadge && (
+                  <span className="bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full border border-black uppercase tracking-wider">
+                    {plan.promoBadge}
+                  </span>
+                )}
+                {plan.badge && (
+                  <span className="bg-[#FF4C29] text-white text-[10px] font-black px-3 py-1 rounded-full border border-black tracking-wider uppercase">
+                    {plan.badge}
+                  </span>
+                )}
+              </div>
 
               <div>
                 <h3 className="font-serif text-xl font-bold text-black">{plan.name}</h3>
-                <div className="my-4 flex items-baseline gap-1">
-                  <span className="font-serif text-4xl font-black text-black">{plan.price}</span>
+                <div className="my-4 flex items-baseline gap-2">
+                  {plan.originalPrice && (
+                    <span className="font-serif text-2xl font-bold line-through text-black/40">
+                      {plan.originalPrice}
+                    </span>
+                  )}
+                  <span className="font-serif text-4xl font-black text-emerald-600">{plan.price}</span>
                   <span className="text-xs font-semibold text-black/60">{plan.billingPeriod}</span>
                 </div>
+
+                {plan.originalPrice && (
+                  <p className="text-[11px] font-bold text-amber-600 mb-3">
+                    ⚡ Promotional waiver: Monthly fee ₹0! Pure Pay-Per-Play.
+                  </p>
+                )}
 
                 <div className="bg-[#F6F3EB] rounded-xl p-3 border border-black/10 my-4 text-xs font-bold flex flex-col gap-1">
                   <div className="text-emerald-700">✓ {plan.monthlyCredits} Bonus Credits / mo</div>
@@ -153,7 +177,7 @@ export default function SubscriptionPlanCard({
               <button
                 onClick={() => handleSelectTier(plan.id)}
                 disabled={isCurrent}
-                className={`w-full py-3 rounded-xl font-bold border-2 border-black text-xs transition-all ${
+                className={`w-full py-3 rounded-xl font-bold border-2 border-black text-xs transition-all cursor-pointer ${
                   isCurrent
                     ? "bg-emerald-100 border-emerald-500 text-emerald-900 cursor-default"
                     : plan.badge
@@ -161,7 +185,7 @@ export default function SubscriptionPlanCard({
                     : "bg-white hover:bg-black/5"
                 }`}
               >
-                {isCurrent ? "Current Plan Active" : `Upgrade to ${plan.id}`}
+                {isCurrent ? "Current Plan Active" : `Claim ${plan.id} at ₹0/mo ➔`}
               </button>
             </div>
           );
