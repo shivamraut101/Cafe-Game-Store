@@ -240,7 +240,10 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
 
     let rewardEarned: { tierId: string; rewardName: string; claimed: boolean } | null = null;
     let claimCode: string | null = null;
+    let validFrom: Date | null = null;
     let expiresAt: Date | null = null;
+    let timingMode: "immediate_upsell" | "next_visit_retention" = "immediate_upsell";
+    let minOrderValue: number = 0;
     let cooldownNotice: string | null = null;
 
     // ─── 3. Reward Voucher Issuance & Store-Controlled Cooldown ────────────
@@ -292,8 +295,23 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
             };
 
             claimCode = generateCode();
-            // SECURITY REQUIREMENT: 2-Hour Strict Expiry Window
-            expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+
+            // RETENTION / BOUNCEBACK vs IMMEDIATE UPSELL LOGIC:
+            timingMode = (topTier as any).timingMode === "next_visit_retention" ? "next_visit_retention" : "immediate_upsell";
+            minOrderValue = (topTier as any).minOrderValue || 0;
+            validFrom = new Date();
+
+            if (timingMode === "next_visit_retention") {
+              const delayHours = typeof (topTier as any).delayHours === "number" ? (topTier as any).delayHours : 24;
+              validFrom = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+              const validityDays = typeof (topTier as any).validityDays === "number" ? (topTier as any).validityDays : 7;
+              expiresAt = new Date(validFrom.getTime() + validityDays * 24 * 60 * 60 * 1000);
+            } else {
+              // Immediate Upsell: 2-hour window
+              validFrom = new Date();
+              expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+            }
+
             const sessionId = new mongoose.Types.ObjectId();
 
             await RewardClaim.create({
@@ -305,10 +323,13 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
               rewardName: topTier.rewardName || "Cafe Reward",
               rewardDescription: topTier.rewardDescription || `Earned from playing ${gameSlug}`,
               rewardType: topTier.rewardType || "item",
+              timingMode,
               status: "pending",
               claimCode,
               earnedAt: new Date(),
+              validFrom,
               expiresAt,
+              minOrderValue,
             });
           }
         }
@@ -458,7 +479,10 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
       pointsEarned,
       rewardEarned,
       claimCode,
+      validFrom: validFrom ? validFrom.toISOString() : null,
       expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      timingMode,
+      minOrderValue,
       cooldownNotice,
       isCapped: isCheating,
       billing: {
@@ -502,7 +526,8 @@ export async function submitGameSessionAction(input: SubmitSessionInput | string
 export async function redeemRewardVoucherAction(
   claimCode: string,
   staffName?: string,
-  staffId?: string
+  staffId?: string,
+  billAmount?: number
 ) {
   try {
     await connectDB();
@@ -526,16 +551,48 @@ export async function redeemRewardVoucherAction(
       };
     }
 
-    // SECURITY CHECK: 2-Hour Strict Expiry Check
-    if (claim.expiresAt < new Date()) {
-      claim.status = "expired";
-      await claim.save();
-      return { success: false, error: "Voucher validity expired (2-hour time limit exceeded)" };
+    const now = new Date();
+
+    // RETENTION VOUCHER LOCK CHECK: Cannot be redeemed on today's visit if validFrom is in the future
+    if (claim.validFrom && new Date(claim.validFrom) > now) {
+      const diffMs = new Date(claim.validFrom).getTime() - now.getTime();
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const mins = Math.ceil((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      return {
+        success: false,
+        isLocked: true,
+        validFrom: new Date(claim.validFrom).toISOString(),
+        error: `Next-Visit Retention Voucher Locked! This voucher unlocks on ${new Date(claim.validFrom).toLocaleString()} (in ~${hours > 0 ? `${hours}h ` : ""}${mins}m). It cannot be redeemed on today's visit.`,
+      };
     }
 
-    // Mark as claimed in MongoDB Atlas with Staff Attribution
+    // Expiry Check
+    if (claim.expiresAt < now) {
+      claim.status = "expired";
+      await claim.save();
+      return { success: false, error: "Voucher validity expired." };
+    }
+
+    // Minimum Order Value Check (if configured and bill amount provided)
+    if (claim.minOrderValue && typeof billAmount === "number" && billAmount > 0 && billAmount < claim.minOrderValue) {
+      return {
+        success: false,
+        error: `Minimum bill of ₹${claim.minOrderValue} required to redeem this voucher (current bill: ₹${billAmount}).`,
+      };
+    }
+
+    // Calculate days between voucher issuance and return visit redemption
+    const daysToReturn = claim.earnedAt
+      ? Math.max(0, Math.round((now.getTime() - new Date(claim.earnedAt).getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    // Mark as claimed in MongoDB Atlas with Staff & ROI Attribution
     claim.status = "claimed";
-    claim.claimedAt = new Date();
+    claim.claimedAt = now;
+    claim.daysToReturn = daysToReturn;
+    if (typeof billAmount === "number" && billAmount > 0) {
+      claim.returnBillAmount = billAmount;
+    }
     if (staffName) claim.claimedByStaffName = staffName;
     if (staffId) claim.claimedByStaffId = staffId;
     await claim.save();
@@ -552,7 +609,7 @@ export async function redeemRewardVoucherAction(
         actionCategory: "SYSTEM",
         targetType: "RewardClaim",
         targetName: claim.claimCode,
-        details: `Reward "${claim.rewardName}" redeemed for voucher ${claim.claimCode} by staff ${staffName || "Staff Counter"}.`,
+        details: `Reward "${claim.rewardName}" redeemed for voucher ${claim.claimCode} by staff ${staffName || "Staff Counter"}. Strategy: ${claim.timingMode || "immediate_upsell"}, Days to return: ${daysToReturn}${claim.returnBillAmount ? `, Bill: ₹${claim.returnBillAmount}` : ""}.`,
         timestamp: new Date(),
       });
     } catch {
@@ -565,6 +622,10 @@ export async function redeemRewardVoucherAction(
       rewardName: claim.rewardName,
       claimedAt: claim.claimedAt.toISOString(),
       claimedByStaffName: claim.claimedByStaffName || staffName,
+      timingMode: claim.timingMode || "immediate_upsell",
+      minOrderValue: claim.minOrderValue || 0,
+      daysToReturn,
+      returnBillAmount: claim.returnBillAmount,
     };
   } catch (error: any) {
     console.error("Error in redeemRewardVoucherAction:", error);
@@ -575,6 +636,8 @@ export async function redeemRewardVoucherAction(
         rewardName: "10% Off Table Reward",
         claimedAt: new Date().toISOString(),
         claimedByStaffName: staffName || "Counter Staff",
+        timingMode: "immediate_upsell",
+        minOrderValue: 0,
         isDemoFallback: true,
       };
     }
@@ -646,9 +709,11 @@ export async function getUserRewardsAction(guestPlayerId?: string, deviceFingerp
     const formattedClaims = await Promise.all(
       claims.map(async (c) => {
         const store = await Store.findById(c.storeId);
-        const isExpired = c.expiresAt < new Date();
+        const now = new Date();
+        const isLocked = c.validFrom ? new Date(c.validFrom) > now : false;
+        const isExpired = c.expiresAt < now;
         
-        // Auto-update expired status if past 2 hours
+        // Auto-update expired status if past expiry
         if (isExpired && c.status === "pending") {
           c.status = "expired";
           await c.save();
@@ -664,7 +729,13 @@ export async function getUserRewardsAction(guestPlayerId?: string, deviceFingerp
           status: isExpired && c.status === "pending" ? "expired" : c.status,
           earnedAt: c.earnedAt.toISOString(),
           claimedAt: c.claimedAt ? c.claimedAt.toISOString() : null,
+          validFrom: c.validFrom ? c.validFrom.toISOString() : null,
           expiresAt: c.expiresAt.toISOString(),
+          timingMode: c.timingMode || "immediate_upsell",
+          minOrderValue: c.minOrderValue || 0,
+          isLocked,
+          daysToReturn: c.daysToReturn,
+          returnBillAmount: c.returnBillAmount,
           storeName: store ? store.storeName : "Cafe Store",
         };
       })

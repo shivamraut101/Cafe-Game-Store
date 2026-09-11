@@ -15,11 +15,17 @@ export interface Game {
 
 export type GameDifficulty = "easy" | "medium" | "hard" | "insane";
 
+export type RewardTimingMode = "immediate_upsell" | "next_visit_retention";
+
 export interface GameRewardTier {
   id: string;
   pointThreshold: number;
   rewardName: string;
   rewardDescription: string;
+  timingMode?: RewardTimingMode;
+  delayHours?: number;
+  validityDays?: number;
+  minOrderValue?: number;
 }
 
 export interface MiniGameConfig {

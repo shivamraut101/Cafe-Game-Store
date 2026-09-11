@@ -91,6 +91,10 @@ export async function POST(req: NextRequest) {
 
     let rewardEarned: any = null;
     let claimCode: string | null = null;
+    let validFrom: Date | null = null;
+    let expiresAt: Date | null = null;
+    let timingMode: "immediate_upsell" | "next_visit_retention" = "immediate_upsell";
+    let minOrderValue = 0;
     let cooldownNotice: string | null = null;
 
     // ─── 3. Reward Voucher Issuance & 30-min Cooldown ────────────
@@ -119,7 +123,19 @@ export async function POST(req: NextRequest) {
 
           // Generate unique claim code
           claimCode = generateCode();
-          const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2hr strict expiry
+          timingMode = (topTier.timingMode as any) || "immediate_upsell";
+          minOrderValue = topTier.minOrderValue || 0;
+
+          if (timingMode === "next_visit_retention") {
+            const delayHours = topTier.delayHours !== undefined ? topTier.delayHours : 24;
+            const validityDays = topTier.validityDays !== undefined ? topTier.validityDays : 14;
+            validFrom = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+            expiresAt = new Date(validFrom.getTime() + validityDays * 24 * 60 * 60 * 1000);
+          } else {
+            validFrom = new Date();
+            expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2hr strict expiry
+          }
+
           const sessionId = new mongoose.Types.ObjectId();
 
           await RewardClaim.create({
@@ -130,10 +146,13 @@ export async function POST(req: NextRequest) {
             rewardName: topTier.rewardName || "Cafe Reward",
             rewardDescription: topTier.rewardDescription || "Earned from playing " + gameSlug,
             rewardType: topTier.rewardType || "item",
+            timingMode,
+            minOrderValue,
+            validFrom,
+            expiresAt,
             status: "pending",
             claimCode,
             earnedAt: new Date(),
-            expiresAt,
           });
         }
       }
@@ -165,6 +184,10 @@ export async function POST(req: NextRequest) {
       pointsEarned,
       rewardEarned,
       claimCode,
+      validFrom: validFrom ? validFrom.toISOString() : null,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      timingMode,
+      minOrderValue,
       cooldownNotice,
       isCapped: isCheating,
     });

@@ -20,6 +20,8 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [unlockCountdown, setUnlockCountdown] = useState<string>("");
+  const [isLocked, setIsLocked] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
 
@@ -81,20 +83,38 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
     };
   }, [claim, code]);
 
-  // Live countdown timer for the 2-hour window
+  // Live countdown timer for both locked next-visit vouchers and active validity window
   useEffect(() => {
     if (!claim?.expiresAt) return;
 
     const updateTimer = () => {
-      const diff = new Date(claim.expiresAt).getTime() - Date.now();
-      if (diff <= 0) {
+      const now = Date.now();
+      const validFromMs = claim.validFrom ? new Date(claim.validFrom).getTime() : 0;
+      const currentlyLocked = validFromMs > now;
+      setIsLocked(currentlyLocked);
+
+      if (currentlyLocked) {
+        const unlockDiff = validFromMs - now;
+        const hours = Math.floor(unlockDiff / (1000 * 60 * 60));
+        const mins = Math.floor((unlockDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((unlockDiff % (1000 * 60)) / 1000);
+        setUnlockCountdown(`${hours}h ${mins.toString().padStart(2, "0")}m ${secs.toString().padStart(2, "0")}s`);
+      }
+
+      const expiryDiff = new Date(claim.expiresAt).getTime() - now;
+      if (expiryDiff <= 0) {
         setTimeLeft("Expired");
         setIsExpired(true);
       } else {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const secs = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeLeft(`${hours}h ${mins.toString().padStart(2, "0")}m ${secs.toString().padStart(2, "0")}s`);
+        const days = Math.floor(expiryDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((expiryDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((expiryDiff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((expiryDiff % (1000 * 60)) / 1000);
+        if (days > 0) {
+          setTimeLeft(`${days}d ${hours}h ${mins}m`);
+        } else {
+          setTimeLeft(`${hours}h ${mins.toString().padStart(2, "0")}m ${secs.toString().padStart(2, "0")}s`);
+        }
         setIsExpired(false);
       }
     };
@@ -102,7 +122,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [claim?.expiresAt]);
+  }, [claim?.expiresAt, claim?.validFrom]);
 
   const handleCopy = () => {
     if (!claim?.claimCode) return;
@@ -110,7 +130,6 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
-
 
   const handleRedeem = async () => {
     try {
@@ -138,8 +157,18 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
       <main className="w-full max-w-md bg-white border-4 border-black rounded-3xl p-6 shadow-[8px_8px_0px_0px_#000] flex flex-col items-center text-center relative overflow-hidden">
         
         {/* Top Header Badge */}
-        <div className="bg-black text-white px-4 py-1.5 rounded-full text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] mb-4 uppercase tracking-wider">
-          {claim?.storeName ? `${claim.storeName} • REWARD PASS` : "CAFE REWARD VOUCHER PASS"}
+        <div
+          className={`px-4 py-1.5 rounded-full text-xs font-black border-2 border-black shadow-[2px_2px_0px_0px_#000] mb-4 uppercase tracking-wider ${
+            isLocked
+              ? "bg-amber-300 text-amber-950"
+              : "bg-black text-white"
+          }`}
+        >
+          {isLocked
+            ? "🔒 NEXT-VISIT BOUNCEBACK PASS"
+            : claim?.storeName
+            ? `${claim.storeName} • REWARD PASS`
+            : "CAFE REWARD VOUCHER PASS"}
         </div>
 
         {loading ? (
@@ -166,16 +195,43 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
               {claim.storeName}
             </p>
             <h2 className="font-serif text-2xl font-black text-black my-0.5">{claim.rewardName}</h2>
-            <p className="text-xs font-semibold text-black/60 mb-4">{claim.rewardDescription}</p>
+            <p className="text-xs font-semibold text-black/60 mb-3">{claim.rewardDescription}</p>
 
-            {/* QR Code Presentation Frame (Hidden or Stamped if Already Claimed) */}
-            <div className="bg-[#FBF9F4] p-4 rounded-3xl border-3 border-black shadow-[5px_5px_0px_0px_#000] flex flex-col items-center mb-4 w-full">
+            {/* Retention Strategy Callout Box */}
+            {claim.timingMode === "next_visit_retention" && (
+              <div className="w-full bg-amber-50 border-2 border-amber-400 rounded-2xl p-3 mb-4 text-left shadow-[2px_2px_0px_0px_#000]">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">🔒</span>
+                  <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                    {isLocked ? "Valid On Next Visit" : "Unlocked • Ready to Use"}
+                  </span>
+                </div>
+                <p className="text-[11px] font-bold text-amber-900/90 leading-tight">
+                  {isLocked
+                    ? `This bounceback reward cannot be redeemed on today's bill. It activates on ${new Date(
+                        claim.validFrom
+                      ).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} for your return visit!`
+                    : `This next-visit voucher is now live and ready to be redeemed at the counter!`}
+                </p>
+                {claim.minOrderValue > 0 && (
+                  <div className="mt-2 pt-2 border-t border-amber-200 flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-amber-900">Minimum Order:</span>
+                    <span className="font-mono font-black text-black bg-amber-200 px-2 py-0.5 rounded-md">
+                      ₹{claim.minOrderValue}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* QR Code Presentation Frame */}
+            <div className="bg-[#FBF9F4] p-4 rounded-3xl border-3 border-black shadow-[5px_5px_0px_0px_#000] flex flex-col items-center mb-4 w-full relative">
               {claim.status === "claimed" || redeemSuccess ? (
                 <div className="w-[190px] h-[190px] bg-emerald-50 rounded-2xl border-2 border-emerald-400 flex flex-col items-center justify-center p-4 text-center shadow-inner">
                   <span className="text-5xl mb-2">✅</span>
                   <span className="font-black text-xs text-emerald-900 uppercase tracking-wider">OFFER REDEEMED</span>
                   <span className="text-[10px] font-bold text-emerald-700 mt-1">
-                    {new Date(claim.claimedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(claim.claimedAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
               ) : (
@@ -187,14 +243,14 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
                     <span className="text-2xl animate-pulse">☕</span>
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mt-2">
-                    SCAN AT COUNTER TO REDEEM
+                    {isLocked ? "SCAN QR CODE ON NEXT VISIT" : "SCAN AT COUNTER TO REDEEM"}
                   </p>
                 </>
               )}
             </div>
 
             {/* Claim Code Card with One-Tap Copy */}
-            <div className="bg-[#FBF9F4] w-full p-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000] mb-4 flex items-center justify-between">
+            <div className="bg-[#FBF9F4] w-full p-3.5 rounded-2xl border-2 border-black shadow-[3px_3px_0px_0px_#000] mb-3 flex items-center justify-between">
               <div className="text-left">
                 <span className="text-[9px] font-black uppercase tracking-wider text-black/40 block">
                   Claim Code
@@ -212,7 +268,26 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
               </button>
             </div>
 
-            {/* Status / Time Window Badge: Completely HIDE timer when claimed! */}
+            {/* Save to WhatsApp Button: Prevents Ephemeral Tab Trap */}
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `🎁 Here is my ${claim.storeName || "Cafe"} reward voucher!\n\nReward: ${claim.rewardName}\nCode: ${claim.claimCode}${
+                  claim.minOrderValue ? `\nMin Order: ₹${claim.minOrderValue}` : ""
+                }${
+                  claim.timingMode === "next_visit_retention"
+                    ? `\nValid from: ${new Date(claim.validFrom).toLocaleDateString()}`
+                    : ""
+                }\n\nOpen Voucher Pass:\n${typeof window !== "undefined" ? window.location.href : `https://forstore.app/claim/${claim.claimCode}`}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 px-3.5 bg-[#25D366] hover:bg-[#20bd5a] text-white border-2 border-black rounded-2xl font-black text-xs shadow-[3px_3px_0px_0px_#000] flex items-center justify-center gap-2 mb-4 hover:translate-y-[1px] transition-all cursor-pointer"
+            >
+              <span className="text-base">📲</span>
+              <span>SAVE VOUCHER TO WHATSAPP</span>
+            </a>
+
+            {/* Status / Time Window Badge */}
             {claim.status === "claimed" || redeemSuccess ? (
               <div className="w-full py-3 px-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-950 flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#059669]">
                 <div className="flex items-center gap-2">
@@ -225,7 +300,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
                 <div className="text-right">
                   <span className="text-[9px] font-bold text-emerald-700 uppercase block">Redeemed At</span>
                   <span className="font-mono text-xs font-black text-emerald-950">
-                    {new Date(claim.claimedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(claim.claimedAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
               </div>
@@ -233,15 +308,23 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
               <div className="w-full py-2.5 px-3 rounded-2xl border-2 border-red-500 bg-red-100 text-red-700 text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000]">
                 <div className="flex items-center gap-1.5">
                   <span>⚠️</span>
-                  <span>Voucher Expired:</span>
+                  <span>Voucher Status:</span>
                 </div>
-                <span className="font-mono font-bold">2-Hour Window Passed</span>
+                <span className="font-mono font-bold">Validity Window Expired</span>
+              </div>
+            ) : isLocked ? (
+              <div className="w-full py-2.5 px-3 rounded-2xl border-2 border-amber-500 bg-amber-100 text-amber-950 text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000]">
+                <div className="flex items-center gap-1.5">
+                  <span>🔒</span>
+                  <span>Unlocks In:</span>
+                </div>
+                <span className="font-mono font-black">{unlockCountdown || "Tomorrow"}</span>
               </div>
             ) : (
-              <div className="w-full py-2.5 px-3 rounded-2xl border-2 border-black text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000] bg-amber-100 text-amber-900 border-amber-400">
+              <div className="w-full py-2.5 px-3 rounded-2xl border-2 border-black text-xs font-black flex items-center justify-between mb-4 shadow-[2px_2px_0px_0px_#000] bg-emerald-100 text-emerald-950 border-emerald-400">
                 <div className="flex items-center gap-1.5">
                   <span>⏳</span>
-                  <span>2-Hour Expiry Window:</span>
+                  <span>{claim.timingMode === "next_visit_retention" ? "Valid For:" : "2-Hour Expiry Window:"}</span>
                 </div>
                 <span className="font-mono font-black">{timeLeft || "Checking..."}</span>
               </div>
@@ -262,7 +345,7 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
                     </button>
                   )}
                 </span>
-                <span>Issued: <strong className="text-black">{new Date(claim.earnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                <span>Issued: <strong className="text-black">{new Date(claim.earnedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong></span>
               </div>
               {(claim.status === "claimed" || redeemSuccess) && (
                 <div className="flex justify-between pt-1.5 border-t border-black/5 text-emerald-800">
@@ -286,7 +369,14 @@ export default function StaffClaimVerificationPage({ params }: ClaimPageProps) {
               </div>
             ) : isExpired || claim.status === "expired" ? (
               <div className="w-full py-4 bg-red-400 text-black border-3 border-black rounded-2xl font-black text-sm shadow-[4px_4px_0px_0px_#000]">
-                ⚠️ VOUCHER EXPIRED (2-HOUR WINDOW PASSED)
+                ⚠️ VOUCHER EXPIRED
+              </div>
+            ) : isLocked ? (
+              <div className="w-full py-3.5 bg-amber-200 text-amber-950 border-3 border-black rounded-2xl font-black text-xs shadow-[4px_4px_0px_0px_#000] flex flex-col items-center">
+                <span className="text-base mb-0.5">🔒 LOCKED: NEXT-VISIT ONLY</span>
+                <span className="text-[10px] font-bold opacity-80">
+                  Unlocks {new Date(claim.validFrom).toLocaleDateString()} {new Date(claim.validFrom).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
               </div>
             ) : (
               <div className="w-full">

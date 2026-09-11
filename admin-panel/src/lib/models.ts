@@ -132,6 +132,10 @@ export interface IRewardTier {
   rewardType: "item" | "discount" | "voucher";
   discountPercent?: number;
   voucherCode?: string;
+  timingMode?: "immediate_upsell" | "next_visit_retention";
+  delayHours?: number;
+  validityDays?: number;
+  minOrderValue?: number;
 }
 
 export interface IMiniGameConfig extends Document {
@@ -158,6 +162,10 @@ const RewardTierSchema = new Schema<IRewardTier>(
     rewardType: { type: String, enum: ["item", "discount", "voucher"], default: "item" },
     discountPercent: { type: Number },
     voucherCode: { type: String },
+    timingMode: { type: String, enum: ["immediate_upsell", "next_visit_retention"], default: "immediate_upsell" },
+    delayHours: { type: Number, default: 0 },
+    validityDays: { type: Number, default: 7 },
+    minOrderValue: { type: Number, default: 0 },
   },
   { _id: false }
 );
@@ -252,10 +260,15 @@ export interface IRewardClaim extends Document {
   status: "pending" | "claimed" | "expired";
   claimCode: string;
   earnedAt: Date;
+  validFrom: Date;
+  expiresAt: Date;
+  timingMode?: "immediate_upsell" | "next_visit_retention";
+  minOrderValue?: number;
+  daysToReturn?: number;
+  returnBillAmount?: number;
   claimedAt?: Date;
   claimedByStaffName?: string;
   claimedByStaffId?: string;
-  expiresAt: Date;
 }
 
 const RewardClaimSchema = new Schema<IRewardClaim>({
@@ -270,10 +283,15 @@ const RewardClaimSchema = new Schema<IRewardClaim>({
   status: { type: String, enum: ["pending", "claimed", "expired"], default: "pending" },
   claimCode: { type: String, required: true, unique: true },
   earnedAt: { type: Date, default: Date.now },
+  validFrom: { type: Date, default: Date.now },
+  expiresAt: { type: Date, required: true },
+  timingMode: { type: String, enum: ["immediate_upsell", "next_visit_retention"], default: "immediate_upsell" },
+  minOrderValue: { type: Number, default: 0 },
+  daysToReturn: { type: Number },
+  returnBillAmount: { type: Number },
   claimedAt: { type: Date },
   claimedByStaffName: { type: String },
   claimedByStaffId: { type: String },
-  expiresAt: { type: Date, required: true },
 });
 
 RewardClaimSchema.index({ storeId: 1, status: 1 });

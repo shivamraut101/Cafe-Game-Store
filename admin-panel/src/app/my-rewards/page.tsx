@@ -16,7 +16,13 @@ interface RewardVoucher {
   status: "pending" | "claimed" | "expired";
   earnedAt: string;
   claimedAt?: string;
+  validFrom?: string;
   expiresAt: string;
+  timingMode?: "immediate_upsell" | "next_visit_retention";
+  minOrderValue?: number;
+  isLocked?: boolean;
+  daysToReturn?: number;
+  returnBillAmount?: number;
   storeName: string;
 }
 
@@ -216,63 +222,111 @@ export default function CustomerRewardsWallet() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredRewards.map((voucher) => (
-              <div
-                key={voucher.id}
-                className="bg-white border-4 border-black rounded-3xl p-5 shadow-[6px_6px_0px_0px_#000] relative overflow-hidden flex flex-col justify-between gap-4"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_#000]">
-                      {getGameIcon(voucher.gameSlug)}
+            {filteredRewards.map((voucher) => {
+              const isLocked = voucher.isLocked || (voucher.validFrom ? new Date(voucher.validFrom) > new Date() : false);
+              return (
+                <div
+                  key={voucher.id}
+                  className="bg-white border-4 border-black rounded-3xl p-5 shadow-[6px_6px_0px_0px_#000] relative overflow-hidden flex flex-col justify-between gap-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-black flex items-center justify-center text-2xl shadow-[2px_2px_0px_0px_#000]">
+                        {getGameIcon(voucher.gameSlug)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <h4 className="font-serif text-lg font-black text-black">{voucher.rewardName}</h4>
+                          {voucher.timingMode === "next_visit_retention" && (
+                            <span
+                              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                isLocked
+                                  ? "bg-amber-100 text-amber-950 border-amber-400"
+                                  : "bg-emerald-100 text-emerald-950 border-emerald-400"
+                              }`}
+                            >
+                              {isLocked ? "🔒 Valid Next Visit" : "⚡ Unlocked For Return"}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-black/60">{voucher.rewardDescription}</p>
+                        <div className="flex items-center gap-2 flex-wrap mt-1">
+                          <span className="text-[10px] font-bold text-black/40">Valid at: {voucher.storeName}</span>
+                          {voucher.minOrderValue && voucher.minOrderValue > 0 ? (
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-1.5 py-0.2 rounded">
+                              Min Bill: ₹{voucher.minOrderValue}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-serif text-lg font-black text-black">{voucher.rewardName}</h4>
-                      <p className="text-xs font-semibold text-black/60">{voucher.rewardDescription}</p>
-                      <p className="text-[10px] font-bold text-black/40 mt-0.5">Valid at: {voucher.storeName}</p>
+                  </div>
+
+                  <div className="bg-[#FBF9F4] p-3 rounded-2xl border-2 border-black flex items-center justify-between gap-2">
+                    <div className="text-left">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-black/40 block">
+                        Voucher Code
+                      </span>
+                      <span className="font-mono text-base font-black text-[#FF4C29]">{voucher.claimCode}</span>
+                      {voucher.status === "pending" && (
+                        isLocked ? (
+                          <span className="text-[10px] font-bold text-amber-800 block mt-0.5">
+                            🔒 Unlocks {new Date(voucher.validFrom!).toLocaleDateString()} {new Date(voucher.validFrom!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-700 block mt-0.5">
+                            ⏳ Valid until {new Date(voucher.expiresAt).toLocaleDateString()}
+                          </span>
+                        )
+                      )}
+                      {voucher.status === "claimed" && voucher.claimedAt && (
+                        <span className="text-[10px] font-bold text-emerald-700 block mt-0.5">
+                          ✅ Redeemed at {new Date(voucher.claimedAt).toLocaleTimeString()}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* WhatsApp Quick Share / Save */}
+                      {voucher.status === "pending" && (
+                        <a
+                          href={`https://wa.me/?text=${encodeURIComponent(
+                            `🎁 My ${voucher.storeName} reward voucher!\n\nReward: ${voucher.rewardName}\nCode: ${voucher.claimCode}${
+                              voucher.minOrderValue ? `\nMin Order: ₹${voucher.minOrderValue}` : ""
+                            }\n\nOpen Voucher:\nhttps://forstore.app/claim/${voucher.claimCode}`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] text-sm"
+                          title="Save to WhatsApp"
+                        >
+                          📲
+                        </a>
+                      )}
+
+                      {voucher.status === "pending" ? (
+                        <Link
+                          href={`/claim/${voucher.claimCode}`}
+                          className="py-2.5 px-3.5 bg-black text-white font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29] hover:translate-y-[1px] transition-all whitespace-nowrap"
+                        >
+                          OPEN PASS 🎟️
+                        </Link>
+                      ) : (
+                        <span
+                          className={`text-xs font-black uppercase px-3 py-1.5 rounded-lg border ${
+                            voucher.status === "claimed"
+                              ? "bg-black text-white border-black"
+                              : "bg-red-400 text-black border-black"
+                          }`}
+                        >
+                          {voucher.status}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-[#FBF9F4] p-3 rounded-2xl border-2 border-black flex items-center justify-between">
-                  <div>
-                    <span className="text-[9px] font-black uppercase tracking-wider text-black/40 block">
-                      Voucher Code (2h Window)
-                    </span>
-                    <span className="font-mono text-base font-black text-[#FF4C29]">{voucher.claimCode}</span>
-                    {voucher.status === "pending" && (
-                      <span className="text-[10px] font-bold text-amber-700 block mt-0.5">
-                        ⏳ Valid for 2 hours from win
-                      </span>
-                    )}
-                    {voucher.status === "claimed" && voucher.claimedAt && (
-                      <span className="text-[10px] font-bold text-emerald-700 block mt-0.5">
-                        ✅ Redeemed at {new Date(voucher.claimedAt).toLocaleTimeString()}
-                      </span>
-                    )}
-                  </div>
-
-                  {voucher.status === "pending" ? (
-                    <Link
-                      href={`/claim/${voucher.claimCode}`}
-                      className="py-2.5 px-4 bg-emerald-400 text-black font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-y-[1px] transition-all"
-                    >
-                      SHOW TO STAFF 📱
-                    </Link>
-                  ) : (
-                    <span
-                      className={`text-xs font-black uppercase px-3 py-1.5 rounded-lg border ${
-                        voucher.status === "claimed"
-                          ? "bg-black text-white border-black"
-                          : "bg-red-400 text-black border-black"
-                      }`}
-                    >
-                      {voucher.status}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

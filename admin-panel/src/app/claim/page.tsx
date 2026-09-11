@@ -39,6 +39,7 @@ export default function StaffVoucherLookupPortal() {
 
   // Voucher Lookup State
   const [inputCode, setInputCode] = useState("");
+  const [billAmountInput, setBillAmountInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [claimData, setClaimData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -244,6 +245,7 @@ export default function StaffVoucherLookupPortal() {
     setError(null);
     setSuccessMsg(null);
     setClaimData(null);
+    setBillAmountInput("");
 
     try {
       const res = await fetch(`/api/rewards/claim?code=${formatted}`);
@@ -269,13 +271,20 @@ export default function StaffVoucherLookupPortal() {
   const handleRedeem = async () => {
     if (!claimData) return;
 
+    const parsedBill = billAmountInput ? parseFloat(billAmountInput) : undefined;
+    if (claimData.minOrderValue && parsedBill !== undefined && parsedBill < claimData.minOrderValue) {
+      setError(`Minimum bill requirement of ₹${claimData.minOrderValue} not met (current entered: ₹${parsedBill}).`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const res = await redeemRewardVoucherAction(
         claimData.claimCode,
         activeStaffName,
-        session?.user?.userId
+        session?.user?.userId,
+        parsedBill
       );
       if (!res.success) {
         setError(res.error || "Redemption failed.");
@@ -286,6 +295,8 @@ export default function StaffVoucherLookupPortal() {
           status: "claimed",
           claimedAt: res.claimedAt,
           claimedByStaffName: res.claimedByStaffName || activeStaffName,
+          daysToReturn: res.daysToReturn,
+          returnBillAmount: res.returnBillAmount,
         });
 
         addRecentRedemption({
@@ -682,63 +693,124 @@ export default function StaffVoucherLookupPortal() {
             )}
 
             {/* Verification Result Card */}
-            {claimData && (
-              <div className="w-full bg-[#FBF9F4] border-3 border-black rounded-2xl p-4 text-left shadow-[4px_4px_0px_0px_#000] flex flex-col gap-3 mb-5">
-                <div className="flex items-center justify-between border-b-2 border-black/10 pb-2">
-                  <span className="font-mono text-lg font-black text-[#FF4C29]">{claimData.claimCode}</span>
-                  <span
-                    className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${
-                      claimData.status === "claimed"
-                        ? "bg-black text-white border-black"
-                        : claimData.status === "expired"
-                        ? "bg-red-500 text-white border-black"
-                        : "bg-emerald-400 text-black border-black"
-                    }`}
-                  >
-                    {claimData.status}
-                  </span>
-                </div>
+            {claimData && (() => {
+              const isLocked = claimData.isLocked || (claimData.validFrom && new Date(claimData.validFrom) > new Date());
+              return (
+                <div className="w-full bg-[#FBF9F4] border-3 border-black rounded-2xl p-4 text-left shadow-[4px_4px_0px_0px_#000] flex flex-col gap-3 mb-5">
+                  <div className="flex items-center justify-between border-b-2 border-black/10 pb-2">
+                    <span className="font-mono text-lg font-black text-[#FF4C29]">{claimData.claimCode}</span>
+                    <span
+                      className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${
+                        claimData.status === "claimed"
+                          ? "bg-black text-white border-black"
+                          : claimData.status === "expired"
+                          ? "bg-red-500 text-white border-black"
+                          : isLocked
+                          ? "bg-amber-300 text-amber-950 border-black"
+                          : "bg-emerald-400 text-black border-black"
+                      }`}
+                    >
+                      {claimData.status === "claimed" ? "claimed" : isLocked ? "locked until next visit" : claimData.status}
+                    </span>
+                  </div>
 
-                <div>
-                  <h3 className="font-serif text-xl font-black text-black">{claimData.rewardName}</h3>
-                  <p className="text-xs font-semibold text-black/60">{claimData.rewardDescription}</p>
-                </div>
+                  <div>
+                    <h3 className="font-serif text-xl font-black text-black">{claimData.rewardName}</h3>
+                    <p className="text-xs font-semibold text-black/60">{claimData.rewardDescription}</p>
+                  </div>
 
-                {/* Status & Expiry Window Check: HIDE TIMER WHEN CLAIMED! */}
-                <div className="bg-white p-3 rounded-xl border-2 border-black text-xs font-bold space-y-1.5">
-                  <p className="text-black/70">Customer: <span className="text-black font-black">{claimData.customerName}</span></p>
-                  <p className="text-black/70">Store: <span className="text-black font-black">{claimData.storeName}</span></p>
-                  
-                  {claimData.status === "claimed" ? (
-                    <div className="pt-1.5 border-t border-black/10 text-emerald-800">
-                      <p className="text-[10px] uppercase font-black tracking-wider text-emerald-700">STATUS: REDEEMED</p>
-                      <p>Claimed At: <span className="font-black text-black">{new Date(claimData.claimedAt || Date.now()).toLocaleTimeString()}</span></p>
-                      {claimData.claimedByStaffName && (
-                        <p>Rewarded by Staff: <span className="font-black text-emerald-950">{claimData.claimedByStaffName}</span></p>
+                  {/* Locked Next-Visit Alert */}
+                  {isLocked && (
+                    <div className="w-full bg-amber-100 border-2 border-amber-500 text-amber-950 p-3 rounded-xl text-xs font-bold space-y-1">
+                      <div className="flex items-center gap-1.5 text-amber-950 font-black uppercase tracking-wider">
+                        <span>🔒</span>
+                        <span>Next-Visit Retention Voucher</span>
+                      </div>
+                      <p className="text-[11px] text-amber-900 leading-tight">
+                        This voucher is valid only on a <strong>return visit</strong>. It unlocks on <strong>{new Date(claimData.validFrom).toLocaleDateString()} at {new Date(claimData.validFrom).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>.
+                      </p>
+                      <p className="text-[10px] text-amber-800 italic">
+                        Cannot be applied to today&apos;s bill. Ask customer to save to WhatsApp for next visit!
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Minimum Order Value Check */}
+                  {claimData.minOrderValue > 0 && (
+                    <div className="bg-white p-3 rounded-xl border-2 border-black text-xs font-bold space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-black/70">Minimum Bill Required:</span>
+                        <span className="font-mono font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">₹{claimData.minOrderValue}</span>
+                      </div>
+                      {!isLocked && claimData.status === "pending" && (
+                        <div>
+                          <label className="text-[10px] font-black uppercase tracking-wider text-black/50 block mb-1">
+                            Enter Today&apos;s Bill Amount (₹)
+                          </label>
+                          <input
+                            type="number"
+                            value={billAmountInput}
+                            onChange={(e) => setBillAmountInput(e.target.value)}
+                            placeholder={`Min ₹${claimData.minOrderValue}`}
+                            className="w-full p-2.5 rounded-xl border-2 border-black font-mono font-black text-sm bg-[#FBF9F4] focus:outline-none focus:border-[#FF4C29]"
+                          />
+                        </div>
                       )}
                     </div>
-                  ) : claimData.status === "expired" ? (
-                    <p className="text-red-600 font-black">⚠️ EXPIRED: 2-Hour Window Exceeded</p>
-                  ) : (
-                    <p className="text-black/70">
-                      2-Hour Validity Window: <span className="text-[#FF4C29] font-black">{getRemainingTime(claimData.expiresAt)}</span>
-                    </p>
+                  )}
+
+                  {/* Status & Expiry Window Check */}
+                  <div className="bg-white p-3 rounded-xl border-2 border-black text-xs font-bold space-y-1.5">
+                    <p className="text-black/70">Customer: <span className="text-black font-black">{claimData.customerName}</span></p>
+                    <p className="text-black/70">Store: <span className="text-black font-black">{claimData.storeName}</span></p>
+                    
+                    {claimData.status === "claimed" ? (
+                      <div className="pt-1.5 border-t border-black/10 text-emerald-800 space-y-0.5">
+                        <p className="text-[10px] uppercase font-black tracking-wider text-emerald-700">STATUS: REDEEMED</p>
+                        <p>Claimed At: <span className="font-black text-black">{new Date(claimData.claimedAt || Date.now()).toLocaleTimeString()}</span></p>
+                        {claimData.claimedByStaffName && (
+                          <p>Rewarded by Staff: <span className="font-black text-emerald-950">{claimData.claimedByStaffName}</span></p>
+                        )}
+                        {claimData.daysToReturn !== undefined && claimData.daysToReturn > 0 && (
+                          <p className="text-[11px] text-emerald-900">
+                            🎯 Return Visit: Returned after <strong>{claimData.daysToReturn} days</strong>
+                            {claimData.returnBillAmount ? ` • Bill: ₹${claimData.returnBillAmount}` : ""}
+                          </p>
+                        )}
+                      </div>
+                    ) : claimData.status === "expired" ? (
+                      <p className="text-red-600 font-black">⚠️ EXPIRED: Validity Window Passed</p>
+                    ) : isLocked ? (
+                      <p className="text-amber-900 font-black">
+                        🔒 Unlocks on: <span className="font-mono">{new Date(claimData.validFrom).toLocaleDateString()} {new Date(claimData.validFrom).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </p>
+                    ) : (
+                      <p className="text-black/70">
+                        Validity Window: <span className="text-[#FF4C29] font-black">{getRemainingTime(claimData.expiresAt)}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Action Button */}
+                  {claimData.status === "pending" && (
+                    isLocked ? (
+                      <div className="w-full py-3.5 bg-amber-200 text-amber-950 border-2 border-black rounded-xl font-black text-xs text-center shadow-[3px_3px_0px_0px_#000]">
+                        🔒 LOCKED: REDEEMABLE ON NEXT VISIT ONLY
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleRedeem}
+                        disabled={loading}
+                        className="w-full py-3.5 bg-emerald-400 text-black border-2 border-black rounded-xl font-black text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer mt-1"
+                      >
+                        {loading ? "VERIFYING..." : `VERIFY & REWARD AS ${activeStaffName.toUpperCase()} ✅`}
+                      </button>
+                    )
                   )}
                 </div>
-
-                {/* Action Button */}
-                {claimData.status === "pending" && (
-                  <button
-                    type="button"
-                    onClick={handleRedeem}
-                    disabled={loading}
-                    className="w-full py-3.5 bg-emerald-400 text-black border-2 border-black rounded-xl font-black text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-y-[1px] transition-all cursor-pointer mt-1"
-                  >
-                    VERIFY & REWARD AS {activeStaffName.toUpperCase()} ✅
-                  </button>
-                )}
-              </div>
-            )}
+              );
+            })()}
 
             {/* Shift Recent Redemptions Table for Store Manager */}
             {recentRedemptions.length > 0 && (

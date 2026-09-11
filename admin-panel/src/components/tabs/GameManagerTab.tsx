@@ -183,12 +183,16 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
       pointThreshold: (config.rewardTiers.length + 1) * 50,
       rewardName: "",
       rewardDescription: "",
+      timingMode: "next_visit_retention",
+      delayHours: 24,
+      validityDays: 14,
+      minOrderValue: 300,
     };
     onUpdateConfig({ ...config, rewardTiers: [...config.rewardTiers, newTier] });
     setEditingTier(newTier.id);
   };
 
-  const updateTier = (config: MiniGameConfig, tierId: string, field: keyof GameRewardTier, value: string | number) => {
+  const updateTier = (config: MiniGameConfig, tierId: string, field: keyof GameRewardTier, value: any) => {
     const updatedTiers = config.rewardTiers.map((t) =>
       t.id === tierId ? { ...t, [field]: value } : t
     );
@@ -609,7 +613,7 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
 
                               {/* Editable fields */}
                               {isEditing && (
-                                <div className="p-4 bg-white border-t-2 border-black space-y-3">
+                                <div className="p-4 bg-white border-t-2 border-black space-y-4">
                                   <div>
                                     <label className="text-[10px] font-black uppercase tracking-wider text-black/40 block mb-1">
                                       Reward Name
@@ -630,25 +634,109 @@ export default function GameManagerTab({ configs, onUpdateConfig, currentStore }
                                       type="text"
                                       value={tier.rewardDescription}
                                       onChange={(e) => updateTier(config, tier.id, "rewardDescription", e.target.value)}
-                                      placeholder="e.g. Any regular size coffee of your choice"
+                                      placeholder="e.g. Valid on minimum bill of ₹300 on your next visit"
                                       className="w-full px-3 py-2 rounded-xl border-2 border-black font-semibold text-sm bg-white focus:outline-none focus:shadow-[2px_2px_0px_0px_#FF4C29] placeholder:text-black/20"
                                     />
+                                  </div>
+
+                                  {/* Offer Strategy Mode */}
+                                  <div className="bg-[#FBF9F4] p-3 rounded-xl border-2 border-black space-y-3">
+                                    <div>
+                                      <label className="text-[10px] font-black uppercase tracking-wider text-black/60 block mb-1">
+                                        Voucher Strategy & Retention Mechanic
+                                      </label>
+                                      <select
+                                        value={tier.timingMode || "next_visit_retention"}
+                                        onChange={(e) => updateTier(config, tier.id, "timingMode", e.target.value as any)}
+                                        className="w-full px-3 py-2 rounded-lg border-2 border-black font-bold text-xs bg-white focus:outline-none focus:border-[#FF4C29]"
+                                      >
+                                        <option value="next_visit_retention">
+                                          🎯 Next-Visit Bounceback (Locked today, unlocks next visit — True Auditable Retention)
+                                        </option>
+                                        <option value="immediate_upsell">
+                                          ⚡ Immediate Upsell (Valid 2h today — Boosts current table spend)
+                                        </option>
+                                      </select>
+                                    </div>
+
+                                    {(tier.timingMode === "next_visit_retention" || !tier.timingMode) && (
+                                      <div className="grid grid-cols-3 gap-2 pt-1 border-t border-black/10">
+                                        <div>
+                                          <label className="text-[9px] font-black uppercase tracking-wider text-black/50 block mb-1">
+                                            Lock Delay
+                                          </label>
+                                          <div className="flex items-center gap-1">
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              value={tier.delayHours ?? 24}
+                                              onChange={(e) => updateTier(config, tier.id, "delayHours", parseInt(e.target.value) || 24)}
+                                              className="w-full px-2 py-1.5 rounded-lg border border-black font-mono font-bold text-xs bg-white text-center"
+                                            />
+                                            <span className="text-[10px] font-bold text-black/40">hrs</span>
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <label className="text-[9px] font-black uppercase tracking-wider text-black/50 block mb-1">
+                                            Validity
+                                          </label>
+                                          <div className="flex items-center gap-1">
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              value={tier.validityDays ?? 14}
+                                              onChange={(e) => updateTier(config, tier.id, "validityDays", parseInt(e.target.value) || 14)}
+                                              className="w-full px-2 py-1.5 rounded-lg border border-black font-mono font-bold text-xs bg-white text-center"
+                                            />
+                                            <span className="text-[10px] font-bold text-black/40">days</span>
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <label className="text-[9px] font-black uppercase tracking-wider text-black/50 block mb-1">
+                                            Min Bill
+                                          </label>
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-[10px] font-bold text-black/40">₹</span>
+                                            <input
+                                              type="number"
+                                              min={0}
+                                              value={tier.minOrderValue ?? 300}
+                                              onChange={(e) => updateTier(config, tier.id, "minOrderValue", parseInt(e.target.value) || 0)}
+                                              className="w-full px-2 py-1.5 rounded-lg border border-black font-mono font-bold text-xs bg-white text-center"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               )}
 
                               {/* Preview row (when not editing) */}
                               {!isEditing && (tier.rewardName || tier.rewardDescription) && (
-                                <div className="px-4 py-2 bg-white border-t border-black/10 flex items-center gap-2">
-                                  <span className="text-sm">🎁</span>
-                                  <span className="text-xs font-bold text-black/70">
-                                    {tier.rewardName || "Unnamed Reward"}
-                                  </span>
-                                  {tier.rewardDescription && (
-                                    <span className="text-xs font-semibold text-black/35">
-                                      — {tier.rewardDescription}
+                                <div className="px-4 py-2.5 bg-white border-t border-black/10 flex items-center justify-between gap-2 flex-wrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">🎁</span>
+                                    <span className="text-xs font-bold text-black/70">
+                                      {tier.rewardName || "Unnamed Reward"}
                                     </span>
-                                  )}
+                                    {tier.rewardDescription && (
+                                      <span className="text-xs font-semibold text-black/35">
+                                        — {tier.rewardDescription}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                      tier.timingMode === "immediate_upsell"
+                                        ? "bg-amber-100 text-amber-950 border-amber-300"
+                                        : "bg-emerald-100 text-emerald-950 border-emerald-300"
+                                    }`}
+                                  >
+                                    {tier.timingMode === "immediate_upsell"
+                                      ? "⚡ Immediate Upsell (2h)"
+                                      : `🔒 Next-Visit (+${tier.delayHours ?? 24}h, ${tier.validityDays ?? 14}d${tier.minOrderValue ? `, Min ₹${tier.minOrderValue}` : ""})`}
+                                  </span>
                                 </div>
                               )}
                             </div>
