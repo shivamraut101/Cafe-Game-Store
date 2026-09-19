@@ -2,12 +2,24 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 
+export type ManifoldMode = "anticheat" | "retention";
+
 interface MilestoneEvent {
   id: number;
   label: string;
   tag: string;
   t: number; // 0 to 1 position along trajectory
   desc: string;
+  metric: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface VenueAnchor {
+  id: string;
+  name: string;
+  type: string;
   x: number;
   y: number;
   z: number;
@@ -20,24 +32,23 @@ interface ParticleTrajectoryManifoldProps {
   showControls?: boolean;
   showHud?: boolean;
   autoRotateSpeed?: number;
-  title?: string;
-  subtitle?: string;
+  initialMode?: ManifoldMode;
 }
 
 export default function ParticleTrajectoryManifold({
   className = "",
-  height = 560,
+  height = 620,
   particleCount = 5200,
   showControls = true,
   showHud = true,
-  autoRotateSpeed = 0.0035,
-  title = "AI Behavioral Manifold & Latent Trajectory",
-  subtitle = "Real-time 3D state-space mapping of player sessions against baseline distributions.",
+  autoRotateSpeed = 0.003,
+  initialMode = "anticheat",
 }: ParticleTrajectoryManifoldProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Interaction & Animation State
+  // Active Visualization Mode: Anti-Cheat (Fraud Defense) vs Retention Flywheel (LTV)
+  const [mode, setMode] = useState<ManifoldMode>(initialMode);
   const [isAutoRotating, setIsAutoRotating] = useState(true);
   const [activeMilestone, setActiveMilestone] = useState<MilestoneEvent | null>(null);
   const [isReplaying, setIsReplaying] = useState(false);
@@ -46,10 +57,10 @@ export default function ParticleTrajectoryManifold({
 
   // Rotation & Camera References (avoiding React state re-renders inside 60FPS loop)
   const rotationRef = useRef({
-    x: 0.28,
-    y: -0.45,
-    targetX: 0.28,
-    targetY: -0.45,
+    x: 0.32,
+    y: -0.5,
+    targetX: 0.32,
+    targetY: -0.5,
     zoom: 1.05,
     targetZoom: 1.05,
   });
@@ -57,74 +68,148 @@ export default function ParticleTrajectoryManifold({
   const isDraggingRef = useRef(false);
   const lastMousePosRef = useRef({ x: 0, y: 0 });
 
-  // ─── Parametric Curve & Milestone Definitions ───────────────────────
-  // Spline control points for the central manifold spine
+  // ─── Venue 3D Spatial Anchors (Grounds the AI manifold in a real cafe) ───
+  const venueAnchors: VenueAnchor[] = [
+    { id: "tbl_04", name: "Table #04 QR", type: "Diner Table", x: -260, y: 110, z: 50 },
+    { id: "bar_01", name: "Espresso Counter", type: "Bar POS", x: -60, y: 155, z: 90 },
+    { id: "tbl_12", name: "Terrace Booth #12", type: "Outdoor Area", x: 140, y: 60, z: -30 },
+    { id: "cnt_qr", name: "Takeaway Counter", type: "Checkout QR", x: 310, y: -40, z: -80 },
+  ];
+
+  // ─── Spline Point Definitions ───────────────────────────────────────────
+  // Central benign manifold ribbon spine
   const spinePoints = useRef<[number, number, number][]>([
-    [-460, 60, -90],
-    [-340, 180, 70],
-    [-170, 210, 130],
-    [0, 140, 60],
-    [160, 40, -40],
-    [320, -50, -110],
-    [480, -110, 40],
+    [-460, 50, -90],
+    [-340, 160, 60],
+    [-170, 200, 120],
+    [0, 135, 60],
+    [160, 45, -40],
+    [320, -40, -100],
+    [480, -95, 30],
   ]).current;
 
-  // Control points for the Red Trajectory Curve
-  const trajectoryPoints = useRef<[number, number, number][]>([
-    [-290, 130, 40],
-    [-180, 175, 110],
-    [-40, 170, 75],
-    [90, 135, 10],
-    [220, 65, -60],
-    [340, -20, -90],
-    [430, -85, -20],
+  // Anti-Cheat Trajectory: Deviates sharply outward into anomalous state space
+  const antiCheatPoints = useRef<[number, number, number][]>([
+    [-290, 120, 45],
+    [-170, 165, 110],
+    [-30, 165, 80],
+    [100, 140, 15],
+    [230, 75, -55],
+    [350, -10, -90],
+    [450, -80, -15],
   ]).current;
 
-  // Milestone nodes along the red trajectory
-  const milestones: MilestoneEvent[] = [
+  // Retention Flywheel Trajectory: Loops through table plays, time-lock barrier, and back to cafe repeat visit
+  const retentionPoints = useRef<[number, number, number][]>([
+    [-280, 115, 50],
+    [-150, 185, 100],
+    [10, 165, 45],
+    [150, 95, -20],
+    [260, 15, -70],
+    [180, -60, 30],
+    [-80, -20, 80],
+    [-240, 100, 60],
+  ]).current;
+
+  // ─── Milestone Events for Each Mode ─────────────────────────────────────
+  const antiCheatMilestones: MilestoneEvent[] = [
     {
       id: 1,
-      label: "Baseline Initialization",
+      label: "Table #04 QR Ingress",
       tag: "NOMINAL",
       t: 0.05,
-      desc: "Standard session startup; inputs conform to expected human reaction distribution.",
+      desc: "Customer session initiated from Table #04 standee. Touch reaction time 180ms; micro-jitter variance nominal.",
+      metric: "Jitter: ±18ms · Reaction: 180ms",
       x: -280,
-      y: 135,
-      z: 45,
+      y: 125,
+      z: 50,
     },
     {
       id: 2,
-      label: "Velocity Shift Detected",
+      label: "Coffee Stack Acceleration",
       tag: "MONITOR",
       t: 0.32,
-      desc: "Input frequency spikes; model begins tracing boundary of benign manifold.",
-      x: -70,
-      y: 172,
+      desc: "Input frequency climbs rapidly from 4.2 to 45 taps/sec. Model monitors boundary of human biomechanical limits.",
+      metric: "Velocity: 45 taps/s · Delta: High",
+      x: -55,
+      y: 168,
       z: 85,
     },
     {
       id: 3,
-      label: "State Divergence / Exploit",
+      label: "Autoclicker Macro Exploit",
       tag: "ANOMALY",
       t: 0.65,
-      desc: "Agent/client attempts illegal state injection; trajectory departs benign cluster.",
-      x: 200,
-      y: 75,
+      desc: "Mechanical precision detected (zero standard deviation between taps). Trajectory departs benign cafe manifold.",
+      metric: "Confidence: 99.8% · Exploit: Script",
+      x: 210,
+      y: 85,
       z: -50,
     },
     {
       id: 4,
-      label: "Containment & Auto-Cap",
+      label: "Voucher Shield Active",
       tag: "CONTAINED",
       t: 0.94,
-      desc: "Anti-cheat physics filter intercepts score, truncates anomaly, and logs audit hash.",
-      x: 415,
-      y: -80,
-      z: -25,
+      desc: "Score truncated and reward voucher suppressed. ₹0 discount given. Device fingerprint quarantined for 48h.",
+      metric: "Saved: ₹150 Voucher · Cost to Cafe: ₹0",
+      x: 430,
+      y: -75,
+      z: -20,
     },
   ];
 
-  // Helper: Cubic Catmull-Rom Spline Interpolation for 3D coordinates
+  const retentionMilestones: MilestoneEvent[] = [
+    {
+      id: 101,
+      label: "Visit 1: Table Dine & Play",
+      tag: "DINE & PLAY",
+      t: 0.06,
+      desc: "Customer scans QR while waiting for coffee. Plays Coffee Stack Tower (22 fuel credits used from venue wallet).",
+      metric: "Fuel: 22 credits (~₹2.4) · Wait: 6 min",
+      x: -270,
+      y: 120,
+      z: 55,
+    },
+    {
+      id: 102,
+      label: "Score Unlocks Retention Voucher",
+      tag: "QUALIFIED",
+      t: 0.35,
+      desc: "Player reaches Top 3 score on daily cafe leaderboard. Earns 'Next-Visit Flat ₹50 Off on ₹250+ Bill'.",
+      metric: "Leaderboard: Rank #2 · Perk: ₹50 Off",
+      x: 10,
+      y: 165,
+      z: 45,
+    },
+    {
+      id: 103,
+      label: "24-Hour Time-Lock Enforced",
+      tag: "LOCKED 24H",
+      t: 0.65,
+      desc: "Voucher CANNOT be redeemed today on the current bill. Enforces a 7-day return window starting tomorrow.",
+      metric: "Lock: 24h · Expiry: 7 Days · Min: ₹250",
+      x: 240,
+      y: 25,
+      z: -65,
+    },
+    {
+      id: 104,
+      label: "Visit 2: Repeat Visit Realized",
+      tag: "ROI REALIZED",
+      t: 0.92,
+      desc: "Customer returns 3 days later with friends to redeem ₹50 voucher. Generates a new ₹450 table ticket.",
+      metric: "New Bill: ₹450 · Net Cafe Gain: +₹400",
+      x: -220,
+      y: 95,
+      z: 65,
+    },
+  ];
+
+  const activeMilestones = mode === "anticheat" ? antiCheatMilestones : retentionMilestones;
+  const currentTrajectoryPoints = mode === "anticheat" ? antiCheatPoints : retentionPoints;
+
+  // Catmull-Rom Spline Interpolator
   const getSplinePoint = useCallback(
     (points: [number, number, number][], t: number): [number, number, number] => {
       const p = (points.length - 1) * Math.max(0, Math.min(1, t));
@@ -163,25 +248,27 @@ export default function ParticleTrajectoryManifold({
       x: number;
       y: number;
       z: number;
-      baseX: number;
-      baseY: number;
-      baseZ: number;
       size: number;
       baseAlpha: number;
-      alpha: number;
       phase: number;
       speed: number;
       color: string;
+      isAnomalous?: boolean;
     }[]
   >([]);
 
+  // Nodes for the dynamic constellation manifold mesh
+  const meshIndicesRef = useRef<number[]>([]);
+
   useEffect(() => {
     const list = [];
+    const isAntiCheatMode = mode === "anticheat";
+
     for (let i = 0; i < particleCount; i++) {
       const t = Math.random();
       const [sx, sy, sz] = getSplinePoint(spinePoints, t);
 
-      // Tangent vector along spine
+      // Tangent vector
       const nextT = Math.min(1, t + 0.005);
       const [nx, ny, nz] = getSplinePoint(spinePoints, nextT);
       const tx = nx - sx;
@@ -190,9 +277,8 @@ export default function ParticleTrajectoryManifold({
       const tLen = Math.hypot(tx, ty, tz) || 1;
       const [ux, uy, uz] = [tx / tLen, ty / tLen, tz / tLen];
 
-      // Arbitrary up vector
+      // Normal and binormal with twist
       const [vx, vy, vz] = [0, 1, 0];
-      // Normal = Up x Tangent
       let normX = vy * uz - vz * uy;
       let normY = vz * ux - vx * uz;
       let normZ = vx * uy - vy * ux;
@@ -201,12 +287,10 @@ export default function ParticleTrajectoryManifold({
       normY /= nLen;
       normZ /= nLen;
 
-      // Binormal = Tangent x Normal
       const binX = uy * normZ - uz * normY;
       const binY = uz * normX - ux * normZ;
       const binZ = ux * normY - uy * normX;
 
-      // Apply twist angle along the ribbon length (Mobius ribbon effect)
       const twistAngle = t * Math.PI * 2.8;
       const cosTwist = Math.cos(twistAngle);
       const sinTwist = Math.sin(twistAngle);
@@ -219,12 +303,10 @@ export default function ParticleTrajectoryManifold({
       const rotBinY = -normY * sinTwist + binY * cosTwist;
       const rotBinZ = -normZ * sinTwist + binZ * cosTwist;
 
-      // Ribbon width and thickness with Gaussian distribution
       const u1 = Math.max(0.0001, Math.random());
       const u2 = Math.max(0.0001, Math.random());
       const gaussian = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
 
-      // Width profile narrows in middle, widens at ends
       const widthScale = 45 + 50 * Math.sin(t * Math.PI) + (t > 0.65 ? (t - 0.65) * 110 : 0);
       const thickScale = 16 + 18 * Math.sin(t * Math.PI);
 
@@ -235,29 +317,56 @@ export default function ParticleTrajectoryManifold({
       const py = sy + rotNormY * offsetW + rotBinY * offsetH;
       const pz = sz + rotNormZ * offsetW + rotBinZ * offsetH;
 
-      // 1.5% anomalous red particles inside the cluster
-      const isRedAnomaly = Math.random() < 0.018;
-      const baseAlpha = isRedAnomaly ? 0.85 : 0.2 + Math.random() * 0.75;
-      const size = isRedAnomaly ? 1.6 + Math.random() * 1.6 : 0.65 + Math.random() * 1.5;
+      // Color scheme according to mode
+      let color = "#FFFFFF";
+      let isAnomalous = false;
+
+      if (isAntiCheatMode) {
+        // Red anomaly flecks
+        if (Math.random() < 0.02) {
+          color = "#FF2A55";
+          isAnomalous = true;
+        } else if (Math.random() < 0.15) {
+          color = "#67E8F9"; // Cyan benign telemetry
+        }
+      } else {
+        // Retention mode: Warm ambers, golds, and emerald repeat highlights
+        const r = Math.random();
+        if (r < 0.05) {
+          color = "#10B981"; // Emerald repeaters
+          isAnomalous = true;
+        } else if (r < 0.35) {
+          color = "#F59E0B"; // Warm amber
+        } else if (r < 0.65) {
+          color = "#FDE68A"; // Champagne
+        }
+      }
+
+      const baseAlpha = isAnomalous ? 0.9 : 0.2 + Math.random() * 0.75;
+      const size = isAnomalous ? 1.8 + Math.random() * 1.5 : 0.6 + Math.random() * 1.4;
 
       list.push({
         x: px,
         y: py,
         z: pz,
-        baseX: px,
-        baseY: py,
-        baseZ: pz,
         size,
         baseAlpha,
-        alpha: baseAlpha,
         phase: Math.random() * Math.PI * 2,
         speed: 0.02 + Math.random() * 0.04,
-        color: isRedAnomaly ? "#FF2A55" : "#FFFFFF",
+        color,
+        isAnomalous,
       });
     }
 
     particlesRef.current = list;
-  }, [particleCount, getSplinePoint, spinePoints]);
+
+    // Pick 180 representative particle indices for constellation mesh lines
+    const meshIndices: number[] = [];
+    for (let i = 0; i < 180; i++) {
+      meshIndices.push(Math.floor(Math.random() * list.length));
+    }
+    meshIndicesRef.current = meshIndices;
+  }, [particleCount, getSplinePoint, spinePoints, mode]);
 
   // ─── Main Render Loop ────────────────────────────────────────────────
   useEffect(() => {
@@ -270,12 +379,9 @@ export default function ParticleTrajectoryManifold({
     let lastTime = performance.now();
     let frameCount = 0;
     let fpsTimer = performance.now();
-
-    // Pulse & glow timeline along trajectory
     let pulseT = 0;
 
     const render = (now: number) => {
-      // FPS measurement
       frameCount++;
       if (now - fpsTimer >= 1000) {
         setFps(Math.round((frameCount * 1000) / (now - fpsTimer)));
@@ -286,9 +392,8 @@ export default function ParticleTrajectoryManifold({
       const delta = (now - lastTime) / 1000;
       lastTime = now;
 
-      // Responsive canvas size adjustment
       const width = canvas.parentElement?.clientWidth || 800;
-      const currentHeight = typeof height === "number" ? height : 560;
+      const currentHeight = typeof height === "number" ? height : 620;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
 
       if (canvas.width !== width * dpr || canvas.height !== currentHeight * dpr) {
@@ -296,7 +401,6 @@ export default function ParticleTrajectoryManifold({
         canvas.height = currentHeight * dpr;
       }
 
-      // Smooth camera interpolation (inertial damping)
       const rot = rotationRef.current;
       if (isAutoRotating && !isDraggingRef.current) {
         rot.targetY += autoRotateSpeed;
@@ -311,13 +415,14 @@ export default function ParticleTrajectoryManifold({
       const cosY = Math.cos(rot.y);
       const sinY = Math.sin(rot.y);
 
-      // Clear Canvas to Pitch Black Obsidian
       ctx.save();
       ctx.scale(dpr, dpr);
-      ctx.fillStyle = "#000000";
+
+      // Deep obsidian cybernetic background
+      ctx.fillStyle = "#050608";
       ctx.fillRect(0, 0, width, currentHeight);
 
-      // Subtle atmospheric radial gradient
+      // Atmospheric radial gradient
       const bgGrad = ctx.createRadialGradient(
         width / 2,
         currentHeight / 2,
@@ -326,9 +431,15 @@ export default function ParticleTrajectoryManifold({
         currentHeight / 2,
         Math.max(width, currentHeight) * 0.75
       );
-      bgGrad.addColorStop(0, "rgba(25, 25, 28, 0.45)");
-      bgGrad.addColorStop(0.5, "rgba(8, 8, 10, 0.95)");
-      bgGrad.addColorStop(1, "rgba(0, 0, 0, 1.0)");
+      if (mode === "anticheat") {
+        bgGrad.addColorStop(0, "rgba(22, 12, 16, 0.5)");
+        bgGrad.addColorStop(0.5, "rgba(8, 9, 12, 0.95)");
+        bgGrad.addColorStop(1, "rgba(5, 6, 8, 1.0)");
+      } else {
+        bgGrad.addColorStop(0, "rgba(10, 24, 18, 0.5)");
+        bgGrad.addColorStop(0.5, "rgba(8, 12, 10, 0.95)");
+        bgGrad.addColorStop(1, "rgba(5, 6, 8, 1.0)");
+      }
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, width, currentHeight);
 
@@ -346,23 +457,89 @@ export default function ParticleTrajectoryManifold({
         const y2 = py * cosX - z1 * sinX;
         const z2 = py * sinX + z1 * cosX;
 
-        // Camera distance offset
         const camDist = 950;
         const depth = z2 + camDist;
-
         if (depth <= 10) return null;
 
         const scale = fov / depth;
         return {
           sx: centerX + x1 * scale,
-          sy: centerY - y2 * scale, // inverted Y for screen space
+          sy: centerY - y2 * scale,
           scale,
           depth,
         };
       };
 
-      // ─── 1. Render Background Particles (Manifold Point Cloud) ────────
+      // ─── 0. Ground Perspective Radar Grid Plane ──────────────────────
+      ctx.save();
+      const gridY = -190;
+      const gridRange = 600;
+      const gridStep = 100;
+      const gridColor =
+        mode === "anticheat" ? "rgba(255, 42, 85, 0.08)" : "rgba(16, 185, 129, 0.08)";
+
+      ctx.strokeStyle = gridColor;
+      ctx.lineWidth = 1.0;
+
+      // Longitudinal lines (Z axis)
+      for (let gx = -gridRange; gx <= gridRange; gx += gridStep) {
+        const pStart = project(gx, gridY, -gridRange);
+        const pEnd = project(gx, gridY, gridRange);
+        if (pStart && pEnd) {
+          ctx.beginPath();
+          ctx.moveTo(pStart.sx, pStart.sy);
+          ctx.lineTo(pEnd.sx, pEnd.sy);
+          ctx.stroke();
+        }
+      }
+
+      // Latitudinal lines (X axis)
+      for (let gz = -gridRange; gz <= gridRange; gz += gridStep) {
+        const pStart = project(-gridRange, gridY, gz);
+        const pEnd = project(gridRange, gridY, gz);
+        if (pStart && pEnd) {
+          ctx.beginPath();
+          ctx.moveTo(pStart.sx, pStart.sy);
+          ctx.lineTo(pEnd.sx, pEnd.sy);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+
+      // ─── 1. Render Manifold Constellation Web (Neural Mesh) ───────────
       const particles = particlesRef.current;
+      const meshIndices = meshIndicesRef.current;
+      if (meshIndices.length > 0) {
+        ctx.save();
+        ctx.lineWidth = 0.75;
+        const lineColor =
+          mode === "anticheat" ? "rgba(255, 255, 255, 0.07)" : "rgba(245, 158, 11, 0.08)";
+        ctx.strokeStyle = lineColor;
+
+        for (let i = 0; i < meshIndices.length; i++) {
+          const p1 = particles[meshIndices[i]];
+          if (!p1) continue;
+          const proj1 = project(p1.x, p1.y, p1.z);
+          if (!proj1) continue;
+
+          for (let j = i + 1; j < Math.min(meshIndices.length, i + 6); j++) {
+            const p2 = particles[meshIndices[j]];
+            if (!p2) continue;
+            const distSq = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2 + (p1.z - p2.z) ** 2;
+            if (distSq < 75 * 75) {
+              const proj2 = project(p2.x, p2.y, p2.z);
+              if (!proj2) continue;
+              ctx.beginPath();
+              ctx.moveTo(proj1.sx, proj1.sy);
+              ctx.lineTo(proj2.sx, proj2.sy);
+              ctx.stroke();
+            }
+          }
+        }
+        ctx.restore();
+      }
+
+      // ─── 2. Render Background Particles (State Manifold) ──────────────
       const renderedPoints: {
         sx: number;
         sy: number;
@@ -380,10 +557,9 @@ export default function ParticleTrajectoryManifold({
         const proj = project(p.x, p.y + hoverOffset, p.z);
         if (!proj) continue;
 
-        // Depth cueing: particles further away are dimmer and smaller
         const depthFactor = Math.max(0.1, Math.min(1.4, (1200 - proj.depth) / 800));
-        const finalAlpha = Math.min(1, Math.max(0.05, p.baseAlpha * depthFactor));
-        const finalSize = Math.max(0.4, p.size * proj.scale * 1.2);
+        const finalAlpha = Math.min(1, Math.max(0.04, p.baseAlpha * depthFactor));
+        const finalSize = Math.max(0.4, p.size * proj.scale * 1.25);
 
         renderedPoints.push({
           sx: proj.sx,
@@ -395,31 +571,28 @@ export default function ParticleTrajectoryManifold({
         });
       }
 
-      // Depth sort so closer particles draw on top
       renderedPoints.sort((a, b) => b.depth - a.depth);
 
       for (let i = 0; i < renderedPoints.length; i++) {
         const pt = renderedPoints[i];
         ctx.beginPath();
         ctx.arc(pt.sx, pt.sy, pt.size, 0, Math.PI * 2);
-        ctx.fillStyle =
-          pt.color === "#FFFFFF"
-            ? `rgba(255, 255, 255, ${pt.alpha})`
-            : `rgba(255, 42, 85, ${pt.alpha})`;
+        ctx.fillStyle = pt.color;
+        ctx.globalAlpha = pt.alpha;
         ctx.fill();
       }
+      ctx.globalAlpha = 1.0;
 
-      // ─── 2. Render Continuous Glowing Red Trajectory ───────────────────
+      // ─── 3. Render Continuous Glowing Trajectory Curve ────────────────
       const trajectorySteps = 160;
       const trajProjected: { sx: number; sy: number; t: number; depth: number }[] = [];
 
-      // Max progress for replay animation
       const activeProgress = isReplaying ? replayProgress : 1.0;
       const maxSteps = Math.floor(trajectorySteps * activeProgress);
 
       for (let s = 0; s <= maxSteps; s++) {
         const t = s / trajectorySteps;
-        const [tx, ty, tz] = getSplinePoint(trajectoryPoints, t);
+        const [tx, ty, tz] = getSplinePoint(currentTrajectoryPoints, t);
         const proj = project(tx, ty, tz);
         if (proj) {
           trajProjected.push({ sx: proj.sx, sy: proj.sy, t, depth: proj.depth });
@@ -427,6 +600,11 @@ export default function ParticleTrajectoryManifold({
       }
 
       if (trajProjected.length > 1) {
+        const isRed = mode === "anticheat";
+        const primaryGlow = isRed ? "#FF1E56" : "#10B981";
+        const primaryStroke = isRed ? "rgba(225, 29, 72, 0.5)" : "rgba(16, 185, 129, 0.5)";
+        const coreStroke = isRed ? "rgba(255, 100, 130, 0.95)" : "rgba(110, 231, 183, 0.95)";
+
         // Outer Glow Pass
         ctx.save();
         ctx.beginPath();
@@ -434,9 +612,9 @@ export default function ParticleTrajectoryManifold({
         for (let i = 1; i < trajProjected.length; i++) {
           ctx.lineTo(trajProjected[i].sx, trajProjected[i].sy);
         }
-        ctx.shadowColor = "#FF1E56";
-        ctx.shadowBlur = 14;
-        ctx.strokeStyle = "rgba(225, 29, 72, 0.4)";
+        ctx.shadowColor = primaryGlow;
+        ctx.shadowBlur = 16;
+        ctx.strokeStyle = primaryStroke;
         ctx.lineWidth = 4.5;
         ctx.stroke();
 
@@ -447,64 +625,102 @@ export default function ParticleTrajectoryManifold({
           ctx.lineTo(trajProjected[i].sx, trajProjected[i].sy);
         }
         ctx.shadowBlur = 6;
-        ctx.strokeStyle = "rgba(255, 60, 100, 0.95)";
+        ctx.strokeStyle = coreStroke;
         ctx.lineWidth = 2.0;
         ctx.stroke();
         ctx.restore();
 
         // Traveling Light Pulse along trajectory
-        pulseT = (pulseT + delta * 0.42) % 1.0;
+        pulseT = (pulseT + delta * 0.4) % 1.0;
         if (pulseT <= activeProgress) {
           const pulseIdx = Math.floor(pulseT * trajectorySteps);
           if (trajProjected[pulseIdx]) {
             const pulsePt = trajProjected[pulseIdx];
             ctx.save();
             ctx.beginPath();
-            ctx.arc(pulsePt.sx, pulsePt.sy, 4.5, 0, Math.PI * 2);
+            ctx.arc(pulsePt.sx, pulsePt.sy, 5.0, 0, Math.PI * 2);
             ctx.fillStyle = "#FFFFFF";
-            ctx.shadowColor = "#FF1E56";
-            ctx.shadowBlur = 18;
+            ctx.shadowColor = primaryGlow;
+            ctx.shadowBlur = 20;
             ctx.fill();
 
-            // Expanding ripple wave
             ctx.beginPath();
-            ctx.arc(pulsePt.sx, pulsePt.sy, 9.0, 0, Math.PI * 2);
-            ctx.strokeStyle = "rgba(255, 60, 100, 0.6)";
-            ctx.lineWidth = 1.5;
+            ctx.arc(pulsePt.sx, pulsePt.sy, 11.0, 0, Math.PI * 2);
+            ctx.strokeStyle = isRed ? "rgba(255, 60, 100, 0.7)" : "rgba(52, 211, 153, 0.7)";
+            ctx.lineWidth = 1.8;
             ctx.stroke();
             ctx.restore();
           }
         }
       }
 
-      // ─── 3. Render Anomaly / Milestone Nodes ─────────────────────────
-      milestones.forEach((m) => {
+      // ─── 4. Render Physical Cafe Venue Anchors (3D Pins) ─────────────
+      venueAnchors.forEach((va) => {
+        const proj = project(va.x, va.y, va.z);
+        if (!proj) return;
+
+        ctx.save();
+        // Subtle vertical drop line to ground
+        const groundProj = project(va.x, gridY, va.z);
+        if (groundProj) {
+          ctx.beginPath();
+          ctx.moveTo(proj.sx, proj.sy);
+          ctx.lineTo(groundProj.sx, groundProj.sy);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.setLineDash([3, 4]);
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Diamond pin marker
+        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.beginPath();
+        const s = 4.0;
+        ctx.moveTo(proj.sx, proj.sy - s);
+        ctx.lineTo(proj.sx + s, proj.sy);
+        ctx.lineTo(proj.sx, proj.sy + s);
+        ctx.lineTo(proj.sx - s, proj.sy);
+        ctx.closePath();
+        ctx.fill();
+
+        // Venue Tag Label
+        ctx.font = "bold 9px ui-monospace, SFMono-Regular, monospace";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.fillText(va.name, proj.sx + 8, proj.sy + 3);
+        ctx.restore();
+      });
+
+      // ─── 5. Render Milestone / Telemetry Nodes ────────────────────────
+      activeMilestones.forEach((m) => {
         if (m.t > activeProgress) return;
         const proj = project(m.x, m.y, m.z);
         if (!proj) return;
 
         const isSelected = activeMilestone?.id === m.id;
+        const isRed = mode === "anticheat";
+        const nodeColor = isRed ? "#FF2A55" : "#10B981";
 
         ctx.save();
-        // Outer pulsing target ring
+        // Pulsing target ring
         const ringPulse = 1 + Math.sin(now * 0.006 + m.id) * 0.25;
         ctx.beginPath();
-        ctx.arc(proj.sx, proj.sy, (isSelected ? 9 : 6) * ringPulse, 0, Math.PI * 2);
-        ctx.strokeStyle = isSelected ? "#FFFFFF" : "rgba(255, 42, 85, 0.85)";
+        ctx.arc(proj.sx, proj.sy, (isSelected ? 10 : 7) * ringPulse, 0, Math.PI * 2);
+        ctx.strokeStyle = isSelected ? "#FFFFFF" : nodeColor;
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // Node center
         ctx.beginPath();
-        ctx.arc(proj.sx, proj.sy, isSelected ? 4.5 : 3.0, 0, Math.PI * 2);
-        ctx.fillStyle = isSelected ? "#FFFFFF" : "#FF2A55";
-        ctx.shadowColor = "#FF2A55";
-        ctx.shadowBlur = isSelected ? 16 : 8;
+        ctx.arc(proj.sx, proj.sy, isSelected ? 5.0 : 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = isSelected ? "#FFFFFF" : nodeColor;
+        ctx.shadowColor = nodeColor;
+        ctx.shadowBlur = isSelected ? 18 : 10;
         ctx.fill();
 
-        // Node Pin Label Tag
-        ctx.font = "9px ui-monospace, SFMono-Regular, Menlo, monospace";
-        ctx.fillStyle = isSelected ? "#FFFFFF" : "rgba(255, 255, 255, 0.75)";
+        // Tag label
+        ctx.font = "bold 9px ui-monospace, SFMono-Regular, monospace";
+        ctx.fillStyle = isSelected ? "#FFFFFF" : "rgba(255, 255, 255, 0.85)";
         ctx.fillText(`[${m.tag}]`, proj.sx + 10, proj.sy + 3);
 
         ctx.restore();
@@ -524,7 +740,9 @@ export default function ParticleTrajectoryManifold({
     isReplaying,
     replayProgress,
     getSplinePoint,
-    trajectoryPoints,
+    currentTrajectoryPoints,
+    mode,
+    activeMilestones,
   ]);
 
   // ─── Replay Timeline Handler ─────────────────────────────────────────
@@ -532,7 +750,7 @@ export default function ParticleTrajectoryManifold({
     if (!isReplaying) return;
     let animId: number;
     let start: number | null = null;
-    const duration = 4200; // 4.2 seconds to trace full path
+    const duration = 4000;
 
     const step = (timestamp: number) => {
       if (!start) start = timestamp;
@@ -583,7 +801,6 @@ export default function ParticleTrajectoryManifold({
     );
   };
 
-  // Touch Handlers for Mobile Orbit
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       isDraggingRef.current = true;
@@ -609,8 +826,8 @@ export default function ParticleTrajectoryManifold({
   };
 
   const handleResetView = () => {
-    rotationRef.current.targetX = 0.28;
-    rotationRef.current.targetY = -0.45;
+    rotationRef.current.targetX = 0.32;
+    rotationRef.current.targetY = -0.5;
     rotationRef.current.targetZoom = 1.05;
     setActiveMilestone(null);
   };
@@ -623,7 +840,7 @@ export default function ParticleTrajectoryManifold({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full overflow-hidden bg-black text-white rounded-3xl border-3 border-black shadow-[8px_8px_0px_0px_#000] select-none ${className}`}
+      className={`relative w-full overflow-hidden bg-[#050608] text-white rounded-3xl border-2 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] select-none ${className}`}
       style={{ height }}
     >
       {/* 3D WebGL / Canvas Viewport */}
@@ -640,37 +857,76 @@ export default function ParticleTrajectoryManifold({
         className="w-full h-full cursor-grab active:cursor-grabbing block"
       />
 
-      {/* Top Left HUD: Title, Description & Model Metrics */}
+      {/* Top Left HUD: Mode Switcher & Real-time Venue Telemetry */}
       {showHud && (
-        <div className="absolute top-5 left-5 max-w-sm pointer-events-none z-10">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-            <span className="font-mono text-[10px] font-black uppercase tracking-widest text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-800/60 backdrop-blur-md">
-              BEHAVIORAL TRAJECTORY RADAR
-            </span>
-          </div>
-          <h3 className="font-serif text-xl sm:text-2xl font-black text-white leading-tight tracking-tight drop-shadow-md">
-            {title}
-          </h3>
-          <p className="text-xs font-semibold text-white/60 mt-1 line-clamp-2 drop-shadow">
-            {subtitle}
-          </p>
+        <div className="absolute top-5 left-5 max-w-sm sm:max-w-md pointer-events-none z-10 flex flex-col gap-2.5">
+          {/* Interactive Mode Pills */}
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <button
+              onClick={() => {
+                setMode("anticheat");
+                setActiveMilestone(null);
+              }}
+              className={`px-3 py-1.5 rounded-xl font-mono text-[11px] font-black uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-2 backdrop-blur-md ${
+                mode === "anticheat"
+                  ? "bg-red-950/90 text-red-300 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+                  : "bg-black/50 text-white/50 border-white/10 hover:text-white"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+              🛡️ Anti-Cheat Radar
+            </button>
 
-          <div className="flex items-center gap-3 mt-3 font-mono text-[10px] text-white/50">
+            <button
+              onClick={() => {
+                setMode("retention");
+                setActiveMilestone(null);
+              }}
+              className={`px-3 py-1.5 rounded-xl font-mono text-[11px] font-black uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-2 backdrop-blur-md ${
+                mode === "retention"
+                  ? "bg-emerald-950/90 text-emerald-300 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                  : "bg-black/50 text-white/50 border-white/10 hover:text-white"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              🔄 Retention Flywheel
+            </button>
+          </div>
+
+          <div>
+            <h3 className="font-serif text-lg sm:text-2xl font-black text-white leading-tight tracking-tight drop-shadow-md">
+              {mode === "anticheat"
+                ? "Autonomous Anti-Cheat State Manifold"
+                : "Customer Retention & Return Vector"}
+            </h3>
+            <p className="text-[11px] sm:text-xs font-semibold text-white/60 mt-1 line-clamp-2 drop-shadow">
+              {mode === "anticheat"
+                ? "Physical kinematics projection: Autoclickers, memory hacks, and spoofers diverge along the crimson vector and are neutralized before vouchers mint."
+                : "Repeat visit dynamics: Legitimate diners play Coffee Stack Tower, lock in a 24h-delayed perk, and return to generate high-margin cafe bills."}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 font-mono text-[10px] text-white/50 flex-wrap">
             <span className="bg-white/10 px-2 py-0.5 rounded border border-white/10 backdrop-blur-md">
               P: {particleCount.toLocaleString()} pts
             </span>
             <span className="bg-white/10 px-2 py-0.5 rounded border border-white/10 backdrop-blur-md">
               {fps} FPS
             </span>
-            <span className="text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/50">
-              Live Stream
+            <span
+              className={`font-bold px-2 py-0.5 rounded border ${
+                mode === "anticheat"
+                  ? "text-red-400 bg-red-950/60 border-red-800/50"
+                  : "text-emerald-400 bg-emerald-950/60 border-emerald-800/50"
+              }`}
+            >
+              {mode === "anticheat" ? "● Threat Shield Active" : "● LTV Engine Sync"}
             </span>
           </div>
         </div>
       )}
 
-      {/* Top Right Controls & Toggles */}
+      {/* Top Right Controls & Camera Toggles */}
       {showControls && (
         <div className="absolute top-5 right-5 flex items-center gap-2 z-10">
           <button
@@ -688,8 +944,12 @@ export default function ParticleTrajectoryManifold({
           <button
             onClick={triggerReplay}
             disabled={isReplaying}
-            className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-red-600/80 hover:bg-red-600 text-white border border-red-400 shadow-[2px_2px_0px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50"
-            title="Replay trajectory anomaly from t=0"
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-white border shadow-[2px_2px_0px_0px_#000] active:translate-y-[1px] transition-all cursor-pointer disabled:opacity-50 ${
+              mode === "anticheat"
+                ? "bg-red-600/80 hover:bg-red-600 border-red-400"
+                : "bg-emerald-600/80 hover:bg-emerald-600 border-emerald-400"
+            }`}
+            title="Replay trajectory sequence"
           >
             {isReplaying ? "⚡ Simulating..." : "🔁 Replay Vector"}
           </button>
@@ -704,30 +964,47 @@ export default function ParticleTrajectoryManifold({
         </div>
       )}
 
-      {/* Bottom Timeline Milestones Bar */}
+      {/* Bottom Timeline Milestones Bar & Telemetry Card */}
       <div className="absolute bottom-4 left-4 right-4 z-10 flex flex-col gap-2 pointer-events-auto">
-        {/* Active Milestone Card Drawer */}
+        {/* Active Milestone Telemetry Drawer */}
         {activeMilestone && (
-          <div className="bg-black/80 border border-red-500/50 backdrop-blur-md p-3 rounded-2xl flex items-center justify-between shadow-2xl animate-fade-in text-left">
+          <div
+            className={`bg-[#0C0E14]/90 border backdrop-blur-xl p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xl animate-fade-in ${
+              mode === "anticheat" ? "border-red-500/50" : "border-emerald-500/50"
+            }`}
+          >
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[9px] font-black uppercase text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded border border-red-800">
+                <span
+                  className={`font-mono text-[9px] font-black uppercase px-2 py-0.5 rounded border ${
+                    mode === "anticheat"
+                      ? "text-red-400 bg-red-950/80 border-red-800"
+                      : "text-emerald-400 bg-emerald-950/80 border-emerald-800"
+                  }`}
+                >
                   {activeMilestone.tag}
                 </span>
-                <span className="font-bold text-xs text-white">
+                <span className="font-bold text-xs sm:text-sm text-white">
                   {activeMilestone.label}
                 </span>
               </div>
-              <p className="text-[11px] text-white/70 mt-0.5 max-w-xl">
+              <p className="text-[11px] sm:text-xs text-white/70 mt-1 max-w-xl">
                 {activeMilestone.desc}
               </p>
             </div>
-            <button
-              onClick={() => setActiveMilestone(null)}
-              className="text-white/40 hover:text-white p-1 text-xs ml-3 cursor-pointer"
-            >
-              ✕
-            </button>
+
+            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+              <span className="font-mono text-[10px] text-white/90 bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">
+                {activeMilestone.metric}
+              </span>
+              <button
+                onClick={() => setActiveMilestone(null)}
+                className="text-white/40 hover:text-white p-1 text-xs cursor-pointer"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         )}
 
@@ -735,22 +1012,31 @@ export default function ParticleTrajectoryManifold({
         <div className="flex items-center justify-between gap-2 overflow-x-auto py-1 scrollbar-none">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-mono text-[9px] uppercase tracking-wider text-white/40 mr-1 hidden sm:inline">
-              Trajectory Telemetry:
+              Telemetry Nodes:
             </span>
-            {milestones.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setActiveMilestone(activeMilestone?.id === m.id ? null : m)}
-                className={`px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold border transition-all cursor-pointer backdrop-blur-md flex items-center gap-1.5 ${
-                  activeMilestone?.id === m.id
-                    ? "bg-red-600 text-white border-red-300 shadow-[0_0_12px_rgba(239,68,68,0.6)]"
-                    : "bg-black/60 text-white/60 border-white/10 hover:border-white/30 hover:text-white"
-                }`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
-                <span>{m.label}</span>
-              </button>
-            ))}
+            {activeMilestones.map((m) => {
+              const isSelected = activeMilestone?.id === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => setActiveMilestone(isSelected ? null : m)}
+                  className={`px-2.5 py-1 rounded-lg font-mono text-[10px] font-bold border transition-all cursor-pointer backdrop-blur-md flex items-center gap-1.5 ${
+                    isSelected
+                      ? mode === "anticheat"
+                        ? "bg-red-600 text-white border-red-300 shadow-[0_0_12px_rgba(239,68,68,0.6)]"
+                        : "bg-emerald-600 text-white border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.6)]"
+                      : "bg-black/60 text-white/60 border-white/10 hover:border-white/30 hover:text-white"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      mode === "anticheat" ? "bg-red-400" : "bg-emerald-400"
+                    }`}
+                  ></span>
+                  <span>{m.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="font-mono text-[10px] text-white/40 hidden md:block shrink-0">
