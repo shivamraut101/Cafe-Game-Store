@@ -8,6 +8,7 @@ import ParticleTrajectoryManifold from "../components/ParticleTrajectoryManifold
 export default function MarketingHomePage() {
   const [scansPerMonth, setScansPerMonth] = useState(1500);
   const [avgTicket, setAvgTicket] = useState(250);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Dynamic game credit calculation (average ~22 credits per play across 10-40 credit game tiers)
   const estimatedCredits = scansPerMonth * 22;
@@ -18,50 +19,125 @@ export default function MarketingHomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F6F3EB]">
-      {/* Navigation Header */}
-      <header className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto w-full sticky top-0 bg-[#F6F3EB]/90 backdrop-blur-md z-40 border-b border-black/10">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-[#111111] text-white flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#FF4C29]">
-            ⚡
+      {/* Navigation Header - Full Width Seamless Bar */}
+      <header className="sticky top-0 z-50 w-full bg-[#111111]/95 text-white backdrop-blur-xl border-b-2 border-black shadow-md">
+        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
+          {/* Brand Logo & SaaS Tag */}
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-xl bg-[#FF4C29] text-white flex items-center justify-center font-black border-2 border-white shadow-[2px_2px_0px_0px_#000] group-hover:scale-105 transition-transform">
+                ⚡
+              </div>
+              <span className="font-serif font-black text-2xl tracking-tight text-white">ForStore</span>
+            </Link>
+            <span className="bg-white/10 text-orange-400 text-[10px] font-black px-2.5 py-1 rounded-full border border-orange-500/30 uppercase tracking-widest hidden sm:inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+              Arcade &amp; Retention SaaS
+            </span>
           </div>
-          <span className="font-serif font-black text-2xl tracking-tight text-black">ForStore</span>
-          <span className="bg-orange-100 text-[#FF4C29] text-[10px] font-black px-2 py-0.5 rounded-full border border-orange-200 uppercase tracking-widest hidden sm:inline-block">
-            White-Label SaaS
-          </span>
+
+          {/* Desktop Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-7 font-semibold text-sm">
+            <button
+              onClick={() => triggerStoryboardModal(0)}
+              className="text-white/80 hover:text-[#FF4C29] transition-colors font-bold flex items-center gap-1.5 cursor-pointer py-1"
+            >
+              <span>🎬</span>
+              <span>How It Works</span>
+            </button>
+            <a
+              href="#trajectory"
+              className="hover:text-white transition-colors flex items-center gap-1.5 py-1 bg-red-950/60 text-red-300 hover:bg-red-900/60 px-3 py-1 rounded-full border border-red-800/60 text-xs font-bold"
+            >
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+              AI Trajectory Radar
+            </a>
+            <a href="#games" className="text-white/80 hover:text-white transition-colors py-1">
+              Arcade Games
+            </a>
+            <a href="#calculator" className="text-white/80 hover:text-white transition-colors py-1">
+              ROI Calculator
+            </a>
+            <a href="#pricing" className="text-white/80 hover:text-white transition-colors py-1">
+              Pricing &amp; Plans
+            </a>
+          </nav>
+
+          {/* Right CTAs */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin"
+              className="font-bold text-sm text-white/80 hover:text-white transition-colors hidden sm:inline-block px-3 py-2"
+            >
+              Merchant Sign In
+            </Link>
+            <Link
+              href="/admin?mode=register"
+              className="bg-[#FF4C29] text-white px-4 py-2 rounded-xl font-black border-2 border-black shadow-[3px_3px_0px_0px_#FFFFFF] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#FFFFFF] transition-all text-xs flex items-center gap-1.5"
+            >
+              Start Free Trial <span>→</span>
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg bg-white/10 text-white border border-white/20 text-sm"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? "✕" : "☰"}
+            </button>
+          </div>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8 font-semibold text-sm">
-          <button
-            onClick={() => triggerStoryboardModal(0)}
-            className="text-black hover:text-[#FF4C29] transition-colors font-bold flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>📖</span>
-            <span>How It Works</span>
-          </button>
-          <a href="#features" className="hover:text-black/70 transition-colors">White-Labeling</a>
-          <a href="#trajectory" className="hover:text-black/70 transition-colors flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-            AI Trajectory
-          </a>
-          <a href="#calculator" className="hover:text-black/70 transition-colors">ROI Calculator</a>
-          <a href="#pricing" className="hover:text-black/70 transition-colors">Pricing & Plans</a>
-          <a href="#games" className="hover:text-black/70 transition-colors">Arcade Games</a>
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin"
-            className="font-bold text-sm hover:text-black/70 transition-colors hidden sm:inline-block px-3 py-2"
-          >
-            Merchant Sign In
-          </Link>
-          <Link
-            href="/admin?mode=register"
-            className="bg-[#111111] text-white px-5 py-2.5 rounded-xl font-bold border-2 border-black shadow-[3px_3px_0px_0px_#FF4C29] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#FF4C29] transition-all text-xs flex items-center gap-2"
-          >
-            Start Free Trial <span>→</span>
-          </Link>
-        </div>
+        {/* Mobile Dropdown Drawer */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden bg-[#111111] border-t border-white/10 px-6 py-4 flex flex-col gap-3 animate-fade-in">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                triggerStoryboardModal(0);
+              }}
+              className="text-left text-white/90 hover:text-[#FF4C29] font-bold flex items-center gap-2 py-2"
+            >
+              <span>🎬</span> How It Works (Storyboard)
+            </button>
+            <a
+              href="#trajectory"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-red-300 font-bold flex items-center gap-2 py-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-red-500"></span> AI Trajectory Radar
+            </a>
+            <a
+              href="#games"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-white/80 hover:text-white font-medium py-2"
+            >
+              Arcade Games
+            </a>
+            <a
+              href="#calculator"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-white/80 hover:text-white font-medium py-2"
+            >
+              ROI Calculator
+            </a>
+            <a
+              href="#pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-white/80 hover:text-white font-medium py-2"
+            >
+              Pricing &amp; Plans
+            </a>
+            <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-center py-2.5 rounded-lg border border-white/20 text-white font-bold text-xs"
+              >
+                Merchant Sign In
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Hero Section */}
@@ -165,40 +241,58 @@ export default function MarketingHomePage() {
         </section>
 
         {/* SECTION: AI TRAJECTORY & ANTI-CHEAT MANIFOLD */}
-        <section id="trajectory" className="bg-[#0B0B0C] text-white border-y-3 border-black py-16 px-6 relative overflow-hidden">
-          <div className="max-w-7xl mx-auto w-full flex flex-col gap-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="max-w-2xl">
-                <span className="text-xs font-black uppercase tracking-widest text-[#FF4C29] bg-[#FF4C29]/15 px-3.5 py-1.5 rounded-full border border-[#FF4C29]/30 inline-block mb-3">
-                  PROPRIETARY AI SAFETY & DYNAMICAL ANTI-CHEAT
-                </span>
-                <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
-                  High-Dimensional Trajectory Monitoring. Zero Reward Fraud.
+        <section id="trajectory" className="bg-[#050608] text-white border-y-3 border-black py-16 sm:py-20 px-6 relative overflow-hidden">
+          {/* Subtle Cyber Glow Gradient */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(255,76,41,0.12),rgba(255,255,255,0))] pointer-events-none" />
+
+          <div className="max-w-7xl mx-auto w-full flex flex-col gap-8 relative z-10">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+              <div className="max-w-3xl">
+                <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <span className="text-[11px] font-mono font-black uppercase tracking-widest text-[#FF4C29] bg-[#FF4C29]/15 px-3 py-1 rounded-full border border-[#FF4C29]/30 inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF4C29] animate-ping"></span>
+                    PROPRIETARY AI RADAR &amp; RETENTION DYNAMICS
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-500/40">
+                    Dual-Engine Topology
+                  </span>
+                </div>
+                <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.1]">
+                  State-Space Trajectory Radar. <br className="hidden sm:inline" />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-amber-300">
+                    Zero Reward Fraud. 100% Real Footfall.
+                  </span>
                 </h2>
-                <p className="text-sm sm:text-base text-white/70 font-medium mt-2 leading-relaxed">
-                  Every tap, swipe, and physical reaction is projected into our real-time behavioral state-space manifold. 
-                  Normal customer plays orbit comfortably inside the benign cluster (white cloud), while bot swarms, memory injectors, and timing exploits diverge along anomalous trajectories (red path) and are auto-capped before discounts are issued.
+                <p className="text-sm sm:text-base text-white/70 font-medium mt-3 leading-relaxed">
+                  Every table QR scan, mini-game tap, and voucher redemption is projected into our 3D state manifold. 
+                  Toggle between <strong>Anti-Cheat Radar</strong> (suppressing autoclickers and bot swarms before vouchers mint) and <strong>Retention Flywheel</strong> (verifying how 24h time-delayed vouchers turn games into repeat cafe revenue).
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="bg-black/60 border border-white/15 rounded-2xl p-3 text-left">
-                  <span className="font-mono text-[10px] text-white/50 uppercase block">Containment Ratio</span>
-                  <span className="font-mono text-xl font-black text-emerald-400">99.98%</span>
+              {/* Live Metric Cards */}
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-3 shrink-0">
+                <div className="bg-black/70 border border-white/15 rounded-2xl p-3 sm:p-3.5 text-left backdrop-blur-md">
+                  <span className="font-mono text-[9px] sm:text-[10px] text-white/50 uppercase block tracking-wider">Fraud Shield</span>
+                  <span className="font-mono text-lg sm:text-xl font-black text-emerald-400">99.98%</span>
+                  <span className="text-[9px] text-white/40 block mt-0.5">Exploits Stopped</span>
                 </div>
-                <div className="bg-black/60 border border-white/15 rounded-2xl p-3 text-left">
-                  <span className="font-mono text-[10px] text-white/50 uppercase block">Telemetry Latency</span>
-                  <span className="font-mono text-xl font-black text-amber-400">&lt; 14ms</span>
+                <div className="bg-black/70 border border-white/15 rounded-2xl p-3 sm:p-3.5 text-left backdrop-blur-md">
+                  <span className="font-mono text-[9px] sm:text-[10px] text-white/50 uppercase block tracking-wider">Kinetic Latency</span>
+                  <span className="font-mono text-lg sm:text-xl font-black text-amber-400">&lt; 14ms</span>
+                  <span className="text-[9px] text-white/40 block mt-0.5">Vector Isolation</span>
+                </div>
+                <div className="bg-black/70 border border-white/15 rounded-2xl p-3 sm:p-3.5 text-left backdrop-blur-md">
+                  <span className="font-mono text-[9px] sm:text-[10px] text-white/50 uppercase block tracking-wider">Repeat Lift</span>
+                  <span className="font-mono text-lg sm:text-xl font-black text-cyan-400">+24.6%</span>
+                  <span className="text-[9px] text-white/40 block mt-0.5">Next-Visit Footfall</span>
                 </div>
               </div>
             </div>
 
             {/* Interactive 3D Manifold Canvas Component */}
             <ParticleTrajectoryManifold
-              height={620}
-              particleCount={5400}
-              title="Player State-Space Manifold"
-              subtitle="Interactive 3D projection: White cluster = Benign play baseline • Red curve = Anomaly trajectory intercepted"
+              height={640}
+              particleCount={5200}
             />
           </div>
         </section>
