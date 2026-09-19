@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { triggerStoryboardModal } from "../components/DemoStoryboardModal";
+import ParticleTrajectoryManifold from "../components/ParticleTrajectoryManifold";
 
 export default function MarketingHomePage() {
   const [scansPerMonth, setScansPerMonth] = useState(1500);
@@ -38,6 +39,10 @@ export default function MarketingHomePage() {
             <span>How It Works</span>
           </button>
           <a href="#features" className="hover:text-black/70 transition-colors">White-Labeling</a>
+          <a href="#trajectory" className="hover:text-black/70 transition-colors flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+            AI Trajectory
+          </a>
           <a href="#calculator" className="hover:text-black/70 transition-colors">ROI Calculator</a>
           <a href="#pricing" className="hover:text-black/70 transition-colors">Pricing & Plans</a>
           <a href="#games" className="hover:text-black/70 transition-colors">Arcade Games</a>
@@ -156,6 +161,45 @@ export default function MarketingHomePage() {
                 </Link>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* SECTION: AI TRAJECTORY & ANTI-CHEAT MANIFOLD */}
+        <section id="trajectory" className="bg-[#0B0B0C] text-white border-y-3 border-black py-16 px-6 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto w-full flex flex-col gap-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="max-w-2xl">
+                <span className="text-xs font-black uppercase tracking-widest text-[#FF4C29] bg-[#FF4C29]/15 px-3.5 py-1.5 rounded-full border border-[#FF4C29]/30 inline-block mb-3">
+                  PROPRIETARY AI SAFETY & DYNAMICAL ANTI-CHEAT
+                </span>
+                <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">
+                  High-Dimensional Trajectory Monitoring. Zero Reward Fraud.
+                </h2>
+                <p className="text-sm sm:text-base text-white/70 font-medium mt-2 leading-relaxed">
+                  Every tap, swipe, and physical reaction is projected into our real-time behavioral state-space manifold. 
+                  Normal customer plays orbit comfortably inside the benign cluster (white cloud), while bot swarms, memory injectors, and timing exploits diverge along anomalous trajectories (red path) and are auto-capped before discounts are issued.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="bg-black/60 border border-white/15 rounded-2xl p-3 text-left">
+                  <span className="font-mono text-[10px] text-white/50 uppercase block">Containment Ratio</span>
+                  <span className="font-mono text-xl font-black text-emerald-400">99.98%</span>
+                </div>
+                <div className="bg-black/60 border border-white/15 rounded-2xl p-3 text-left">
+                  <span className="font-mono text-[10px] text-white/50 uppercase block">Telemetry Latency</span>
+                  <span className="font-mono text-xl font-black text-amber-400">&lt; 14ms</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive 3D Manifold Canvas Component */}
+            <ParticleTrajectoryManifold
+              height={620}
+              particleCount={5400}
+              title="Player State-Space Manifold"
+              subtitle="Interactive 3D projection: White cluster = Benign play baseline • Red curve = Anomaly trajectory intercepted"
+            />
           </div>
         </section>
 
