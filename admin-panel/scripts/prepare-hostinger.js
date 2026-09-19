@@ -54,18 +54,10 @@ try {
     fs.cpSync(staticDir, path.join(standaloneDir, ".next", "static"), { recursive: true, force: true });
   }
 
-  // 4. For dual-compatibility (whether Hostinger points to .next or .next/standalone):
-  // Copy the standalone server.js and node_modules into .next root
+  // 4. Copy root server.js into standalone root if needed
   if (fs.existsSync(rootServer)) {
     fs.copyFileSync(rootServer, path.join(dotNextDir, "server.js"));
     console.log("[prepare-hostinger] Synced standalone server.js into .next/server.js");
-  }
-
-  const standaloneModules = path.join(standaloneDir, "node_modules");
-  const dotNextModules = path.join(dotNextDir, "node_modules");
-  if (fs.existsSync(standaloneModules)) {
-    console.log("[prepare-hostinger] Linking/copying node_modules into .next/node_modules...");
-    fs.cpSync(standaloneModules, dotNextModules, { recursive: true, force: true, dereference: true });
   }
 
   if (fs.existsSync(publicDir)) {
