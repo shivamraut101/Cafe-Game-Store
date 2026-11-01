@@ -163,9 +163,13 @@ export default function ArcadeLandingPage() {
   useEffect(() => {
     // Read store parameter from URL query string (e.g. ?store=adda-99)
     let storeParam = "";
+    let prospectName = "";
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const queryStore = params.get("store");
+      // Personal demo link (?prospect=Tapioca House): show the prospect's own name in the header
+      prospectName = (params.get("prospect") || "").trim();
+      if (prospectName) setStoreName(prospectName);
 
       if (queryStore) {
         sessionStorage.setItem("selectedStore", queryStore);
@@ -237,7 +241,7 @@ export default function ArcadeLandingPage() {
     getStoreBrandingAction(storeParam)
       .then((res) => {
         if (res.success && res.branding && res.branding.storeName) {
-          setStoreName(res.branding.storeName);
+          setStoreName(prospectName || res.branding.storeName);
           if (typeof window !== "undefined") {
             sessionStorage.setItem("selectedStore", res.branding.storeName);
           }
