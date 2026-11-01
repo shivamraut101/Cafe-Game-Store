@@ -5,6 +5,26 @@ import { useSearchParams } from "next/navigation";
 import { getClientAppEnvironment } from "../lib/appEnv";
 import { recordProspectOnboardingAction } from "../app/actions/prospectActions";
 
+const getDeviceId = () => {
+  if (typeof window === "undefined") return "";
+  let devId = localStorage.getItem("forstore_device_id");
+  if (!devId) {
+    const match = document.cookie.match(/forstore_device_id=([^;]+)/);
+    if (match && match[1]) devId = match[1];
+  }
+  return devId || "";
+};
+
+const getVisitorId = () => {
+  if (typeof window === "undefined") return "";
+  let visId = localStorage.getItem("forstore_visitor_id");
+  if (!visId) {
+    visId = `vis_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
+    localStorage.setItem("forstore_visitor_id", visId);
+  }
+  return visId;
+};
+
 export default function DemoWelcomeModal() {
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
@@ -23,13 +43,27 @@ export default function DemoWelcomeModal() {
     const answered = localStorage.getItem("forstore_onboarding_answered");
     if (answered) return;
 
-    // Prepopulate name if a prospect tag is in URL
+    // Personal link (e.g. from outreach email): we already know who they are, so skip the prompt and log the visit
     const prospectParam =
       searchParams.get("prospect") ||
       searchParams.get("client") ||
       searchParams.get("ref");
     if (prospectParam && prospectParam.trim()) {
-      setName(prospectParam.trim());
+      const tag = prospectParam.trim();
+      try {
+        localStorage.setItem("forstore_onboarding_answered", "name_only");
+        localStorage.setItem("forstore_prospect_tag", tag);
+        localStorage.setItem("forstore_client_name", tag);
+      } catch {}
+      recordProspectOnboardingAction({
+        visitorId: getVisitorId(),
+        deviceId: getDeviceId(),
+        name: tag,
+        status: "name_only",
+        prospectTag: tag,
+        deviceInfo: "Personal link",
+      }).catch(() => {});
+      return;
     }
 
     // Small 800ms delay so page paints smoothly before subtle prompt shows
@@ -41,26 +75,6 @@ export default function DemoWelcomeModal() {
   }, [searchParams]);
 
   if (!isOpen) return null;
-
-  const getDeviceId = () => {
-    if (typeof window === "undefined") return "";
-    let devId = localStorage.getItem("forstore_device_id");
-    if (!devId) {
-      const match = document.cookie.match(/forstore_device_id=([^;]+)/);
-      if (match && match[1]) devId = match[1];
-    }
-    return devId || "";
-  };
-
-  const getVisitorId = () => {
-    if (typeof window === "undefined") return "";
-    let visId = localStorage.getItem("forstore_visitor_id");
-    if (!visId) {
-      visId = `vis_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
-      localStorage.setItem("forstore_visitor_id", visId);
-    }
-    return visId;
-  };
 
   const handleComplete = async (
     overrideStatus?: "skipped" | "dismissed"
